@@ -28,6 +28,9 @@ importers:
       '@react-three/fiber':
         specifier: ^9.3.0
         version: 9.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.178.0)
+      '@supabase/supabase-js':
+        specifier: ^2.53.0
+        version: 2.112.3
       framer-motion:
         specifier: ^12.23.12
         version: 12.43.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -71,6 +74,9 @@ importers:
       '@hometown/types':
         specifier: workspace:*
         version: link:../types
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.3
     devDependencies:
       '@types/node':
         specifier: ^24.3.0

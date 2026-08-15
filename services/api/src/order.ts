@@ -9,6 +9,16 @@ const supabase: SupabaseClient | null = process.env.SUPABASE_URL && process.env.
 
 export function getStoreMode() { return supabase ? 'supabase' : 'memory'; }
 
+export async function assertAdmin(authorization?: string) {
+  if (!supabase) throw new Error('Admin API chưa được cấu hình Supabase.');
+  const token = authorization?.replace(/^Bearer\s+/i, '');
+  if (!token) throw new Error('Yêu cầu đăng nhập admin.');
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData.user) throw new Error('Phiên đăng nhập không hợp lệ.');
+  const { data: profile, error: profileError } = await supabase.from('users').select('role').eq('id', authData.user.id).maybeSingle();
+  if (profileError || profile?.role !== 'ADMIN') throw new Error('Tài khoản không có quyền ADMIN.');
+}
+
 export async function createOrder(payload: unknown): Promise<Order> {
   const input = OrderInputSchema.parse(payload);
   const items = input.items.map((item) => {

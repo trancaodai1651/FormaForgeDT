@@ -68,6 +68,22 @@ export type MeshData = { vertices: number[]; indices: number[]; normals?: number
 export type ValidationIssue = { level: 'safe' | 'warning' | 'error'; label: string; value: string; detail: string };
 export type PrintabilityReport = { overall: 'SAFE' | 'WARNING' | 'ERROR'; issues: ValidationIssue[]; estimatedPrintTime: string; estimatedMaterialGrams: number };
 
+export const DesignProjectSchema = z.object({
+  version: z.number().int().positive(), id: z.string(), name: z.string(), productId: z.string().optional(),
+  originalShape: z.record(z.unknown()), parameters: z.record(z.unknown()), generatedGeometry: z.record(z.unknown()),
+  history: z.array(z.record(z.unknown())).default([]), updatedAt: z.string(),
+});
+export type DesignProject = z.infer<typeof DesignProjectSchema>;
+export function createDesignProject(name: string, productId: string, parameters: Record<string, unknown>): DesignProject {
+  return { version: 1, id: crypto.randomUUID(), name, productId, originalShape: {}, parameters, generatedGeometry: {}, history: [], updatedAt: new Date().toISOString() };
+}
+export function migrateDesignProject(input: unknown): DesignProject {
+  const parsed = DesignProjectSchema.safeParse(input);
+  if (parsed.success) return parsed.data;
+  const legacy = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  return { version: 1, id: typeof legacy.id === 'string' ? legacy.id : crypto.randomUUID(), name: typeof legacy.name === 'string' ? legacy.name : 'Untitled lamp', productId: typeof legacy.productId === 'string' ? legacy.productId : undefined, originalShape: (legacy.shape as Record<string, unknown>) ?? {}, parameters: (legacy.geometry as Record<string, unknown>) ?? {}, generatedGeometry: {}, history: [], updatedAt: new Date().toISOString() };
+}
+
 export const HARDWARE_SPECS = {
   E27: { socketDiameter: 42, socketHeight: 55, clearance: 1.2, wallThickness: 2, heatClearance: 12, cablePassage: 10, reference: 'Configurable baseline; verify the selected socket before manufacturing.' },
   BAMBU_LED_KIT_001: { moduleDiameter: 45, moduleHeight: 18, mountDiameter: 48, clearance: 0.6, heatClearance: 8, cablePassage: 8, reference: 'Adapter envelope; verify the purchased LED Kit 001 revision before manufacturing.' },

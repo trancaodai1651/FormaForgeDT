@@ -1,4 +1,5 @@
 import type { GeometryConfig, MeshData, PrintabilityReport, ShapeDefinition, ValidationIssue } from '@hometown/types';
+import { zipSync } from 'fflate';
 
 export type Point = { x: number; y: number };
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -68,8 +69,30 @@ export function exportSTL(mesh: MeshData, name = 'hometown-lamp'): string {
 }
 
 export function exportGLB(mesh: MeshData): Uint8Array {
-  const json = JSON.stringify({ asset: { version: '2.0', generator: 'Hometown Geometry Engine' }, meshes: [{ name: 'LampShade', extras: mesh.metadata }] });
-  return new TextEncoder().encode(json);
+  const positionBytes = new Uint8Array(new Float32Array(mesh.vertices).buffer);
+  const indexBytes = new Uint8Array(new Uint32Array(mesh.indices).buffer);
+  const binary = new Uint8Array(positionBytes.length + indexBytes.length);
+  binary.set(positionBytes, 0); binary.set(indexBytes, positionBytes.length);
+  const json = JSON.stringify({ asset: { version: '2.0', generator: 'Hometown Geometry Engine' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }], meshes: [{ name: 'LampShade', primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }], buffers: [{ byteLength: binary.length }], bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: positionBytes.length, target: 34962 }, { buffer: 0, byteOffset: positionBytes.length, byteLength: indexBytes.length, target: 34963 }], accessors: [{ bufferView: 0, componentType: 5126, count: mesh.vertices.length / 3, type: 'VEC3' }, { bufferView: 1, componentType: 5125, count: mesh.indices.length, type: 'SCALAR' }] });
+  const jsonBytes = new TextEncoder().encode(json); const jsonPaddedLength = Math.ceil(jsonBytes.length / 4) * 4; const binPaddedLength = Math.ceil(binary.length / 4) * 4;
+  const output = new Uint8Array(12 + 8 + jsonPaddedLength + 8 + binPaddedLength); const view = new DataView(output.buffer); view.setUint32(0, 0x46546c67, true); view.setUint32(4, 2, true); view.setUint32(8, output.length, true); let offset = 12;
+  view.setUint32(offset, jsonPaddedLength, true); view.setUint32(offset + 4, 0x4e4f534a, true); output.set(jsonBytes, offset + 8); output.fill(0x20, offset + 8 + jsonBytes.length, offset + 8 + jsonPaddedLength); offset += 8 + jsonPaddedLength;
+  view.setUint32(offset, binPaddedLength, true); view.setUint32(offset + 4, 0x004e4942, true); output.set(binary, offset + 8); return output;
+}
+
+export function export3MF(mesh: MeshData, name = 'hometown-lamp'): Uint8Array {
+  const vertices = Array.from({ length: mesh.vertices.length / 3 }, (_, index) => `<vertex x="${mesh.vertices[index * 3]}" y="${mesh.vertices[index * 3 + 1]}" z="${mesh.vertices[index * 3 + 2]}"/>`).join('');
+  const triangles = Array.from({ length: mesh.indices.length / 3 }, (_, index) => `<triangle v1="${mesh.indices[index * 3]}" v2="${mesh.indices[index * 3 + 1]}" v3="${mesh.indices[index * 3 + 2]}"/>`).join('');
+  const model = `<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"><resources><object id="1" type="model"><mesh><vertices>${vertices}</vertices><triangles>${triangles}</triangles></mesh></object></resources><build><item objectid="1"/></build></model>`;
+  const relationships = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>`;
+  return zipSync({ '[Content_Types].xml': new TextEncoder().encode(contentTypes), '_rels/.rels': new TextEncoder().encode(relationships), '3D/3dmodel.model': new TextEncoder().encode(model), 'Metadata/README.txt': new TextEncoder().encode(`${name} · exported by Hometown Geometry Engine`) });
+}
+
+export function parseSvgPath(path: string): Point[] {
+  const commands = path.match(/[MLZ]|-?\d*\.?\d+/gi) ?? []; const points: Point[] = []; let command = 'M'; let index = 0;
+  while (index < commands.length) { const token = commands[index++]; if (/^[MLZ]$/i.test(token)) { command = token.toUpperCase(); if (command === 'Z') break; continue; } const x = Number(token); const y = Number(commands[index++]); if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('Invalid SVG path coordinates.'); if (command === 'M' || command === 'L') points.push({ x, y }); }
+  return normalizeProfile(points);
 }
 
 export const supportedStages = ['normalize', 'clean', 'scale', 'offset', 'extrude', 'hollow', 'wall', 'pattern', 'ventilation', 'connector', 'validation', 'preview', 'export'] as const;
