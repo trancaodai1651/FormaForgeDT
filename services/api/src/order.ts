@@ -1,3 +1,4 @@
+import './env.js';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Order, OrderInput, OrderStatus } from '@hometown/types';
 import { OrderInputSchema, OrderStatusSchema } from '@hometown/types';

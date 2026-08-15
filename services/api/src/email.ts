@@ -1,3 +1,4 @@
+import './env.js';
 import nodemailer from 'nodemailer';
 import type { Order } from '@hometown/types';
 import { formatEmail } from './email-template.js';

@@ -26,6 +26,8 @@ For order persistence and email, copy `.env.development.example` to `.env`, set 
 corepack pnpm dev:api
 ```
 
+The API loads `.env` from either the workspace root or `services/api/.env`. The custom studio can download the current validated geometry as STL, 3MF or GLB.
+
 The web app intentionally does not pretend that email or database persistence exists when no API is configured; checkout displays a clear configuration error instead. The authenticated `/admin` route loads live orders and status changes when `VITE_API_URL`, Supabase Auth and an `ADMIN` profile are configured.
 
 ## Routes
