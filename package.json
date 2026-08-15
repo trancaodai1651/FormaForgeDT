@@ -1,0 +1,21 @@
+{
+  "name": "hometown-modular-lamp",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "corepack pnpm --filter @hometown/web dev",
+    "dev:web": "corepack pnpm --filter @hometown/web dev",
+    "dev:api": "corepack pnpm --filter @hometown/api dev",
+    "dev:desktop": "corepack pnpm --filter @hometown/desktop tauri dev",
+    "build": "corepack pnpm run typecheck && corepack pnpm --filter @hometown/geometry test && corepack pnpm --filter @hometown/web build && corepack pnpm --filter @hometown/api build",
+    "build:web": "corepack pnpm --filter @hometown/web build",
+    "test": "corepack pnpm --filter @hometown/geometry test",
+    "lint": "corepack pnpm --filter @hometown/web lint && corepack pnpm --filter @hometown/api lint && corepack pnpm --filter @hometown/geometry lint",
+    "typecheck": "corepack pnpm --filter @hometown/types typecheck && corepack pnpm --filter @hometown/geometry typecheck && corepack pnpm --filter @hometown/web typecheck && corepack pnpm --filter @hometown/api typecheck",
+    "db:generate": "corepack pnpm --filter @hometown/api db:generate",
+    "db:migrate": "corepack pnpm --filter @hometown/api db:migrate",
+    "db:seed": "corepack pnpm --filter @hometown/api db:seed",
+    "tauri:build": "corepack pnpm --filter @hometown/desktop tauri build"
+  }
+}

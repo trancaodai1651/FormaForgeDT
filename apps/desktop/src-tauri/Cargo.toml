@@ -1,0 +1,20 @@
+[package]
+name = "hometown-modular-lamp"
+version = "0.1.0"
+description = "Offline designer shell for Hometown Modular Lamp"
+authors = ["Hometown Modular Lamp"]
+edition = "2021"
+
+[lib]
+name = "hometown_modular_lamp_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.3.0", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2.7.0", features = [] }
+tauri-plugin-dialog = "2.3.0"
+tauri-plugin-fs = "2.4.0"

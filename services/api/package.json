@@ -1,0 +1,9 @@
+{
+  "name": "@hometown/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "tsx watch src/index.ts", "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "lint": "tsc -p tsconfig.json --noEmit", "db:generate": "echo Supabase uses supabase/migrations; no local Prisma client is required.", "db:migrate": "echo Apply supabase/migrations/0001_hometown_lamp.sql in Supabase SQL Editor.", "db:seed": "tsx src/seed.ts" },
+  "dependencies": { "@fastify/cors": "^10.0.1", "@fastify/helmet": "^13.0.1", "@fastify/rate-limit": "^10.1.0", "@hometown/types": "workspace:*", "@supabase/supabase-js": "^2.53.0", "fastify": "^5.4.0", "nodemailer": "^7.0.5", "zod": "^3.25.76" },
+  "devDependencies": { "@types/node": "^24.3.0", "@types/nodemailer": "^7.0.1", "tsx": "^4.19.4", "typescript": "^5.9.2" }
+}
