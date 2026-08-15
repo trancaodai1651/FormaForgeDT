@@ -43,7 +43,8 @@ export const OrderInputSchema = z.object({
 });
 export type OrderInput = z.infer<typeof OrderInputSchema>;
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'IN_PRODUCTION' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
+export const OrderStatusSchema = z.enum(['PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'SHIPPED', 'COMPLETED', 'CANCELLED']);
+export type OrderStatus = z.infer<typeof OrderStatusSchema>;
 export type Order = {
   id: string; orderNumber: string; createdAt: string; status: OrderStatus; customer: OrderInput['customer'];
   items: Array<CartItem & { productName: string; unitPrice: number; lineTotal: number; colorName: string }>;

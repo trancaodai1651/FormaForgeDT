@@ -6,5 +6,6 @@ export const supabase: SupabaseClient | null = url && key ? createClient(url, ke
 export const authConfigured = Boolean(supabase);
 
 export async function getCurrentUser(): Promise<User | null> { if (!supabase) return null; const { data } = await supabase.auth.getUser(); return data.user; }
+export async function getAccessToken(): Promise<string | null> { if (!supabase) return null; const { data } = await supabase.auth.getSession(); return data.session?.access_token ?? null; }
 export async function signInAdmin(email: string, password: string): Promise<User> { if (!supabase) throw new Error('Supabase Auth chưa được cấu hình cho web.'); const { data, error } = await supabase.auth.signInWithPassword({ email, password }); if (error || !data.user) throw new Error(error?.message ?? 'Đăng nhập thất bại.'); return data.user; }
 export async function signOutAdmin() { if (supabase) await supabase.auth.signOut(); }
