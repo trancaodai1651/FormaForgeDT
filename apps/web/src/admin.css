@@ -55,10 +55,14 @@
 .clicker-admin-intro p { max-width: 620px; margin: 0; font-size: 13px; }
 .clicker-feature-grid { display: flex; flex-wrap: wrap; gap: 9px; }
 .clicker-feature-pill { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: rgba(255,255,255,.035); font: 500 10px 'DM Mono', monospace; letter-spacing: .04em; }
-.clicker-quick-links { display: flex; flex-wrap: wrap; gap: 18px; }
+.clicker-local-badge { display: inline-flex; align-items: center; min-height: 30px; padding: 0 11px; border: 1px solid rgba(240,185,103,.35); border-radius: 999px; color: var(--accent); background: rgba(240,185,103,.09); font: 500 9px 'DM Mono', monospace; letter-spacing: .05em; }
 .clicker-embed-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
-.clicker-embed { min-height: 860px; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: #101319; box-shadow: var(--shadow); }
-.clicker-embed iframe { display: block; width: 100%; height: 860px; border: 0; background: #101319; }
+.clicker-embed { min-height: 900px; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: #101319; box-shadow: var(--shadow); }
+.clicker-workspace-shell { min-height: 900px; background: #101319; }
+.clicker-mode-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border-bottom: 1px solid rgba(255,255,255,.08); background: #15171c; }
+.clicker-mode-tabs button { min-height: 32px; padding: 0 13px; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; background: rgba(255,255,255,.035); color: #9aa3b2; font: 500 10px 'DM Mono', monospace; cursor: pointer; }
+.clicker-mode-tabs button.active { border-color: rgba(240,185,103,.55); background: rgba(240,185,103,.16); color: #f0b967; }
+.clicker-runtime { min-height: 860px; height: calc(100vh - 340px); }
 @media (max-width: 900px) {
   .admin-header, .admin-toolbar { align-items: flex-start; flex-direction: column; }
   .admin-header-actions { align-items: flex-start; flex-direction: column; gap: 10px; }
@@ -73,6 +77,6 @@
   .account-address-form .wide { grid-column: auto; }
   .account-header { align-items: flex-start; flex-direction: column; }
   .admin-settings-form .wide { grid-column: auto; }
-  .clicker-embed { min-height: 760px; }
-  .clicker-embed iframe { height: 760px; }
+  .clicker-embed, .clicker-workspace-shell { min-height: 760px; }
+  .clicker-runtime { min-height: 720px; height: 720px; }
 }

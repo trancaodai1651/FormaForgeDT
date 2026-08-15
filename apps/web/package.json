@@ -3,9 +3,39 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "vite", "build": "tsc -p tsconfig.json && vite build", "typecheck": "tsc -p tsconfig.json --noEmit", "lint": "tsc -p tsconfig.json --noEmit", "preview": "vite preview" },
-  "dependencies": {
-    "@hometown/geometry": "workspace:*", "@hometown/types": "workspace:*", "@react-three/drei": "^10.7.6", "@react-three/fiber": "^9.3.0", "@supabase/supabase-js": "^2.53.0", "framer-motion": "^12.23.12", "lucide-react": "^0.468.0", "react": "^19.1.1", "react-dom": "^19.1.1", "react-router-dom": "^7.6.3", "three": "^0.178.0"
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "preview": "vite preview"
   },
-  "devDependencies": { "@types/react": "^19.1.10", "@types/react-dom": "^19.1.7", "@types/three": "^0.178.1", "@vitejs/plugin-react": "^4.7.0", "typescript": "^5.9.2", "vite": "^7.1.2" }
+  "dependencies": {
+    "@hometown/geometry": "workspace:*",
+    "@hometown/types": "workspace:*",
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.3.0",
+    "@supabase/supabase-js": "^2.53.0",
+    "d3-contour": "4.0.2",
+    "fflate": "0.8.3",
+    "framer-motion": "^12.23.12",
+    "gsap": "3.15.0",
+    "lucide": "1.21.0",
+    "lucide-react": "^0.468.0",
+    "manifold-3d": "3.0.1",
+    "pica": "10.0.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.6.3",
+    "three": "^0.178.0"
+  },
+  "devDependencies": {
+    "@types/d3-contour": "3.0.6",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@types/three": "^0.178.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.2"
+  }
 }

@@ -1,0 +1,58 @@
+.flex-shell { position: fixed; inset: 0; background: #0f1115; color: #e6e9ef; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.flex-topbar { height: 56px; display: flex; align-items: center; gap: 22px; padding: 0 18px; border-bottom: 1px solid #2a2f3a; background: rgba(15,17,21,.9); }
+.flex-back { color: #9aa2b2; text-decoration: none; font-size: 13px; }
+.flex-back:hover { color: #fff; }
+.flex-brand { display: flex; align-items: center; gap: 9px; font-size: 15px; }
+.flex-brand-mark { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 8px; background: #5b8def; color: #0f1115; font-weight: 800; }
+.flex-beta { color: #788194; font-size: 11px; border: 1px solid #343b49; border-radius: 99px; padding: 2px 7px; }
+.flex-icon-button { margin-left: auto; border: 1px solid #2a2f3a; background: #171a21; color: #d6dae3; border-radius: 9px; width: 32px; height: 32px; cursor: pointer; }
+.flex-main { position: absolute; inset: 56px 0 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
+.flex-stage { position: relative; min-width: 0; overflow: hidden; background: #11141a; }
+.flex-viewport { position: absolute; inset: 0; }
+.flex-viewport canvas { display: block; width: 100%; height: 100%; }
+.flex-stage-hint { position: absolute; left: 18px; bottom: 18px; color: #7f8898; font-size: 12px; background: rgba(15,17,21,.68); padding: 7px 10px; border-radius: 8px; pointer-events: none; }
+.flex-status { position: absolute; top: 16px; left: 18px; max-width: calc(100% - 36px); padding: 7px 10px; border: 1px solid #2a2f3a; border-radius: 8px; color: #aeb7c7; background: rgba(23,26,33,.8); font-size: 12px; pointer-events: none; }
+.flex-sidebar { overflow-y: auto; padding: 18px 14px 24px; background: rgba(23,26,33,.96); border-left: 1px solid #2a2f3a; scrollbar-width: thin; scrollbar-color: #3a4352 transparent; }
+.flex-sidebar-title { padding: 2px 4px 14px; }
+.flex-sidebar-title h1 { margin: 0; font-size: 18px; letter-spacing: .1px; }
+.flex-sidebar-title p { margin: 6px 0 0; color: #9aa2b2; font-size: 12px; line-height: 1.45; }
+.flex-card { margin-bottom: 10px; padding: 13px; border: 1px solid #2a2f3a; border-radius: 13px; background: #171a21; box-shadow: 0 8px 25px rgba(0,0,0,.12); }
+.flex-card-title { margin-bottom: 10px; color: #b6c0d0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.flex-segment { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; background: #1e222b; border-radius: 9px; }
+.flex-segment.compact { margin-top: 8px; }
+.flex-segment button, .flex-small-button { min-height: 32px; border: 0; border-radius: 7px; background: transparent; color: #9aa2b2; cursor: pointer; font-size: 12px; }
+.flex-segment button.active { background: #5b8def; color: #fff; font-weight: 700; }
+.flex-segment button:hover:not(.active) { background: #2a303c; color: #e6e9ef; }
+.flex-toggle-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin-top: 12px; color: #b3bccb; font-size: 12px; }
+.flex-toggle-row input { position: absolute; opacity: 0; pointer-events: none; }
+.flex-toggle-row i { width: 35px; height: 20px; padding: 3px; border-radius: 99px; background: #343b49; transition: .2s; }
+.flex-toggle-row i::after { content: ''; display: block; width: 14px; height: 14px; border-radius: 50%; background: #aab2bf; transition: .2s; }
+.flex-toggle-row input:checked + i { background: #18b981; }
+.flex-toggle-row input:checked + i::after { transform: translateX(15px); background: #fff; }
+.flex-input, .flex-select-label select, .flex-slot-row select { width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid #343b49; border-radius: 8px; outline: none; background: #1e222b; color: #e6e9ef; font-size: 12px; }
+.flex-name-input { font-size: 14px; letter-spacing: .06em; }
+.flex-input:focus, .flex-select-label select:focus, .flex-slot-row select:focus { border-color: #5b8def; }
+.flex-help { color: #7f8999; font-size: 11px; line-height: 1.4; margin-top: 7px; }
+.flex-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
+.flex-select-label, .flex-color-label { display: grid; gap: 5px; color: #929cad; font-size: 11px; }
+.flex-color-label input { width: 100%; height: 34px; padding: 3px; border: 1px solid #343b49; border-radius: 8px; background: #1e222b; cursor: pointer; }
+.flex-field { display: grid; gap: 6px; margin-top: 11px; color: #9aa2b2; font-size: 11px; }
+.flex-field > span { display: flex; justify-content: space-between; gap: 8px; }
+.flex-field output { color: #dbe1eb; font-variant-numeric: tabular-nums; }
+.flex-field input[type=range] { width: 100%; accent-color: #5b8def; }
+.flex-upload-row { display: grid; grid-template-columns: 1fr auto; gap: 7px; margin-top: 8px; }
+.flex-upload, .flex-small-button { display: grid; place-items: center; min-height: 32px; border: 1px solid #343b49; border-radius: 8px; color: #b5bfce; background: #1e222b; cursor: pointer; font-size: 11px; }
+.flex-upload input { display: none; }
+.flex-small-button { padding: 0 10px; }
+.flex-slots { display: grid; gap: 6px; }
+.flex-slot-row { display: grid; grid-template-columns: 27px minmax(0,1fr) 29px 29px; align-items: center; gap: 5px; }
+.flex-slot-char { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 7px; color: #dce3ef; background: #242a35; font-weight: 700; }
+.flex-slot-row select { min-height: 29px; padding: 4px 5px; font-size: 11px; }
+.flex-slot-row input[type=color] { width: 29px; height: 29px; padding: 2px; border: 1px solid #343b49; border-radius: 7px; background: #1e222b; cursor: pointer; }
+.flex-primary, .flex-secondary { width: 100%; min-height: 37px; border: 0; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 700; }
+.flex-primary { color: #fff; background: #2563eb; }
+.flex-secondary { margin-top: 8px; color: #fff; background: #18b981; }
+.flex-primary:disabled, .flex-secondary:disabled { cursor: not-allowed; opacity: .45; }
+.hidden { display: none; }
+@media (max-width: 820px) { .flex-main { grid-template-columns: minmax(0, 1fr) 285px; } .flex-topbar { gap: 12px; } .flex-brand strong { font-size: 13px; } }
+@media (max-width: 640px) { .flex-main { display: block; overflow-y: auto; } .flex-stage { height: 55vh; min-height: 330px; } .flex-sidebar { border-left: 0; } }
