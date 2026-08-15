@@ -8,7 +8,7 @@ Premium storefront and geometry foundation for modular, FDM-printed lamp shades 
 - React Three Fiber viewer with orbit controls, realtime color/light controls and a parametric lamp mesh.
 - `@hometown/geometry` pipeline primitives: profile normalization, shape generation, mesh generation, FDM validation, STL export and GLB metadata export.
 - Supabase-compatible Postgres migration with product, collection, province, hardware, order, email, design-project and settings models.
-- Fastify API with server-side price calculation, rate limiting, validation, Supabase persistence when configured, order lookup, protected admin order status updates and SMTP email provider.
+- Fastify API with server-side price calculation, rate limiting, validation, Supabase catalog/order persistence when configured, protected admin operations and SMTP email provider.
 - Tauri 2 desktop shell configured for Windows NSIS and macOS DMG targets.
 - GitHub Actions for validation and GitHub Pages deployment.
 

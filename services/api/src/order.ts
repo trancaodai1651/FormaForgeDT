@@ -1,14 +1,11 @@
 import './env.js';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Order, OrderInput, OrderStatus } from '@hometown/types';
+import type { Order, OrderInput, OrderStatus, Product } from '@hometown/types';
 import { OrderInputSchema, OrderStatusSchema } from '@hometown/types';
-import { catalog, priceFor } from './catalog.js';
+import { getCatalog, priceFor } from './catalog.js';
+import { getStoreMode, supabase } from './db.js';
 import { sendOrderEmails } from './email.js';
 
 const memoryOrders: Order[] = [];
-const supabase: SupabaseClient | null = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } }) : null;
-
-export function getStoreMode() { return supabase ? 'supabase' : 'memory'; }
 
 export async function assertAdmin(authorization?: string) {
   if (!supabase) throw new Error('Admin API chưa được cấu hình Supabase.');
@@ -30,7 +27,7 @@ async function nextOrderNumber(): Promise<string> {
   return `${prefix}${String(Number.isFinite(lastNumber) ? lastNumber + 1 : 1).padStart(4, '0')}`;
 }
 
-async function resolveDatabaseProductId(product: (typeof catalog)[number]): Promise<string | null> {
+async function resolveDatabaseProductId(product: Product): Promise<string | null> {
   if (!supabase) return product.id;
   const { data, error } = await supabase.from('products').select('id').eq('sku', product.sku).maybeSingle();
   if (error) throw new Error(`Không thể xác định sản phẩm ${product.sku}: ${error.message}`);
@@ -60,6 +57,7 @@ function mapOrderRow(row: any): Order {
 
 export async function createOrder(payload: unknown): Promise<Order> {
   const input = OrderInputSchema.parse(payload);
+  const catalog = await getCatalog();
   const items = input.items.map((item) => {
     const product = catalog.find((candidate) => candidate.id === item.productId && candidate.published);
     if (!product) throw new Error(`Sản phẩm ${item.productId} không khả dụng.`);

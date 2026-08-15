@@ -1,4 +1,5 @@
 import type { Product } from '@hometown/types';
+import { supabase } from './db.js';
 
 const colors = [{ id: 'porcelain', name: 'Porcelain', hex: '#e8e5db', priceDelta: 0 }, { id: 'obsidian', name: 'Obsidian', hex: '#17181a', priceDelta: 0 }, { id: 'sand', name: 'Sand', hex: '#c7a986', priceDelta: 80000 }, { id: 'lacquer-red', name: 'Lacquer red', hex: '#9b3a31', priceDelta: 80000 }, { id: 'deep-sea', name: 'Deep sea', hex: '#315b67', priceDelta: 80000 }, { id: 'jade', name: 'Jade', hex: '#607c6d', priceDelta: 80000 }];
 const hardwareCompatibility = ['CORE_BAYONET', 'BAMBU_LED_KIT_001', 'E27'];
@@ -12,3 +13,63 @@ export const catalog: Product[] = [
 
 export const basePrices = { core: 0, e27: 180000, 'bambu-led-kit-001': 420000 } as const;
 export function priceFor(product: Product, colorId: string, base: keyof typeof basePrices) { const color = product.colors.find((item) => item.id === colorId) ?? product.colors[0]; return product.price + (color?.priceDelta ?? 0) + basePrices[base]; }
+
+type CatalogCache = { expiresAt: number; products: Product[] };
+let catalogCache: CatalogCache | null = null;
+
+function numberValue(value: unknown, fallback = 0) { const numeric = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN; return Number.isFinite(numeric) ? numeric : fallback; }
+function recordValue(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
+
+export async function getCatalog(): Promise<Product[]> {
+  if (!supabase) return catalog;
+  if (catalogCache && catalogCache.expiresAt > Date.now()) return catalogCache.products;
+
+  const [productResult, collectionResult, provinceResult, colorResult, productColorResult, hardwareResult, productHardwareResult, materialResult] = await Promise.all([
+    supabase.from('products').select('*').eq('published', true).order('created_at', { ascending: true }),
+    supabase.from('collections').select('id, slug, name, province_id'),
+    supabase.from('provinces').select('id, name'),
+    supabase.from('colors').select('id, slug, name, hex, price_delta'),
+    supabase.from('product_colors').select('product_id, color_id'),
+    supabase.from('hardware').select('id, code'),
+    supabase.from('product_hardware').select('product_id, hardware_id'),
+    supabase.from('materials').select('id, name'),
+  ]);
+  const firstError = [productResult, collectionResult, provinceResult, colorResult, productColorResult, hardwareResult, productHardwareResult, materialResult].find((result) => result.error)?.error;
+  if (firstError) throw new Error(`Không thể tải catalog Supabase: ${firstError.message}`);
+
+  const collections = new Map((collectionResult.data ?? []).map((row) => [row.id, row]));
+  const provinces = new Map((provinceResult.data ?? []).map((row) => [row.id, row.name]));
+  const colorsById = new Map((colorResult.data ?? []).map((row) => [row.id, { id: row.slug, name: row.name, hex: row.hex, priceDelta: row.price_delta }]));
+  const hardwareById = new Map((hardwareResult.data ?? []).map((row) => [row.id, row.code]));
+  const materialById = new Map((materialResult.data ?? []).map((row) => [row.id, row.name]));
+  const productColors = new Map<string, Product['colors']>();
+  for (const link of productColorResult.data ?? []) {
+    const color = colorsById.get(link.color_id);
+    if (color) productColors.set(link.product_id, [...(productColors.get(link.product_id) ?? []), color]);
+  }
+  const productHardware = new Map<string, string[]>();
+  for (const link of productHardwareResult.data ?? []) {
+    const code = hardwareById.get(link.hardware_id);
+    if (code) productHardware.set(link.product_id, [...(productHardware.get(link.product_id) ?? []), code]);
+  }
+
+  const products = (productResult.data ?? []).map((row) => {
+    const collection = collections.get(row.collection_id);
+    const dimensions = recordValue(row.dimensions);
+    const productColorsForRow = productColors.get(row.id) ?? colors;
+    return {
+      id: String(row.sku).toLowerCase(), slug: row.slug, sku: row.sku, name: row.name,
+      collection: collection?.name ?? 'Hometown collection', collectionSlug: collection?.slug ?? 'hometown',
+      province: provinces.get(row.province_id) ?? collection?.name ?? 'Vietnam', category: row.category,
+      description: row.description ?? '', story: row.story ?? '', price: numberValue(row.price), colors: productColorsForRow,
+      defaultColorId: productColorsForRow[0]?.id ?? 'porcelain', dimensions: { width: numberValue(dimensions.width), height: numberValue(dimensions.height), depth: numberValue(dimensions.depth) },
+      material: materialById.get(row.material_id) ?? 'PLA matte', printTime: row.print_time ?? '', weight: numberValue(row.weight),
+      hardwareCompatibility: productHardware.get(row.id) ?? hardwareCompatibility, featured: Boolean(row.featured), published: Boolean(row.published),
+      heroImage: row.hero_image ?? undefined, gallery: row.gallery ?? [], model3D: row.model_3d ?? undefined,
+      stockStatus: row.stock_status === 'in-stock' || row.stock_status === 'unavailable' ? row.stock_status : 'made-to-order',
+      shape: row.shape ?? 'modular',
+    } as Product;
+  });
+  catalogCache = { products: products.length ? products : catalog, expiresAt: Date.now() + 30_000 };
+  return catalogCache.products;
+}

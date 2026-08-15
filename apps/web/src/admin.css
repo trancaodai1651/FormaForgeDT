@@ -14,9 +14,28 @@
 .admin-order-grid select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); padding: 8px; font: 500 10px 'DM Mono', monospace; }
 .admin-order-grid > span { color: var(--muted); font-size: 11px; }
 .admin-orders > .error-box { margin-top: 4px; }
+.admin-error { margin-bottom: 20px; }
+.admin-metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.admin-metric { display: grid; gap: 12px; min-height: 130px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.admin-metric span { color: var(--muted); font: 500 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+.admin-metric strong { font-size: 34px; font-weight: 500; letter-spacing: -.06em; }
+.admin-product-grid { grid-template-columns: .7fr 1.5fr 1.1fr 1fr .9fr; }
+.admin-product-grid > div { display: grid; gap: 4px; min-width: 0; }
+.admin-product-grid small { color: var(--muted); font-size: 10px; }
+.admin-product-grid > span { color: var(--muted); font-size: 11px; }
+.admin-geometry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.admin-settings-form { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 760px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.admin-settings-form label { display: grid; gap: 8px; color: var(--muted); font: 500 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .06em; }
+.admin-settings-form .wide { grid-column: 1 / -1; }
 @media (max-width: 900px) {
   .admin-header, .admin-toolbar { align-items: flex-start; flex-direction: column; }
   .admin-header-actions { align-items: flex-start; flex-direction: column; gap: 10px; }
   .admin-table { overflow-x: auto; }
   .admin-order-grid { min-width: 760px; }
+  .admin-metric-grid, .admin-geometry-grid { grid-template-columns: 1fr 1fr; }
+  .admin-product-grid { min-width: 760px; }
+}
+@media (max-width: 620px) {
+  .admin-metric-grid, .admin-geometry-grid, .admin-settings-form { grid-template-columns: 1fr; }
+  .admin-settings-form .wide { grid-column: auto; }
 }

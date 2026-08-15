@@ -5,15 +5,17 @@ import { useEffect, useMemo, useRef, useState as reactUseState, type Dispatch, t
 import type { CartItem, Order, OrderInput, OrderStatus, Product } from '@hometown/types';
 import { DEFAULT_GEOMETRY_CONFIG } from '@hometown/types';
 import { export3MF, exportGLB, exportSTL, generateLampMesh, validateGeometry } from '@hometown/geometry';
-import { collections, getCollection, getProduct, products } from './data/catalog';
+import { collections as fallbackCollections, getCollection as fallbackGetCollection, getProduct as fallbackGetProduct, products as fallbackProducts } from './data/catalog';
 import { formatVnd } from './lib/cart';
 import { apiConfigured, getOrder, listAdminOrders, submitOrder, updateAdminOrderStatus } from './lib/api';
 import { useCart } from './components/CartContext';
+import { useCatalog } from './components/CatalogContext';
 import { GlassButton, ProductCard, SectionTitle } from './components/Shell';
 import { LampViewer } from './components/LampViewer';
 import { authConfigured, getAccessToken, getCurrentUser, signInAdmin, signOutAdmin } from './lib/supabase';
 
-const heroProduct = products[0];
+const heroProduct = fallbackProducts[0];
+const products = fallbackProducts; const collections = fallbackCollections; const getProduct = fallbackGetProduct; const getCollection = fallbackGetCollection;
 type StudioState = { color: { id: string }; light: boolean; brightness: number; width: number; height: number; pattern: number };
 function isStudioState(value: unknown): value is StudioState { return typeof value === 'object' && value !== null && 'color' in value && 'width' in value && 'height' in value && 'pattern' in value; }
 function useState<T>(initial: T): [T, Dispatch<SetStateAction<T>>] {
@@ -26,6 +28,8 @@ function useState<T>(initial: T): [T, Dispatch<SetStateAction<T>>] {
 }
 
 export function HomePage() {
+  const { products: liveProducts } = useCatalog(); const products = liveProducts.length ? liveProducts : fallbackProducts; const heroProduct = products[0] ?? fallbackProducts[0];
+  if (!heroProduct) return null;
   return <div className="home-page"><section className="hero container"><div className="hero-copy"><span className="eyebrow"><span className="live-dot" />DESIGNED IN VIETNAM · MADE TO REMEMBER</span><h1>Bring your<br /><i>hometown</i><br />to light.</h1><p>Những vùng đất bạn yêu quý, được tái hiện bằng ánh sáng.</p><div className="hero-actions"><Link className="glass-button primary" to="/products">Khám phá collection <ArrowRight size={17} /></Link><Link className="text-link" to="/customize/py01">Tạo đèn của bạn <ArrowUpRightIcon /></Link></div></div><div className="hero-object"><div className="orbit-label label-top">CORE / E27 / LED 001</div><LampViewer product={heroProduct} color={heroProduct.colors[0].hex} /><div className="hero-object-caption"><span>01 / 05</span><span>PY01 — GÀNH ĐÁ ĐĨA</span><span>SCROLL TO EXPLORE ↓</span></div></div></section><section className="manifesto container"><span className="eyebrow">THE IDEA</span><div><p>Quê hương không chỉ là nơi bạn sinh ra.<br /><em>Đó là nơi bạn nhớ.</em></p><Link className="circle-arrow" to="/about"><ArrowDownRight size={23} /></Link></div></section><section className="featured container"><SectionTitle eyebrow="01 / THE COLLECTION" title="Light, with a sense of place." ><Link className="text-link" to="/products">View all pieces <ArrowRight size={16} /></Link></SectionTitle><div className="product-grid">{products.filter((product) => product.featured).map((product) => <ProductCard key={product.id} product={product} />)}</div></section><section className="modular-story container"><div className="story-art"><div className="stacked-core"><div className="stack-ring" /><div className="stack-ring" /><div className="stack-ring" /></div><span className="technical-note note-one">01 / SHADE</span><span className="technical-note note-two">02 / CORE BASE</span></div><div className="story-copy"><span className="eyebrow">02 / MODULAR BY NATURE</span><h2>One core.<br /><i>Many memories.</i></h2><p>Mỗi lamp shade được thiết kế để tháo lắp với cùng một hệ thống Core Base. Bạn có thể đổi hình dáng theo căn phòng, theo mùa, hoặc theo nơi mình đang nhớ.</p><Link className="text-link" to="/3d-showcase">Explore the system <ArrowRight size={16} /></Link></div></section><section className="home-cta"><div className="container"><span className="eyebrow">MAKE IT YOURS</span><h2>Shape a memory<br /><i>into light.</i></h2><Link className="glass-button primary" to="/customize/py01">Enter the custom studio <ArrowUpRight size={17} /></Link></div></section></div>;
 }
 

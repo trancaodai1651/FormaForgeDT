@@ -6,7 +6,7 @@ Push to `main`; GitHub Actions builds and publishes `apps/web/dist` to GitHub Pa
 
 ## API
 
-Deploy `services/api` to a Node-capable host. Set its environment variables from `.env.production.example`, including Supabase service-role access and SMTP. Restrict CORS to the storefront origin before production.
+Deploy `services/api` to a Node-capable host. Set its environment variables from `.env.production.example`, including Supabase service-role access and SMTP. The API exposes the published Supabase catalog and protected admin overview, order, geometry and settings endpoints. Restrict CORS to the storefront origin before production.
 
 ## Supabase
 
