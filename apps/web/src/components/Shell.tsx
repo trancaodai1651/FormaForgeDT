@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowUpRight, ShoppingBag, Sun, Moon, Menu, X } from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { useI18n } from '../lib/i18n';
 
 export function GlassButton({ children, variant = 'primary', className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' | 'quiet' }) {
   return <button className={`glass-button ${variant} ${className}`} {...props}>{children}</button>;
@@ -22,13 +23,13 @@ export function SectionTitle({ eyebrow, title, children }: { eyebrow: string; ti
 }
 
 export function Navbar({ cartCount, theme, onTheme }: { cartCount: number; theme: 'dark' | 'light'; onTheme: () => void }) {
-  const [open, setOpen] = useState(false); const location = useLocation();
-  return <header className="site-header"><Link className="wordmark" to="/" onClick={() => setOpen(false)}><span className="wordmark-mark">H</span><span>HOMETOWN<br /><em>MODULAR LAMP</em></span></Link><button className="mobile-menu" onClick={() => setOpen((value) => !value)} aria-label="Mở menu">{open ? <X /> : <Menu />}</button>
-    <nav className={open ? 'nav-links open' : 'nav-links'}>{[['/products', 'Collection'], ['/customize/py01', 'Custom studio'], ['/about', 'Our story'], ['/contact', 'Contact']].map(([to, label]) => <NavLink key={to} to={to} className={location.pathname.startsWith(to) ? 'active' : ''} onClick={() => setOpen(false)}>{label}</NavLink>)}</nav>
-    <div className="header-actions"><button className="icon-button" onClick={onTheme} aria-label="Đổi giao diện">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button><Link className="cart-link" to="/cart" aria-label="Giỏ hàng"><ShoppingBag size={17} /><span>{cartCount}</span></Link></div>
+  const [open, setOpen] = useState(false); const location = useLocation(); const { t, language, setLanguage } = useI18n();
+  return <header className="site-header"><Link className="wordmark" to="/" onClick={() => setOpen(false)}><span className="wordmark-mark">H</span><span>HOMETOWN<br /><em>MODULAR LAMP</em></span></Link><button className="mobile-menu" onClick={() => setOpen((value) => !value)} aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}>{open ? <X /> : <Menu />}</button>
+    <nav className={open ? 'nav-links open' : 'nav-links'}>{[['/products', t('nav.collection')], ['/customize/py01', t('nav.customize')], ['/about', t('nav.story')], ['/contact', t('nav.contact')], ['/account', t('nav.account')]].map(([to, label]) => <NavLink key={to} to={to} className={location.pathname.startsWith(to) ? 'active' : ''} onClick={() => setOpen(false)}>{label}</NavLink>)}</nav>
+    <div className="header-actions"><div className="language-switch" aria-label={t('nav.language')}><button className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button><span>/</span><button className={language === 'vi' ? 'active' : ''} aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button></div><button className="icon-button" onClick={onTheme} aria-label={t('nav.theme')}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button><Link className="cart-link" to="/cart" aria-label={t('nav.cart')}><ShoppingBag size={17} /><span>{cartCount}</span></Link></div>
   </header>;
 }
 
 export function PageTransition({ children }: { children: React.ReactNode }) { return <AnimatePresence mode="wait"><motion.main key={useLocation().pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: .28 }}>{children}</motion.main></AnimatePresence>; }
 
-export function Footer() { return <footer className="site-footer"><div><span className="eyebrow">HOMETOWN MODULAR LAMP</span><p>Mỗi vùng đất — một ánh sáng.</p></div><div className="footer-links"><Link to="/about">Our story</Link><Link to="/contact">Contact</Link><Link to="/admin">Studio</Link></div><span className="muted">© 2026 Hometown Lamp</span></footer>; }
+export function Footer() { const { t } = useI18n(); return <footer className="site-footer"><div><span className="eyebrow">HOMETOWN MODULAR LAMP</span><p>{t('footer.tagline')}</p></div><div className="footer-links"><Link to="/about">{t('footer.story')}</Link><Link to="/contact">{t('nav.contact')}</Link><Link to="/admin">{t('footer.studio')}</Link></div><span className="muted">© 2026 Hometown Lamp</span></footer>; }
