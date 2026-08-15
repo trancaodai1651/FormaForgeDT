@@ -52,8 +52,8 @@ function ClickerRuntime({ mode }: { mode: ClickerMode }) {
   return <div className="clicker-runtime" ref={hostRef} />;
 }
 
-export function ClickerWorkspacePage({ labels }: { labels: ClickerWorkspaceLabels }) {
-  const [mode, setMode] = useState<ClickerMode>('clicker');
+export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean }) {
+  const [mode, setMode] = useState<ClickerMode>(initialMode);
   const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer]];
-  return <div className="clicker-workspace-shell"><div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div><ClickerRuntime key={mode} mode={mode} /></div>;
+  return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={mode} mode={mode} /></div>;
 }

@@ -80,3 +80,69 @@
   .clicker-embed, .clicker-workspace-shell { min-height: 760px; }
   .clicker-runtime { min-height: 720px; height: 720px; }
 }
+
+.app-shell-admin-tool .site-header { margin-bottom: 4px; }
+.admin-tool-page { min-height: calc(100vh - 98px); padding: 42px 0 72px; }
+.admin-tool-container { width: min(1480px, calc(100% - 72px)); margin: 0 auto; }
+.admin-tool-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 42px; padding: 10px 0 34px; }
+.admin-tool-heading { min-width: 0; }
+.admin-tool-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 30px; color: var(--muted); font: 500 10px 'DM Mono', monospace; letter-spacing: .06em; text-transform: uppercase; transition: color .2s, gap .2s; }
+.admin-tool-back:hover { gap: 12px; color: var(--text); }
+.admin-tool-heading > .eyebrow { margin-bottom: 18px; }
+.admin-tool-title-row { display: flex; align-items: center; gap: 18px; }
+.admin-tool-mark, .admin-tool-directory-mark { display: grid; flex: 0 0 auto; place-items: center; width: 48px; height: 48px; border: 1px solid rgba(240,185,103,.48); border-radius: 15px; background: linear-gradient(145deg, rgba(240,185,103,.28), rgba(240,185,103,.08)); color: var(--accent); font: 600 24px 'Playfair Display', serif; box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.admin-tool-title-row h1 { margin: 0 0 9px; font-size: clamp(2.8rem, 6vw, 5.8rem); line-height: .92; }
+.admin-tool-title-row p { max-width: 640px; margin: 0; font-size: 13px; }
+.admin-tool-session { display: grid; justify-items: end; gap: 11px; min-width: 210px; color: var(--muted); font: 500 10px 'DM Mono', monospace; }
+.admin-tool-session-status { display: inline-flex; align-items: center; gap: 8px; color: var(--text); letter-spacing: .08em; }
+.admin-tool-signout { display: inline-flex; align-items: center; gap: 7px; border: 0; border-bottom: 1px solid var(--line-strong); background: transparent; color: var(--muted); padding: 4px 0; font: inherit; transition: color .2s, border-color .2s; }
+.admin-tool-signout:hover { border-color: var(--accent); color: var(--accent); }
+.admin-tool-switcher { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 14px 0; }
+.admin-tool-switcher a { display: inline-flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 14px 0 8px; border: 1px solid transparent; border-radius: 999px; color: var(--muted); font-size: 11px; transition: color .2s, border-color .2s, background .2s, transform .2s; }
+.admin-tool-switcher a span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); color: var(--accent); font: 600 12px 'Playfair Display', serif; }
+.admin-tool-switcher a svg { margin-left: 6px; opacity: .55; transition: transform .2s; }
+.admin-tool-switcher a:hover { border-color: var(--line-strong); color: var(--text); transform: translateY(-1px); }
+.admin-tool-switcher a:hover svg { transform: translateX(3px); }
+.admin-tool-switcher a.active { border-color: rgba(240,185,103,.58); background: rgba(240,185,103,.12); color: var(--text); }
+.admin-tool-switcher a.active span { background: var(--accent); color: var(--bg); }
+.admin-tool-status { display: flex; align-items: center; gap: 12px; padding: 18px 0 14px; color: var(--muted); font: 500 9px 'DM Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
+.admin-tool-status strong { color: var(--text); font-weight: 500; }
+.admin-tool-status-line { flex: 1; height: 1px; background: var(--line); }
+.admin-tool-stage { min-height: 900px; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: #101319; box-shadow: var(--shadow); }
+.clicker-workspace-shell-standalone { min-height: 900px; }
+.admin-tool-directory { display: grid; gap: 22px; margin-top: 44px; padding-top: 34px; border-top: 1px solid var(--line); }
+.admin-tool-directory-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; }
+.admin-tool-directory-heading h2 { margin: 12px 0 0; font-size: clamp(2rem, 4vw, 3.2rem); }
+.admin-tool-directory-heading p { max-width: 420px; margin: 0; font-size: 12px; }
+.admin-tool-directory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.admin-tool-directory-card { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); transition: border-color .2s, background .2s, transform .2s; }
+.admin-tool-directory-card:hover { border-color: rgba(240,185,103,.55); background: color-mix(in srgb, var(--surface) 70%, rgba(240,185,103,.12)); transform: translateY(-3px); }
+.admin-tool-directory-mark { width: 38px; height: 38px; border-radius: 12px; font-size: 18px; }
+.admin-tool-directory-copy { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.admin-tool-directory-copy strong { overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.admin-tool-directory-copy small { overflow: hidden; color: var(--muted); font-size: 10px; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
+.admin-tool-directory-card > svg { flex: 0 0 auto; color: var(--muted); }
+.admin-guard-loading { max-width: 620px; }
+.admin-guard-login { display: grid; place-items: center; min-height: calc(100vh - 180px); }
+.admin-guard-card { width: min(100%, 580px); padding: 36px; border: 1px solid var(--line); border-radius: 24px; background: radial-gradient(circle at 100% 0, rgba(240,185,103,.13), transparent 36%), var(--surface); box-shadow: var(--shadow); }
+.admin-guard-card > .eyebrow { color: var(--accent); }
+.admin-guard-card h1 { margin: 20px 0 14px; font-size: clamp(2.8rem, 7vw, 5.5rem); }
+.admin-guard-card > p { max-width: 430px; margin-bottom: 0; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .admin-tool-container { width: min(100% - 36px, 720px); }
+  .admin-tool-header { align-items: flex-start; flex-direction: column; gap: 26px; }
+  .admin-tool-session { justify-items: start; }
+  .admin-tool-directory-grid { grid-template-columns: 1fr; }
+  .admin-tool-directory-heading { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 620px) {
+  .admin-tool-page { padding-top: 22px; }
+  .admin-tool-container { width: calc(100% - 24px); }
+  .admin-tool-title-row { align-items: flex-start; }
+  .admin-tool-title-row h1 { font-size: 2.8rem; }
+  .admin-tool-switcher { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 12px; }
+  .admin-tool-switcher a { flex: 0 0 auto; }
+  .admin-tool-stage, .clicker-workspace-shell-standalone { min-height: 760px; }
+  .admin-guard-card { padding: 24px; }
+}

@@ -18,6 +18,12 @@ export type CustomerAddress = {
 export type CustomerAddressInput = Omit<CustomerAddress, 'id' | 'user_id' | 'label' | 'is_default'>;
 
 export async function getCurrentUser(): Promise<User | null> { if (!supabase) return null; const { data } = await supabase.auth.getUser(); return data.user; }
+export async function getCurrentAdminUser(): Promise<User | null> {
+  const user = await getCurrentUser();
+  if (!user || !supabase) return null;
+  const { data, error } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+  return error || data?.role !== 'ADMIN' ? null : user;
+}
 export async function getAccessToken(): Promise<string | null> { if (!supabase) return null; const { data } = await supabase.auth.getSession(); return data.session?.access_token ?? null; }
 export async function signInAdmin(email: string, password: string): Promise<User> { if (!supabase) throw new Error('Supabase Auth chưa được cấu hình cho web.'); const { data, error } = await supabase.auth.signInWithPassword({ email, password }); if (error || !data.user) throw new Error(error?.message ?? 'Đăng nhập thất bại.'); return data.user; }
 export async function signInCustomer(email: string, password: string): Promise<User> { return signInAdmin(email, password); }
