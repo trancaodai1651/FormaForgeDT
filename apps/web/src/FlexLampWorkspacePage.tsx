@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Box, Check, Download, Eye, FileUp, ImagePlus, Lightbulb, LogOut, RotateCcw, ShieldCheck, Sun, Upload, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, RoundedBox } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
@@ -84,14 +84,14 @@ function PreviewObject({ mesh, color, view }: { mesh: MeshData; color: string; v
   const isLight = view === 'light';
   const isXray = view === 'xray';
   return <mesh geometry={geometry} castShadow receiveShadow>
-    <meshPhysicalMaterial color={color} roughness={view === 'matte' ? .94 : .68} metalness={0} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .3 : 0} transparent={isXray} opacity={isXray ? .32 : 1} depthWrite={!isXray} side={THREE.DoubleSide} wireframe={isXray} />
+    <meshStandardMaterial color={color} roughness={view === 'matte' ? .98 : .88} metalness={0} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .22 : 0} transparent={isXray} opacity={isXray ? .32 : 1} depthWrite={!isXray} side={THREE.DoubleSide} wireframe={isXray} />
   </mesh>;
 }
 
 function PreviewScene({ mesh, config, color, view, mode }: { mesh: MeshData; config: FlexLampConfig; color: string; view: ViewMode; mode: LampMode }) {
   return <>
     <color attach="background" args={['#e9eef5']} />
-    <PerspectiveCamera makeDefault position={[2.8, 1.65, 4.15]} fov={39} />
+    <PerspectiveCamera makeDefault position={[2.8, 1.65, 3.82]} fov={39} />
     <ambientLight intensity={view === 'light' ? .42 : .92} color={view === 'light' ? '#fff0c8' : '#ffffff'} />
     <directionalLight position={[3, 5, 4]} intensity={view === 'light' ? 1.25 : 1.65} castShadow color="#fffaf0" />
     {view === 'light' && <pointLight position={[0, 0, 0]} intensity={18} distance={3.8} color="#ffc56b" decay={2} />}
@@ -106,11 +106,10 @@ function PreviewScene({ mesh, config, color, view, mode }: { mesh: MeshData; con
           <torusGeometry args={[42, 2.6, 8, 48]} />
           <meshStandardMaterial color="#0f1216" metalness={.72} roughness={.25} />
         </mesh>
-        <mesh position={[config.radius + 27, -config.height / 2 - 5, 0]} castShadow>
-          <boxGeometry args={[20, 10, 18]} />
+        <RoundedBox position={[-(config.radius + 22), -config.height / 2 - 5, 0]} args={[22, 10, 18]} radius={3} smoothness={4} castShadow>
           <meshStandardMaterial color="#101419" metalness={.55} roughness={.3} />
-        </mesh>
-        <mesh position={[config.radius + 27, -config.height / 2 + 1, 0]} castShadow>
+        </RoundedBox>
+        <mesh position={[-(config.radius + 22), -config.height / 2 + 1, 0]} castShadow>
           <cylinderGeometry args={[5, 5, 4, 24]} />
           <meshStandardMaterial color="#d23b3b" metalness={.18} roughness={.3} emissive={view === 'light' ? '#5b100d' : '#000000'} emissiveIntensity={view === 'light' ? .35 : 0} />
         </mesh>
@@ -144,19 +143,19 @@ function AdminFlexLampContent({ email }: { email: string }) {
   const [modelConfirmed, setModelConfirmed] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [config, setConfig] = useState<FlexLampConfig>({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 52, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 });
+  const [config, setConfig] = useState<FlexLampConfig>({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 52, height: 170, wallThickness: 1.6, image: null, imageThreshold: .32 });
   const generated = useMemo(() => buildFlexLampGeometry({ ...config, image }), [config, image]);
   const activeMesh = mode === 'model' && model ? model : generated.mesh;
   const triangleCount = Math.floor(activeMesh.indices.length / 3);
-  const volume = Math.max(1, Math.round((activeMesh.metadata.width * activeMesh.metadata.height * activeMesh.metadata.depth * .008) / 1000 * 10) / 10);
-  const generationTime = Math.max(1, Math.round(triangleCount / 66.5));
+  const volume = Math.max(1, Math.round(activeMesh.metadata.width * activeMesh.metadata.height * activeMesh.metadata.depth * .0000131 * 10) / 10);
+  const generationTime = Math.max(1, Math.round(triangleCount / 66.8));
 
   useEffect(() => () => { if (imageUrl) URL.revokeObjectURL(imageUrl); }, [imageUrl]);
 
   const clearImage = () => { setImage(null); setImageUrl(null); };
 
   const setValue = (key: keyof FlexLampConfig, value: number | FlexLampPattern) => setConfig((current) => ({ ...current, [key]: value }));
-  const reset = () => { setMode(null); setView('solid'); setMaterial('PLA'); setColor('#d9d6cf'); clearImage(); setModel(null); setModelName(''); setModelConfirmed(false); setError(''); setConfig({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 52, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 }); };
+  const reset = () => { setMode(null); setView('solid'); setMaterial('PLA'); setColor('#d9d6cf'); clearImage(); setModel(null); setModelName(''); setModelConfirmed(false); setError(''); setConfig({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 52, height: 170, wallThickness: 1.6, image: null, imageThreshold: .32 }); };
 
   const onImage = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -201,12 +200,11 @@ function AdminFlexLampContent({ email }: { email: string }) {
         </div>
         <aside className="flex-lamp-panel">
           <div className="flex-lamp-panel-brand"><div><strong>{t('admin.flexLamp')}</strong><small>{t('admin.flexLampSubtitle')}</small></div><div className="flex-lamp-panel-brand-actions"><button type="button" onClick={toggleLanguage}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button><Link to="/admin" aria-label={t('admin.backToDashboard')}><ArrowLeft size={14} /></Link></div></div>
-          <div className="flex-lamp-panel-session"><span><span className="live-dot" />{t('admin.adminOnly')}</span><small>{email}</small><button type="button" onClick={() => { void signOut(); }}><LogOut size={13} />{t('admin.signOut')}</button></div>
           <div className="flex-lamp-panel-mode"><span>{t('admin.flexLampMode')}: <strong>{mode === 'shade' ? t('admin.flexLampShade') : t('admin.flexLampModel')}</strong></span><button type="button" onClick={reset}><RotateCcw size={13} />{t('admin.flexLampReset')}</button></div>
-          <div className="flex-lamp-panel-intro"><span className="eyebrow">{t('admin.flexLampEyebrow')}</span><h2>{mode === 'shade' ? t('admin.flexLampShadeTitle') : t('admin.flexLampModelTitle')}</h2><p>{mode === 'shade' ? t('admin.flexLampShadeDescription') : t('admin.flexLampModelDescription')}</p></div>
           {mode === 'shade' ? <>
+             <label className="flex-lamp-image-access" title={t('admin.flexLampImportImage')}><ImagePlus size={13} /><input type="file" accept="image/png,image/jpeg,image/webp" onChange={onImage} /></label>
              <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampPattern')}</strong><span>{t('admin.flexLampLive')}</span></div><label className="flex-lamp-select"><span>{t('admin.flexLampPatternType')}</span><select aria-label={t('admin.flexLampPatternType')} value={config.pattern} onChange={(event) => { setValue('pattern', event.target.value as FlexLampPattern); clearImage(); }}>{(['circle', 'hexagon', 'vertical', 'diamond', 'wave'] as FlexLampPattern[]).map((pattern) => <option value={pattern} key={pattern}>{t(`admin.flexLampPattern.${pattern}`)}</option>)}</select></label><RangeField label={t('admin.flexLampAround')} value={config.around} min={12} max={56} unit="" onChange={(value) => setValue('around', value)} /><RangeField label={t('admin.flexLampRows')} value={config.rows} min={4} max={30} unit="" onChange={(value) => setValue('rows', value)} /><RangeField label={t('admin.flexLampCellSize')} value={config.cellSize} min={6} max={24} step={.5} unit="mm" onChange={(value) => setValue('cellSize', value)} /><RangeField label={t('admin.flexLampRotation')} value={config.rotation} min={-45} max={45} unit="°" onChange={(value) => setValue('rotation', value)} />{image && <RangeField label={t('admin.flexLampImageThreshold')} value={config.imageThreshold} min={.05} max={.9} step={.05} unit="" onChange={(value) => setValue('imageThreshold', value)} />}</section>
-            <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampImageTitle')}</strong><span>{image ? t('admin.flexLampImageReady') : t('admin.flexLampOptional')}</span></div><label className="flex-lamp-upload"><ImagePlus size={18} /><span><b>{image ? image.name : t('admin.flexLampImportImage')}</b><small>{t('admin.flexLampImageHint')}</small></span><Upload size={15} /><input type="file" accept="image/png,image/jpeg,image/webp" onChange={onImage} /></label>{image && <div className="flex-lamp-image-card"><img src={imageUrl ?? ''} alt={image.name} /><div><strong>{t('admin.flexLampImageMapped')}</strong><small>{t('admin.flexLampImageMappedHint')}</small></div><button type="button" aria-label={t('admin.flexLampRemoveImage')} onClick={() => { setImage(null); setImageUrl(null); }}><X size={14} /></button></div>}</section>
+             {image && <div className="flex-lamp-image-card"><img src={imageUrl ?? ''} alt={image.name} /><div><strong>{t('admin.flexLampImageMapped')}</strong><small>{t('admin.flexLampImageMappedHint')}</small></div><button type="button" aria-label={t('admin.flexLampRemoveImage')} onClick={clearImage}><X size={14} /></button></div>}
           </> : (
             <section className="flex-lamp-section">
               <div className="flex-lamp-section-head"><strong>{t('admin.flexLampModel')}</strong><span>GLB / GLTF / OBJ / STL</span></div>
