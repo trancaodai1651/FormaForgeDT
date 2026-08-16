@@ -51,18 +51,42 @@ function addRing(vertices: number[], indices: number[], y: number, innerRadius: 
   }
 }
 
-function patternIsSolid(pattern: FlexLampPattern, x: number, y: number, cellSize: number): boolean {
-  const scaled = clamp(cellSize / 12, 0.45, 1.6);
-  const wave = Math.sin(y * Math.PI * 2.2) * 0.2;
-  switch (pattern) {
-    case 'circle': return Math.hypot(x, y) > 0.29 * scaled;
-    case 'hexagon': {
-      const hexDistance = Math.max(Math.abs(x), Math.abs(x) * 0.5 + Math.abs(y) * 0.866);
-      return hexDistance > 0.34 * scaled;
-    }
-    case 'vertical': return Math.abs(x) > 0.24 * scaled;
-    case 'diamond': return Math.abs(x) + Math.abs(y) > 0.38 * scaled;
-    case 'wave': return Math.abs(x - wave) > 0.22 * scaled;
+function holePoint(pattern: FlexLampPattern, angle: number, halfWidth: number, halfHeight: number, waveOffset: number): [number, number] {
+  const cosine = Math.cos(angle); const sine = Math.sin(angle);
+  if (pattern === 'diamond') {
+    const scale = 1 / (Math.abs(cosine) + Math.abs(sine) || 1);
+    return [cosine * halfWidth * scale, sine * halfHeight * scale];
+  }
+  if (pattern === 'hexagon') {
+    const sector = ((angle + Math.PI / 6) % (Math.PI / 3)) - Math.PI / 6;
+    const scale = Math.cos(Math.PI / 6) / Math.cos(sector);
+    return [cosine * halfWidth * scale, sine * halfHeight * scale];
+  }
+  if (pattern === 'vertical') return [cosine * halfWidth * .58, sine * halfHeight];
+  if (pattern === 'wave') return [cosine * halfWidth + Math.sin(waveOffset + sine * 2) * halfWidth * .22, sine * halfHeight];
+  return [cosine * halfWidth, sine * halfHeight];
+}
+
+function addPatternCell(vertices: number[], indices: number[], pattern: FlexLampPattern, theta0: number, theta1: number, y0: number, y1: number, radius: number, wall: number, cellSize: number, shadeHeight: number) {
+  const centerTheta = (theta0 + theta1) / 2; const halfTheta = (theta1 - theta0) / 2; const centerY = (y0 + y1) / 2; const halfY = (y1 - y0) / 2;
+  const halfWidth = clamp(cellSize / (2 * radius * halfTheta), .2, .82); const halfHeight = clamp(cellSize / (2 * halfY), .2, .82);
+  const segments = pattern === 'hexagon' ? 6 : pattern === 'diamond' ? 4 : 12;
+  const waveOffset = ((centerY + shadeHeight / 2) / shadeHeight) * Math.PI * 4;
+  const point = (localX: number, localY: number, depth: number): [number, number, number] => {
+    const y = centerY + localY * halfY;
+    const profile = 1 + Math.sin(((y + shadeHeight / 2) / shadeHeight) * Math.PI) * .06;
+    const r = Math.max(1, radius * profile - depth);
+    const theta = centerTheta + localX * halfTheta;
+    return [Math.cos(theta) * r, y, Math.sin(theta) * r];
+  };
+  for (let segment = 0; segment < segments; segment += 1) {
+    const a0 = (segment / segments) * Math.PI * 2; const a1 = ((segment + 1) / segments) * Math.PI * 2;
+    const outerScale0 = 1 / Math.max(Math.abs(Math.cos(a0)), Math.abs(Math.sin(a0)), .001); const outerScale1 = 1 / Math.max(Math.abs(Math.cos(a1)), Math.abs(Math.sin(a1)), .001);
+    const hole0 = holePoint(pattern, a0, halfWidth, halfHeight, waveOffset); const hole1 = holePoint(pattern, a1, halfWidth, halfHeight, waveOffset);
+    const outer0 = [Math.cos(a0) * outerScale0, Math.sin(a0) * outerScale0] as [number, number]; const outer1 = [Math.cos(a1) * outerScale1, Math.sin(a1) * outerScale1] as [number, number];
+    addQuad(vertices, indices, [point(outer0[0], outer0[1], 0), point(outer1[0], outer1[1], 0), point(hole1[0], hole1[1], 0), point(hole0[0], hole0[1], 0)]);
+    addQuad(vertices, indices, [point(outer0[0], outer0[1], wall), point(hole0[0], hole0[1], wall), point(hole1[0], hole1[1], wall), point(outer1[0], outer1[1], wall)]);
+    addQuad(vertices, indices, [point(hole0[0], hole0[1], 0), point(hole1[0], hole1[1], 0), point(hole1[0], hole1[1], wall), point(hole0[0], hole0[1], wall)]);
   }
 }
 
@@ -94,34 +118,11 @@ export function buildFlexLampGeometry(config: FlexLampConfig): FlexLampGeometryR
       const u1 = (column + 1) / around;
       const theta0 = u0 * Math.PI * 2 + rotation;
       const theta1 = u1 * Math.PI * 2 + rotation;
-      const centerX = (((column % 4) + 0.5) / 4) * 2 - 1;
-      const centerY = (((row % 4) + 0.5) / 4) * 2 - 1;
       const imageSignal = config.image ? sampleImage(config.image, (column + 0.5) / around, 1 - (row + 0.5) / rows) : 0;
-      const solid = config.image ? imageSignal >= config.imageThreshold : patternIsSolid(config.pattern, centerX, centerY, config.cellSize);
+      const solid = config.image ? imageSignal >= config.imageThreshold : true;
       if (!solid) continue;
       solidCells += 1;
-      const profile0 = 1 + Math.sin(v0 * Math.PI) * 0.06;
-      const profile1 = 1 + Math.sin(v1 * Math.PI) * 0.06;
-      const r0 = radius * profile0;
-      const r1 = radius * profile1;
-      const ri0 = Math.max(1, r0 - wall);
-      const ri1 = Math.max(1, r1 - wall);
-      const outer: Array<[number, number, number]> = [
-        [Math.cos(theta0) * r0, y0, Math.sin(theta0) * r0],
-        [Math.cos(theta1) * r0, y0, Math.sin(theta1) * r0],
-        [Math.cos(theta1) * r1, y1, Math.sin(theta1) * r1],
-        [Math.cos(theta0) * r1, y1, Math.sin(theta0) * r1],
-      ];
-      const inner: Array<[number, number, number]> = [
-        [Math.cos(theta0) * ri0, y0, Math.sin(theta0) * ri0],
-        [Math.cos(theta0) * ri1, y1, Math.sin(theta0) * ri1],
-        [Math.cos(theta1) * ri1, y1, Math.sin(theta1) * ri1],
-        [Math.cos(theta1) * ri0, y0, Math.sin(theta1) * ri0],
-      ];
-      addQuad(vertices, indices, outer);
-      addQuad(vertices, indices, inner);
-      addQuad(vertices, indices, [outer[0], inner[0], inner[1], outer[3]]);
-      addQuad(vertices, indices, [outer[1], outer[2], inner[2], inner[3]]);
+      addPatternCell(vertices, indices, config.image ? 'circle' : config.pattern, theta0, theta1, y0, y1, radius, wall, config.cellSize, height);
     }
   }
 
