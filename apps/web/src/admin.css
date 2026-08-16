@@ -389,3 +389,30 @@
 .flex-lamp-color-field { margin-top: 4px; }
 .flex-lamp-confirm:disabled { border-color: #d7e1ec; background: #e5ebf3; color: #94a2b3; cursor: not-allowed; }
 .flex-lamp-upload-large { min-height: 64px; }
+
+/* Native full-screen workspaces. Clicker, Keychain Text and Organizer already
+   own their product chrome inside the runtime, so they must not be wrapped in
+   the dashboard header, switcher or a second rounded stage. */
+.admin-native-workspace {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  background: #101319;
+}
+.admin-native-workspace .clicker-workspace-shell,
+.admin-native-workspace .clicker-runtime {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.admin-native-workspace .clicker-workspace-shell {
+  min-width: 0;
+  overflow: hidden;
+}
+.admin-native-workspace .clicker-runtime {
+  display: block;
+}
