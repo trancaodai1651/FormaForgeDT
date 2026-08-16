@@ -84,33 +84,33 @@ function PreviewObject({ mesh, color, view }: { mesh: MeshData; color: string; v
   const isLight = view === 'light';
   const isXray = view === 'xray';
   return <mesh geometry={geometry} castShadow receiveShadow>
-    <meshPhysicalMaterial color={color} roughness={view === 'matte' ? .78 : .3} metalness={.04} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .38 : 0} transparent={isXray} opacity={isXray ? .32 : 1} depthWrite={!isXray} side={THREE.DoubleSide} wireframe={isXray} />
+    <meshPhysicalMaterial color={color} roughness={view === 'matte' ? .94 : .68} metalness={0} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .3 : 0} transparent={isXray} opacity={isXray ? .32 : 1} depthWrite={!isXray} side={THREE.DoubleSide} wireframe={isXray} />
   </mesh>;
 }
 
 function PreviewScene({ mesh, config, color, view, mode }: { mesh: MeshData; config: FlexLampConfig; color: string; view: ViewMode; mode: LampMode }) {
   return <>
     <color attach="background" args={['#e9eef5']} />
-    <PerspectiveCamera makeDefault position={[2.6, 1.55, 3.1]} fov={37} />
-    <ambientLight intensity={view === 'light' ? .34 : .72} color={view === 'light' ? '#fff0c8' : '#ffffff'} />
-    <directionalLight position={[3, 5, 4]} intensity={view === 'light' ? 1.2 : 2.2} castShadow color="#fffaf0" />
+    <PerspectiveCamera makeDefault position={[2.8, 1.65, 4.15]} fov={39} />
+    <ambientLight intensity={view === 'light' ? .42 : .92} color={view === 'light' ? '#fff0c8' : '#ffffff'} />
+    <directionalLight position={[3, 5, 4]} intensity={view === 'light' ? 1.25 : 1.65} castShadow color="#fffaf0" />
     {view === 'light' && <pointLight position={[0, 0, 0]} intensity={18} distance={3.8} color="#ffc56b" decay={2} />}
     <group scale={.01} rotation={[0, .35, 0]}>
       <PreviewObject mesh={mesh} color={color} view={view} />
       {mode === 'shade' && <>
         <mesh position={[0, -config.height / 2 - 8, 0]} castShadow>
-          <cylinderGeometry args={[22, 27, 14, 48]} />
+          <cylinderGeometry args={[40, 46, 14, 48]} />
           <meshStandardMaterial color="#252a31" metalness={.65} roughness={.28} />
         </mesh>
         <mesh position={[0, -config.height / 2 - 15, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[24, 2.2, 8, 48]} />
+          <torusGeometry args={[42, 2.6, 8, 48]} />
           <meshStandardMaterial color="#0f1216" metalness={.72} roughness={.25} />
         </mesh>
-        <mesh position={[-27, -config.height / 2 - 5, 0]} castShadow>
+        <mesh position={[config.radius + 27, -config.height / 2 - 5, 0]} castShadow>
           <boxGeometry args={[20, 10, 18]} />
           <meshStandardMaterial color="#101419" metalness={.55} roughness={.3} />
         </mesh>
-        <mesh position={[-27, -config.height / 2 + 1, 0]} castShadow>
+        <mesh position={[config.radius + 27, -config.height / 2 + 1, 0]} castShadow>
           <cylinderGeometry args={[5, 5, 4, 24]} />
           <meshStandardMaterial color="#d23b3b" metalness={.18} roughness={.3} emissive={view === 'light' ? '#5b100d' : '#000000'} emissiveIntensity={view === 'light' ? .35 : 0} />
         </mesh>
@@ -144,7 +144,7 @@ function AdminFlexLampContent({ email }: { email: string }) {
   const [modelConfirmed, setModelConfirmed] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [config, setConfig] = useState<FlexLampConfig>({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 70, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 });
+  const [config, setConfig] = useState<FlexLampConfig>({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 52, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 });
   const generated = useMemo(() => buildFlexLampGeometry({ ...config, image }), [config, image]);
   const activeMesh = mode === 'model' && model ? model : generated.mesh;
   const triangleCount = Math.floor(activeMesh.indices.length / 3);
@@ -156,7 +156,7 @@ function AdminFlexLampContent({ email }: { email: string }) {
   const clearImage = () => { setImage(null); setImageUrl(null); };
 
   const setValue = (key: keyof FlexLampConfig, value: number | FlexLampPattern) => setConfig((current) => ({ ...current, [key]: value }));
-  const reset = () => { setMode(null); setView('solid'); setMaterial('PLA'); setColor('#d9d6cf'); clearImage(); setModel(null); setModelName(''); setModelConfirmed(false); setError(''); setConfig({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 70, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 }); };
+  const reset = () => { setMode(null); setView('solid'); setMaterial('PLA'); setColor('#d9d6cf'); clearImage(); setModel(null); setModelName(''); setModelConfirmed(false); setError(''); setConfig({ pattern: 'circle', around: 18, rows: 9, cellSize: 12, rotation: 0, radius: 52, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 }); };
 
   const onImage = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
