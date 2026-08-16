@@ -51,6 +51,26 @@ function addRing(vertices: number[], indices: number[], y: number, innerRadius: 
   }
 }
 
+function addSolidBand(vertices: number[], indices: number[], y0: number, y1: number, innerRadius: number, outerRadius: number, segments: number) {
+  for (let index = 0; index < segments; index += 1) {
+    const next = (index + 1) % segments;
+    const a = (index / segments) * Math.PI * 2;
+    const b = (next / segments) * Math.PI * 2;
+    const outer0: [number, number, number] = [Math.cos(a) * outerRadius, y0, Math.sin(a) * outerRadius];
+    const outer1: [number, number, number] = [Math.cos(b) * outerRadius, y0, Math.sin(b) * outerRadius];
+    const outer2: [number, number, number] = [Math.cos(b) * outerRadius, y1, Math.sin(b) * outerRadius];
+    const outer3: [number, number, number] = [Math.cos(a) * outerRadius, y1, Math.sin(a) * outerRadius];
+    const inner0: [number, number, number] = [Math.cos(a) * innerRadius, y0, Math.sin(a) * innerRadius];
+    const inner1: [number, number, number] = [Math.cos(b) * innerRadius, y0, Math.sin(b) * innerRadius];
+    const inner2: [number, number, number] = [Math.cos(b) * innerRadius, y1, Math.sin(b) * innerRadius];
+    const inner3: [number, number, number] = [Math.cos(a) * innerRadius, y1, Math.sin(a) * innerRadius];
+    addQuad(vertices, indices, [outer0, outer1, outer2, outer3]);
+    addQuad(vertices, indices, [inner0, inner3, inner2, inner1]);
+    addQuad(vertices, indices, [outer3, outer2, inner2, inner3]);
+    addQuad(vertices, indices, [outer0, inner0, inner1, outer1]);
+  }
+}
+
 function holePoint(pattern: FlexLampPattern, angle: number, halfWidth: number, halfHeight: number, waveOffset: number): [number, number] {
   const cosine = Math.cos(angle); const sine = Math.sin(angle);
   if (pattern === 'diamond') {
@@ -70,7 +90,7 @@ function holePoint(pattern: FlexLampPattern, angle: number, halfWidth: number, h
 function addPatternCell(vertices: number[], indices: number[], pattern: FlexLampPattern, theta0: number, theta1: number, y0: number, y1: number, radius: number, wall: number, cellSize: number, shadeHeight: number) {
   const centerTheta = (theta0 + theta1) / 2; const halfTheta = (theta1 - theta0) / 2; const centerY = (y0 + y1) / 2; const halfY = (y1 - y0) / 2;
   const halfWidth = clamp(cellSize / (2 * radius * halfTheta), .2, .82); const halfHeight = clamp(cellSize / (2 * halfY), .2, .82);
-  const segments = pattern === 'hexagon' ? 6 : pattern === 'diamond' ? 4 : 40;
+  const segments = pattern === 'hexagon' ? 6 : pattern === 'diamond' ? 4 : 46;
   const waveOffset = ((centerY + shadeHeight / 2) / shadeHeight) * Math.PI * 4;
   const point = (localX: number, localY: number, depth: number): [number, number, number] => {
     const y = centerY + localY * halfY;
@@ -108,7 +128,9 @@ export function buildFlexLampGeometry(config: FlexLampConfig): FlexLampGeometryR
   let solidCells = 0;
   const rotation = (config.rotation * Math.PI) / 180;
 
-  for (let row = 0; row < rows; row += 1) {
+  const bandHeight = clamp(height * .1, 10, 20);
+  const bandRows = Math.max(1, Math.round((bandHeight / height) * rows));
+  for (let row = bandRows; row < rows; row += 1) {
     const v0 = row / rows;
     const v1 = (row + 1) / rows;
     const y0 = -height / 2 + v0 * height;
@@ -126,6 +148,7 @@ export function buildFlexLampGeometry(config: FlexLampConfig): FlexLampGeometryR
     }
   }
 
+  addSolidBand(vertices, indices, -height / 2, -height / 2 + bandHeight, Math.max(8, radius - wall), radius + 4, 64);
   const ringSegments = Math.max(around, 32);
   addRing(vertices, indices, -height / 2, Math.max(8, radius - wall * 2.2), radius + 4, ringSegments);
   addRing(vertices, indices, height / 2, Math.max(8, radius - wall * 2.2), radius + 4, ringSegments);
