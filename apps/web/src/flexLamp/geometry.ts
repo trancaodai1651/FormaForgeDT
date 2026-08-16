@@ -70,7 +70,7 @@ function holePoint(pattern: FlexLampPattern, angle: number, halfWidth: number, h
 function addPatternCell(vertices: number[], indices: number[], pattern: FlexLampPattern, theta0: number, theta1: number, y0: number, y1: number, radius: number, wall: number, cellSize: number, shadeHeight: number) {
   const centerTheta = (theta0 + theta1) / 2; const halfTheta = (theta1 - theta0) / 2; const centerY = (y0 + y1) / 2; const halfY = (y1 - y0) / 2;
   const halfWidth = clamp(cellSize / (2 * radius * halfTheta), .2, .82); const halfHeight = clamp(cellSize / (2 * halfY), .2, .82);
-  const segments = pattern === 'hexagon' ? 6 : pattern === 'diamond' ? 4 : 12;
+  const segments = pattern === 'hexagon' ? 6 : pattern === 'diamond' ? 4 : 40;
   const waveOffset = ((centerY + shadeHeight / 2) / shadeHeight) * Math.PI * 4;
   const point = (localX: number, localY: number, depth: number): [number, number, number] => {
     const y = centerY + localY * halfY;

@@ -373,3 +373,19 @@
   .admin-tool-page-meta small { display: none; }
   .admin-tool-stage { margin-top: 10px; border-radius: 14px; }
 }
+
+/* Flex Lamp parity layer: the reference uses a quiet canvas and floating inspector cards. */
+.flex-lamp-app .flex-lamp-panel { padding: 18px 15px 28px; background: #f0f4fa; }
+.flex-lamp-app .flex-lamp-panel-intro { border-bottom: 0; padding: 8px 5px 9px; }
+.flex-lamp-app .flex-lamp-section { margin: 10px 0; padding: 18px 15px; border: 1px solid rgba(214,224,237,.76); border-radius: 20px; background: rgba(245,248,252,.92); box-shadow: 0 8px 22px rgba(99,122,153,.09); }
+.flex-lamp-app .flex-lamp-section + .flex-lamp-section { margin-top: 12px; }
+.flex-lamp-app .flex-lamp-range input { accent-color: #caff00; }
+.flex-lamp-app .flex-lamp-canvas-tools button:hover, .flex-lamp-app .flex-lamp-canvas-tools button.active { background: #caff00; color: #203015; }
+.flex-lamp-app .flex-lamp-result-hint { margin: 0; color: #8090a3; font-size: 10px; }
+.flex-lamp-app .flex-lamp-result-metrics { margin: 0; color: #26354b; font: 600 11px 'DM Mono', monospace; line-height: 1.45; }
+.flex-lamp-material-select, .flex-lamp-color-field { display: grid; gap: 7px; }
+.flex-lamp-material-select > span, .flex-lamp-color-field > span { color: #7d8da2; font-size: 10px; }
+.flex-lamp-material-select select { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #d0dceb; border-radius: 10px; background: #edf2f8; color: #536985; font-size: 12px; }
+.flex-lamp-color-field { margin-top: 4px; }
+.flex-lamp-confirm:disabled { border-color: #d7e1ec; background: #e5ebf3; color: #94a2b3; cursor: not-allowed; }
+.flex-lamp-upload-large { min-height: 64px; }
