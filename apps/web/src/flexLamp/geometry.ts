@@ -87,14 +87,14 @@ function holePoint(pattern: FlexLampPattern, angle: number, halfWidth: number, h
   return [cosine * halfWidth, sine * halfHeight];
 }
 
-function addPatternCell(vertices: number[], indices: number[], pattern: FlexLampPattern, theta0: number, theta1: number, y0: number, y1: number, radius: number, wall: number, cellSize: number, shadeHeight: number) {
+function addPatternCell(vertices: number[], indices: number[], pattern: FlexLampPattern, theta0: number, theta1: number, y0: number, y1: number, radius: number, wall: number, cellSize: number, shadeHeight: number, shadeBase: number) {
   const centerTheta = (theta0 + theta1) / 2; const halfTheta = (theta1 - theta0) / 2; const centerY = (y0 + y1) / 2; const halfY = (y1 - y0) / 2;
   const halfWidth = clamp(cellSize / (2 * radius * halfTheta), .2, .82); const halfHeight = clamp(cellSize / (2 * halfY), .2, .82);
   const segments = pattern === 'hexagon' ? 6 : pattern === 'diamond' ? 4 : 46;
-  const waveOffset = ((centerY + shadeHeight / 2) / shadeHeight) * Math.PI * 4;
+  const waveOffset = ((centerY - shadeBase) / shadeHeight) * Math.PI * 4;
   const point = (localX: number, localY: number, depth: number): [number, number, number] => {
     const y = centerY + localY * halfY;
-    const profile = 1 + Math.sin(((y + shadeHeight / 2) / shadeHeight) * Math.PI) * .06;
+    const profile = 1;
     const r = Math.max(1, radius * profile - depth);
     const theta = centerTheta + localX * halfTheta;
     return [Math.cos(theta) * r, y, Math.sin(theta) * r];
@@ -118,9 +118,13 @@ function sampleImage(image: ImagePattern, u: number, v: number): number {
 
 /** Creates a printable cylindrical shade made from printable panels and open cells. */
 export function buildFlexLampGeometry(config: FlexLampConfig): FlexLampGeometryResult {
-  const around = Math.round(clamp(config.around, 12, 64));
-  const rows = Math.round(clamp(config.rows, 4, 36));
-  const radius = clamp(config.radius, 35, 180);
+  let around = Math.round(clamp(config.around, 3, 80));
+  let rows = Math.round(clamp(config.rows, 1, 40));
+  while (around * rows > 400) {
+    if (around >= rows) around -= 1;
+    else rows -= 1;
+  }
+  const radius = clamp(config.radius, 30, 180);
   const height = clamp(config.height, 50, 320);
   const wall = clamp(config.wallThickness, 0.8, 6);
   const vertices: number[] = [];
@@ -128,37 +132,43 @@ export function buildFlexLampGeometry(config: FlexLampConfig): FlexLampGeometryR
   let solidCells = 0;
   const rotation = (config.rotation * Math.PI) / 180;
 
-  const bandHeight = clamp(height * .1, 10, 20);
-  const bandRows = Math.max(1, Math.round((bandHeight / height) * rows));
-  for (let row = bandRows; row < rows; row += 1) {
-    const v0 = row / rows;
-    const v1 = (row + 1) / rows;
-    const y0 = -height / 2 + v0 * height;
-    const y1 = -height / 2 + v1 * height;
+  // The reference kit is Z-up and its shade is cut between the socket's
+  // thread and cap.  The preview uses Y-up, so this value becomes the local
+  // vertical coordinate while the reference assembly is rotated into place.
+  const shadeBase = 12;
+  const shadeTop = shadeBase + height;
+  const clearance = Math.min(1.6, height / (rows * 4));
+  const patternBase = shadeBase + clearance;
+  const patternHeight = Math.max(1, height - clearance * 2);
+  const cellHeight = patternHeight / rows;
+  const outerRadius = Math.min(radius + 0.75, 35.0559);
+  for (let row = 0; row < rows; row += 1) {
+    const y0 = patternBase + row * cellHeight;
+    const y1 = patternBase + (row + 1) * cellHeight;
     for (let column = 0; column < around; column += 1) {
       const u0 = column / around;
       const u1 = (column + 1) / around;
-      const theta0 = u0 * Math.PI * 2 + rotation;
-      const theta1 = u1 * Math.PI * 2 + rotation;
+      const rowOffset = (config.pattern === 'hexagon' || config.pattern === 'diamond') && row % 2 ? Math.PI / around : 0;
+      const theta0 = u0 * Math.PI * 2 + rotation + rowOffset;
+      const theta1 = u1 * Math.PI * 2 + rotation + rowOffset;
       const imageSignal = config.image ? sampleImage(config.image, (column + 0.5) / around, 1 - (row + 0.5) / rows) : 0;
       const solid = config.image ? imageSignal >= config.imageThreshold : true;
       if (!solid) continue;
       solidCells += 1;
-      addPatternCell(vertices, indices, config.image ? 'circle' : config.pattern, theta0, theta1, y0, y1, radius, wall, config.cellSize, height);
+      addPatternCell(vertices, indices, config.image ? 'circle' : config.pattern, theta0, theta1, y0, y1, radius, wall, config.cellSize, height, shadeBase);
     }
   }
 
-  addSolidBand(vertices, indices, -height / 2, -height / 2 + bandHeight, Math.max(8, radius - wall), radius + 4, 64);
   const ringSegments = Math.max(around, 32);
-  addRing(vertices, indices, -height / 2, Math.max(8, radius - wall * 2.2), radius + 4, ringSegments);
-  addRing(vertices, indices, height / 2, Math.max(8, radius - wall * 2.2), radius + 4, ringSegments);
-  addRing(vertices, indices, -height / 2 + 4, Math.max(8, radius - wall * 1.4), Math.max(8, radius - wall * 0.3), ringSegments);
+  addRing(vertices, indices, shadeBase, Math.max(8, radius - wall * 2.2), outerRadius, ringSegments);
+  addRing(vertices, indices, shadeTop, Math.max(8, radius - wall * 2.2), outerRadius, ringSegments);
+  addRing(vertices, indices, shadeBase + 4, Math.max(8, radius - wall * 1.4), Math.max(8, outerRadius - wall * 0.3), ringSegments);
 
   return {
     mesh: {
       vertices,
       indices,
-      metadata: { width: radius * 2, height, depth: radius * 2, wallThickness: wall, shape: 'pattern' },
+      metadata: { width: outerRadius * 2, height, depth: outerRadius * 2, wallThickness: wall, shape: 'pattern' },
     },
     solidCells,
     totalCells: around * rows,
