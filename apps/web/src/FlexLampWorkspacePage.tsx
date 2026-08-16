@@ -1,0 +1,208 @@
+import { ArrowLeft, ArrowRight, Box, Check, Download, Eye, FileUp, ImagePlus, Lightbulb, LogOut, RotateCcw, ShieldCheck, Sun, Upload, X } from 'lucide-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import type { MeshData } from '@hometown/types';
+import { export3MF, exportSTL } from '@hometown/geometry';
+import { AdminGuard } from './AdminGuard';
+import { useI18n } from './lib/i18n';
+import { signOutAdmin } from './lib/supabase';
+import { buildFlexLampGeometry, loadImagePattern, meshFromBufferGeometry, normalizeMeshData, type FlexLampConfig, type FlexLampPattern, type ImagePattern } from './flexLamp/geometry';
+
+type LampMode = 'shade' | 'model';
+type ViewMode = 'solid' | 'matte' | 'xray' | 'light';
+type Material = 'PLA' | 'PETG' | 'ABS';
+
+const colorPresets = ['#d9d6cf', '#e7e7e7', '#1b1b1b', '#d23b3b', '#2f6fdd', '#2e9e5b', '#f2b705'];
+const tools = [
+  { path: '/admin/clicker', labelKey: 'admin.clicker', short: 'C' },
+  { path: '/admin/flex-keychain', labelKey: 'admin.clickerFlexKeychain', short: 'F' },
+  { path: '/admin/flex-organizer', labelKey: 'admin.clickerFlexOrganizer', short: 'F' },
+  { path: '/admin/flex-lamp', labelKey: 'admin.flexLamp', short: 'L' },
+];
+
+function downloadFile(data: string | Uint8Array, mime: string, name: string) {
+  const payload = typeof data === 'string' ? data : data.slice().buffer as ArrayBuffer;
+  const url = URL.createObjectURL(new Blob([payload], { type: mime }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function getFileExtension(name: string) { return name.toLowerCase().split('.').pop() ?? ''; }
+
+async function loadImportedModel(file: File): Promise<MeshData> {
+  const extension = getFileExtension(file.name);
+  if (extension === 'stl') {
+    const geometry = new STLLoader().parse(await file.arrayBuffer());
+    try { return meshFromBufferGeometry(geometry); } finally { geometry.dispose(); }
+  }
+  if (extension === 'obj') {
+    const group = new OBJLoader().parse(await file.text());
+    const vertices: number[] = [];
+    const indices: number[] = [];
+    group.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry;
+      const position = geometry.getAttribute('position');
+      if (!position) return;
+      const offset = vertices.length / 3;
+      vertices.push(...Array.from(position.array as ArrayLike<number>));
+      indices.push(...Array.from({ length: position.count }, (_, index) => offset + index));
+      if (geometry !== object.geometry) geometry.dispose();
+    });
+    if (vertices.length === 0) throw new Error('The OBJ file has no usable triangles.');
+    return normalizeMeshData({ vertices, indices, metadata: { width: 1, height: 1, depth: 1, wallThickness: 1.6, shape: 'geometric' } });
+  }
+  throw new Error('Supported model formats: STL and OBJ.');
+}
+
+function PreviewObject({ mesh, color, view }: { mesh: MeshData; color: string; view: ViewMode }) {
+  const geometry = useMemo(() => {
+    const next = new THREE.BufferGeometry();
+    next.setAttribute('position', new THREE.Float32BufferAttribute(mesh.vertices, 3));
+    next.setIndex(mesh.indices);
+    next.computeVertexNormals();
+    return next;
+  }, [mesh]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  const isLight = view === 'light';
+  const isXray = view === 'xray';
+  return <mesh geometry={geometry} castShadow receiveShadow>
+    <meshPhysicalMaterial color={color} roughness={view === 'matte' ? .78 : .3} metalness={.04} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .38 : 0} transparent={isXray} opacity={isXray ? .32 : 1} depthWrite={!isXray} side={THREE.DoubleSide} wireframe={isXray} />
+  </mesh>;
+}
+
+function PreviewScene({ mesh, config, color, view, mode }: { mesh: MeshData; config: FlexLampConfig; color: string; view: ViewMode; mode: LampMode }) {
+  return <>
+    <color attach="background" args={['#e9eef5']} />
+    <PerspectiveCamera makeDefault position={[2.6, 1.55, 3.1]} fov={37} />
+    <ambientLight intensity={view === 'light' ? .34 : .72} color={view === 'light' ? '#fff0c8' : '#ffffff'} />
+    <directionalLight position={[3, 5, 4]} intensity={view === 'light' ? 1.2 : 2.2} castShadow color="#fffaf0" />
+    {view === 'light' && <pointLight position={[0, 0, 0]} intensity={18} distance={3.8} color="#ffc56b" decay={2} />}
+    <group scale={.01} rotation={[0, .35, 0]}>
+      <PreviewObject mesh={mesh} color={color} view={view} />
+      {mode === 'shade' && <>
+        <mesh position={[0, -config.height / 2 - 8, 0]} castShadow>
+          <cylinderGeometry args={[22, 27, 12, 48]} />
+          <meshStandardMaterial color="#252a31" metalness={.65} roughness={.28} />
+        </mesh>
+        <mesh position={[0, config.height / 2 + 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[config.radius + 2, 1.5, 8, 48]} />
+          <meshStandardMaterial color="#c99b58" metalness={.7} roughness={.26} />
+        </mesh>
+      </>}
+    </group>
+    <gridHelper args={[4.2, 24, '#6d87a5', '#c5d0df']} position={[0, -1.05, 0]} />
+    <OrbitControls enablePan minDistance={2.2} maxDistance={6.5} makeDefault />
+  </>;
+}
+
+function RangeField({ label, value, min, max, step = 1, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit: string; onChange: (value: number) => void }) {
+  return <label className="flex-lamp-range"><span><span>{label}</span><strong>{Number.isInteger(value) ? value : value.toFixed(1)}{unit && ` ${unit}`}</strong></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>;
+}
+
+function AdminFlexLampContent({ email }: { email: string }) {
+  const { t, language, toggleLanguage } = useI18n();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<LampMode>('shade');
+  const [view, setView] = useState<ViewMode>('solid');
+  const [material, setMaterial] = useState<Material>('PLA');
+  const [color, setColor] = useState('#d9d6cf');
+  const [image, setImage] = useState<ImagePattern | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [model, setModel] = useState<MeshData | null>(null);
+  const [modelName, setModelName] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [config, setConfig] = useState<FlexLampConfig>({ pattern: 'hexagon', around: 28, rows: 14, cellSize: 12, rotation: 0, radius: 70, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 });
+  const generated = useMemo(() => buildFlexLampGeometry({ ...config, image }), [config, image]);
+  const activeMesh = mode === 'model' && model ? model : generated.mesh;
+  const triangleCount = Math.floor(activeMesh.indices.length / 3);
+  const volume = Math.max(1, Math.round((activeMesh.metadata.width * activeMesh.metadata.height * activeMesh.metadata.depth * .018) / 1000));
+  const coverage = generated.totalCells ? Math.round((generated.solidCells / generated.totalCells) * 100) : 0;
+
+  useEffect(() => () => { if (imageUrl) URL.revokeObjectURL(imageUrl); }, [imageUrl]);
+
+  const clearImage = () => { setImage(null); setImageUrl(null); };
+
+  const setValue = (key: keyof FlexLampConfig, value: number | FlexLampPattern) => setConfig((current) => ({ ...current, [key]: value }));
+  const reset = () => { setMode('shade'); setView('solid'); setMaterial('PLA'); setColor('#d9d6cf'); clearImage(); setModel(null); setModelName(''); setError(''); setConfig({ pattern: 'hexagon', around: 28, rows: 14, cellSize: 12, rotation: 0, radius: 70, height: 155, wallThickness: 1.6, image: null, imageThreshold: .32 }); };
+
+  const onImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true); setError('');
+    try {
+      const next = await loadImagePattern(file);
+      const url = URL.createObjectURL(file);
+      setImage(next); setImageUrl(url); setModel(null); setMode('shade');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not import the image.'); }
+    finally { setBusy(false); }
+  };
+
+  const onModel = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true); setError('');
+    try { setModel(await loadImportedModel(file)); setModelName(file.name); setMode('model'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not import the model.'); }
+    finally { setBusy(false); }
+  };
+
+  const exportActive = (extension: 'stl' | '3mf') => {
+    const name = mode === 'model' && modelName ? modelName.replace(/\.[^/.]+$/, '') : image ? image.name.replace(/\.[^/.]+$/, '') : 'flex-lamp-shade';
+    if (extension === 'stl') downloadFile(exportSTL(activeMesh, name), 'model/stl', `${name}.stl`);
+    else downloadFile(export3MF(activeMesh, name), 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml', `${name}.3mf`);
+  };
+
+  const signOut = async () => { await signOutAdmin(); navigate('/admin'); };
+  const pageTitle = t('admin.flexLampPageTitle');
+  const pageDescription = t('admin.flexLampPageDescription');
+
+  return <div className="admin-tool-page admin-tool-page-flex-lamp"><div className="admin-tool-container">
+    <header className="admin-studio-bar">
+      <div className="admin-studio-identity"><Link className="admin-studio-back" to="/admin"><ArrowLeft size={15} /><span>{t('admin.backToDashboard')}</span></Link><span className="admin-studio-divider" /><span className="admin-studio-mark">L</span><div className="admin-studio-title"><span className="admin-studio-kicker">FORMAFORGE / ADMIN</span><strong>{t('admin.flexLamp')}</strong></div></div>
+      <div className="admin-studio-session"><span className="admin-studio-live"><span className="live-dot" /> {t('admin.adminOnly')}</span><span className="admin-studio-email">{email}</span><button className="admin-studio-signout" type="button" onClick={signOut}><LogOut size={14} /><span>{t('admin.signOut')}</span></button></div>
+    </header>
+    <div className="admin-tool-nav-row">
+      <div className="admin-tool-page-meta"><span className="admin-tool-page-number">04</span><div><span className="eyebrow"><ShieldCheck size={12} /> {t('admin.toolWorkspace')}</span><strong>{pageTitle}</strong><small>{pageDescription}</small></div></div>
+      <nav className="admin-tool-switcher" aria-label={t('admin.toolNavigation')}>{tools.map((tool) => <NavLink key={tool.path} to={tool.path} className={({ isActive }) => isActive ? 'active' : ''}><span>{tool.short}</span><b>{t(tool.labelKey)}</b><ArrowRight size={14} /></NavLink>)}</nav>
+    </div>
+    <section className="admin-tool-stage flex-lamp-stage">
+      <div className="flex-lamp-toolbar"><div className="flex-lamp-mode-switch" role="tablist" aria-label={t('admin.flexLampMode')}><button type="button" className={mode === 'shade' ? 'active' : ''} onClick={() => setMode('shade')}><Sun size={15} />{t('admin.flexLampShade')}</button><button type="button" className={mode === 'model' ? 'active' : ''} onClick={() => setMode('model')}><Box size={15} />{t('admin.flexLampModel')}</button></div><div className="flex-lamp-toolbar-actions"><button type="button" className="flex-lamp-ghost" onClick={toggleLanguage}>{language === 'vi' ? 'EN' : 'VI'}</button><button type="button" className="flex-lamp-ghost" onClick={reset}><RotateCcw size={14} />{t('admin.flexLampReset')}</button></div></div>
+      <div className="flex-lamp-layout">
+        <div className="flex-lamp-viewport">
+          <div className="flex-lamp-view-tabs" role="tablist" aria-label={t('admin.flexLampView')}><button className={view === 'solid' ? 'active' : ''} onClick={() => setView('solid')} type="button"><Box size={14} />{t('admin.flexLampSolid')}</button><button className={view === 'matte' ? 'active' : ''} onClick={() => setView('matte')} type="button"><Eye size={14} />{t('admin.flexLampMatte')}</button><button className={view === 'xray' ? 'active' : ''} onClick={() => setView('xray')} type="button"><X size={14} />{t('admin.flexLampXray')}</button><button className={view === 'light' ? 'active' : ''} onClick={() => setView('light')} type="button"><Lightbulb size={14} />{t('admin.flexLampLight')}</button></div>
+          <Canvas shadows dpr={[1, 1.8]} gl={{ antialias: true }}><PreviewScene mesh={activeMesh} config={config} color={color} view={view} mode={mode} /></Canvas>
+          <div className="flex-lamp-viewport-note"><span className="live-dot" />{mode === 'model' && model ? modelName : image ? image.name : t('admin.flexLampRealtime')}</div>
+          <div className="flex-lamp-viewport-help">{t('admin.flexLampOrbitHint')}</div>
+        </div>
+        <aside className="flex-lamp-panel">
+          <div className="flex-lamp-panel-intro"><span className="eyebrow">{t('admin.flexLampEyebrow')}</span><h2>{mode === 'shade' ? t('admin.flexLampShadeTitle') : t('admin.flexLampModelTitle')}</h2><p>{mode === 'shade' ? t('admin.flexLampShadeDescription') : t('admin.flexLampModelDescription')}</p></div>
+          {mode === 'shade' ? <>
+            <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampPattern')}</strong><span>{t('admin.flexLampLive')}</span></div><div className="flex-lamp-pattern-grid">{(['circle', 'hexagon', 'vertical', 'diamond', 'wave'] as FlexLampPattern[]).map((pattern) => <button type="button" key={pattern} className={config.pattern === pattern && !image ? 'active' : ''} onClick={() => { setValue('pattern', pattern); clearImage(); }}><span className={`pattern-icon pattern-icon-${pattern}`} />{t(`admin.flexLampPattern.${pattern}`)}</button>)}</div></section>
+            <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampImageTitle')}</strong><span>{image ? t('admin.flexLampImageReady') : t('admin.flexLampOptional')}</span></div><label className="flex-lamp-upload"><ImagePlus size={18} /><span><b>{image ? image.name : t('admin.flexLampImportImage')}</b><small>{t('admin.flexLampImageHint')}</small></span><Upload size={15} /><input type="file" accept="image/png,image/jpeg,image/webp" onChange={onImage} /></label>{image && <div className="flex-lamp-image-card"><img src={imageUrl ?? ''} alt={image.name} /><div><strong>{t('admin.flexLampImageMapped')}</strong><small>{t('admin.flexLampImageMappedHint')}</small></div><button type="button" aria-label={t('admin.flexLampRemoveImage')} onClick={() => { setImage(null); setImageUrl(null); }}><X size={14} /></button></div>}</section>
+            <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampDimensions')}</strong><span>mm</span></div><RangeField label={t('admin.flexLampAround')} value={config.around} min={12} max={56} unit="" onChange={(value) => setValue('around', value)} /><RangeField label={t('admin.flexLampRows')} value={config.rows} min={4} max={30} unit="" onChange={(value) => setValue('rows', value)} /><RangeField label={t('admin.flexLampCellSize')} value={config.cellSize} min={6} max={24} step={.5} unit="mm" onChange={(value) => setValue('cellSize', value)} /><RangeField label={t('admin.flexLampRotation')} value={config.rotation} min={-45} max={45} unit="°" onChange={(value) => setValue('rotation', value)} /><RangeField label={t('admin.flexLampWidth')} value={config.radius * 2} min={70} max={280} unit="mm" onChange={(value) => setValue('radius', value / 2)} /><RangeField label={t('admin.flexLampHeight')} value={config.height} min={60} max={300} unit="mm" onChange={(value) => setValue('height', value)} />{image && <RangeField label={t('admin.flexLampImageThreshold')} value={config.imageThreshold} min={.05} max={.9} step={.05} unit="" onChange={(value) => setValue('imageThreshold', value)} />}</section>
+          </> : <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampModelImport')}</strong><span>STL / OBJ</span></div><label className="flex-lamp-upload flex-lamp-upload-large"><FileUp size={18} /><span><b>{modelName || t('admin.flexLampImportModel')}</b><small>{t('admin.flexLampModelHint')}</small></span><Upload size={15} /><input type="file" accept=".stl,.obj,model/stl,text/plain" onChange={onModel} /></label>{model && <div className="flex-lamp-imported-state"><Check size={15} /><span>{t('admin.flexLampModelLoaded')}</span><strong>{model.metadata.width.toFixed(0)} × {model.metadata.height.toFixed(0)} mm</strong></div>}<div className="flex-lamp-model-callout"><ShieldCheck size={16} /><span>{t('admin.flexLampModelCallout')}</span></div></section>}
+          <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampResult')}</strong><span>{t('admin.flexLampAutoUpdate')}</span></div><div className="flex-lamp-result-grid"><div><strong>{triangleCount.toLocaleString()}</strong><span>{t('admin.flexLampTriangles')}</span></div><div><strong>{volume} cm³</strong><span>{t('admin.flexLampVolume')}</span></div><div><strong>{mode === 'shade' ? `${coverage}%` : '100%'}</strong><span>{t('admin.flexLampCoverage')}</span></div></div></section>
+          <section className="flex-lamp-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampMaterial')}</strong><span>{material}</span></div><div className="flex-lamp-material-row">{(['PLA', 'PETG', 'ABS'] as Material[]).map((item) => <button type="button" className={material === item ? 'active' : ''} key={item} onClick={() => setMaterial(item)}>{item}</button>)}</div><div className="flex-lamp-color-row"><input aria-label={t('admin.flexLampColor')} type="color" value={color} onChange={(event) => setColor(event.target.value)} /><input aria-label={t('admin.flexLampColor')} type="text" value={color} onChange={(event) => setColor(event.target.value)} /><div className="flex-lamp-swatches">{colorPresets.map((preset) => <button type="button" key={preset} aria-label={preset} className={color === preset ? 'active' : ''} style={{ background: preset }} onClick={() => setColor(preset)} />)}</div></div></section>
+          {error && <div className="flex-lamp-error">{error}</div>}
+          <div className="flex-lamp-export"><button type="button" onClick={() => exportActive('stl')} disabled={busy}><Download size={15} />{t('admin.flexLampExportStl')}</button><button type="button" onClick={() => exportActive('3mf')} disabled={busy}><Download size={15} />{t('admin.flexLampExport3mf')}</button></div>
+        </aside>
+      </div>
+    </section>
+  </div></div>;
+}
+
+export function AdminFlexLampPage() {
+  return <AdminGuard>{(user) => <AdminFlexLampContent email={user.email ?? ''} />}</AdminGuard>;
+}

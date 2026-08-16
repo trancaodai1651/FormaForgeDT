@@ -16,6 +16,7 @@ function AdminToolContent({ mode, email }: { mode: ClickerMode; email: string })
     { mode: 'flex-keychain', path: '/admin/flex-keychain', label: t('admin.clickerFlexKeychain'), short: 'F' },
     { mode: 'flex-organizer', path: '/admin/flex-organizer', label: t('admin.clickerFlexOrganizer'), short: 'F' },
   ];
+  const allTools = [...tools, { path: '/admin/flex-lamp', label: t('admin.flexLamp'), short: 'L' }];
   const current = tools.find((tool) => tool.mode === mode) ?? tools[0];
   const currentIndex = tools.findIndex((tool) => tool.mode === current.mode) + 1;
   const title = mode === 'clicker' ? t('admin.clickerPageTitle') : mode === 'flex-keychain' ? t('admin.flexKeychainPageTitle') : t('admin.flexOrganizerPageTitle');
@@ -39,7 +40,7 @@ function AdminToolContent({ mode, email }: { mode: ClickerMode; email: string })
     <div className="admin-tool-nav-row">
       <div className="admin-tool-page-meta"><span className="admin-tool-page-number">0{currentIndex}</span><div><span className="eyebrow"><ShieldCheck size={12} /> {t('admin.toolWorkspace')}</span><strong>{title}</strong><small>{description}</small></div></div>
       <nav className="admin-tool-switcher" aria-label={t('admin.toolNavigation')}>
-        {tools.map((tool) => <NavLink key={tool.path} to={tool.path} className={({ isActive }) => isActive ? 'active' : ''}><span>{tool.short}</span><b>{tool.label}</b><ArrowRight size={14} /></NavLink>)}
+        {allTools.map((tool) => <NavLink key={tool.path} to={tool.path} className={({ isActive }) => isActive ? 'active' : ''}><span>{tool.short}</span><b>{tool.label}</b><ArrowRight size={14} /></NavLink>)}
       </nav>
     </div>
     <section className="admin-tool-stage"><ClickerWorkspacePage initialMode={mode} showModeTabs={false} labels={{ clicker: t('admin.clicker'), flexKeychain: t('admin.clickerFlexKeychain'), flexOrganizer: t('admin.clickerFlexOrganizer') }} /></section>
