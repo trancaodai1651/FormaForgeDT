@@ -17,6 +17,7 @@ function AdminToolContent({ mode, email }: { mode: ClickerMode; email: string })
     { mode: 'flex-organizer', path: '/admin/flex-organizer', label: t('admin.clickerFlexOrganizer'), short: 'F' },
   ];
   const current = tools.find((tool) => tool.mode === mode) ?? tools[0];
+  const currentIndex = tools.findIndex((tool) => tool.mode === current.mode) + 1;
   const title = mode === 'clicker' ? t('admin.clickerPageTitle') : mode === 'flex-keychain' ? t('admin.flexKeychainPageTitle') : t('admin.flexOrganizerPageTitle');
   const description = mode === 'clicker' ? t('admin.clickerPageDescription') : mode === 'flex-keychain' ? t('admin.flexKeychainPageDescription') : t('admin.flexOrganizerPageDescription');
 
@@ -25,19 +26,22 @@ function AdminToolContent({ mode, email }: { mode: ClickerMode; email: string })
     navigate('/admin');
   };
 
-  return <div className="admin-tool-page"><div className="admin-tool-container">
-    <header className="admin-tool-header">
-      <div className="admin-tool-heading">
-        <Link className="admin-tool-back" to="/admin"><ArrowLeft size={15} /> {t('admin.backToDashboard')}</Link>
-        <span className="eyebrow"><ShieldCheck size={13} /> {t('admin.toolEyebrow')}</span>
-        <div className="admin-tool-title-row"><span className="admin-tool-mark">{current.short}</span><div><h1>{title}</h1><p>{description}</p></div></div>
+  return <div className={`admin-tool-page admin-tool-page-${mode}`}><div className="admin-tool-container">
+    <header className="admin-studio-bar">
+      <div className="admin-studio-identity">
+        <Link className="admin-studio-back" to="/admin"><ArrowLeft size={15} /><span>{t('admin.backToDashboard')}</span></Link>
+        <span className="admin-studio-divider" />
+        <span className="admin-studio-mark">F</span>
+        <div className="admin-studio-title"><span className="admin-studio-kicker">FORMAFORGE / ADMIN</span><strong>{current.label}</strong></div>
       </div>
-      <div className="admin-tool-session"><span className="admin-tool-session-status"><span className="live-dot" /> {t('admin.adminOnly')}</span><span>{email}</span><button className="admin-tool-signout" type="button" onClick={signOut}><LogOut size={14} /> {t('admin.signOut')}</button></div>
+      <div className="admin-studio-session"><span className="admin-studio-live"><span className="live-dot" /> {t('admin.adminOnly')}</span><span className="admin-studio-email">{email}</span><button className="admin-studio-signout" type="button" onClick={signOut}><LogOut size={14} /> <span>{t('admin.signOut')}</span></button></div>
     </header>
-    <nav className="admin-tool-switcher" aria-label={t('admin.toolNavigation')}>
-      {tools.map((tool) => <NavLink key={tool.path} to={tool.path} className={({ isActive }) => isActive ? 'active' : ''}><span>{tool.short}</span>{tool.label}<ArrowRight size={14} /></NavLink>)}
-    </nav>
-    <div className="admin-tool-status"><span>{t('admin.toolWorkspace')}</span><strong>{current.label}</strong><span className="admin-tool-status-line" /></div>
+    <div className="admin-tool-nav-row">
+      <div className="admin-tool-page-meta"><span className="admin-tool-page-number">0{currentIndex}</span><div><span className="eyebrow"><ShieldCheck size={12} /> {t('admin.toolWorkspace')}</span><strong>{title}</strong><small>{description}</small></div></div>
+      <nav className="admin-tool-switcher" aria-label={t('admin.toolNavigation')}>
+        {tools.map((tool) => <NavLink key={tool.path} to={tool.path} className={({ isActive }) => isActive ? 'active' : ''}><span>{tool.short}</span><b>{tool.label}</b><ArrowRight size={14} /></NavLink>)}
+      </nav>
+    </div>
     <section className="admin-tool-stage"><ClickerWorkspacePage initialMode={mode} showModeTabs={false} labels={{ clicker: t('admin.clicker'), flexKeychain: t('admin.clickerFlexKeychain'), flexOrganizer: t('admin.clickerFlexOrganizer') }} /></section>
   </div></div>;
 }
