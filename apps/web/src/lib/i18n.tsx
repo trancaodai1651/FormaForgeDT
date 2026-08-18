@@ -51,6 +51,38 @@ Object.assign(vi, { 'admin.flexLampImageThreshold': 'Ngưỡng ảnh', 'admin.fl
 Object.assign(en, { 'admin.flexLampImportModel': 'Import model…', 'admin.flexLampModelHint': 'GLB, GLTF, OBJ or STL · centered and converted to export-ready triangles.', 'admin.flexLampModelDescription': 'Load a 3D model, prepare the socket collar and export the lamp-ready geometry.', 'admin.flexLampMaterialType': 'Filament', 'admin.flexLampColorLabel': 'Color', 'admin.flexLampAutoUpdate': 'Updates automatically as you adjust' });
 Object.assign(vi, { 'admin.flexLampImportModel': 'Nhập mô hình…', 'admin.flexLampModelHint': 'GLB, GLTF, OBJ hoặc STL · căn giữa và chuyển thành tam giác sẵn sàng xuất file.', 'admin.flexLampModelDescription': 'Nạp model 3D, gắn cổ socket và xuất hình học sẵn sàng cho đèn.', 'admin.flexLampMaterialType': 'Sợi nhựa', 'admin.flexLampColorLabel': 'Màu', 'admin.flexLampAutoUpdate': 'Tự động cập nhật khi chỉnh' });
 Object.assign(en, { 'admin.flexLampMode': 'Mode' });
+Object.assign(en, {
+  'nav.moduleStudio': 'Module Studio',
+  'moduleStudio.back': 'Back to website', 'moduleStudio.projectName': 'Project name', 'moduleStudio.autosaved': 'Autosaved locally', 'moduleStudio.modules': 'Modules', 'moduleStudio.open': 'Open', 'moduleStudio.save': 'Save',
+  'moduleStudio.mobileNavigation': 'Studio panels', 'moduleStudio.properties': 'Properties', 'moduleStudio.sketch': 'Profile sketch', 'moduleStudio.sketchHint': 'Draw from bottom to top. The profile is revolved into a printable 3D shell.',
+  'moduleStudio.preset.soft': 'Soft', 'moduleStudio.preset.tower': 'Tower', 'moduleStudio.preset.wave': 'Wave', 'moduleStudio.preset.bell': 'Bell', 'moduleStudio.addModule': 'Add a module',
+  'moduleStudio.kind.core': 'Core base', 'moduleStudio.kind.adapter': 'Hardware adapter', 'moduleStudio.kind.sketch': 'Sketch shade', 'moduleStudio.kind.spacer': 'Spacer ring', 'moduleStudio.kind.diffuser': 'Diffuser', 'moduleStudio.kind.cap': 'Top cap',
+  'moduleStudio.stack': 'Module stack', 'moduleStudio.moveUp': 'Move module up', 'moduleStudio.moveDown': 'Move module down', 'moduleStudio.hide': 'Hide module', 'moduleStudio.show': 'Show module',
+  'moduleStudio.viewer': 'Interactive 3D module viewer', 'moduleStudio.realtime': 'Realtime sketch geometry', 'moduleStudio.front': 'Front', 'moduleStudio.top': 'Top', 'moduleStudio.dragHint': 'Drag a selected module vertically to adjust its offset',
+  'moduleStudio.hardware': 'Lamp hardware', 'moduleStudio.hardwareNote': 'Configurable adapter envelope. Verify the physical hardware revision before production.',
+  'moduleStudio.moduleName': 'Module name', 'moduleStudio.diameter': 'Diameter', 'moduleStudio.height': 'Height', 'moduleStudio.wall': 'Wall thickness', 'moduleStudio.offset': 'Vertical offset', 'moduleStudio.rotation': 'Rotation',
+  'moduleStudio.bottomJoint': 'Bottom joint', 'moduleStudio.topJoint': 'Top joint', 'moduleStudio.clearance': 'Joint clearance', 'moduleStudio.duplicate': 'Duplicate', 'moduleStudio.delete': 'Delete',
+  'moduleStudio.lighting': 'Light preview', 'moduleStudio.brightness': 'Brightness', 'moduleStudio.temperature': 'Color temperature', 'moduleStudio.validation': 'Printability checks',
+  'moduleStudio.wallCheck': 'Minimum wall ≥ 1.2 mm', 'moduleStudio.clearanceCheck': 'Joint clearance ≥ 0.2 mm', 'moduleStudio.stackCheck': 'Module stack alignment', 'moduleStudio.reset': 'Reset project', 'moduleStudio.invalidProject': 'This project file is invalid or unsupported.',
+  'moduleStudio.library': 'Library', 'moduleStudio.assembly': 'Assembly', 'moduleStudio.selected': 'Selected', 'moduleStudio.status.safe': 'Safe', 'moduleStudio.status.warning': 'Warning', 'moduleStudio.status.error': 'Error',
+  'moduleStudio.joint.bayonet': 'Core Bayonet', 'moduleStudio.joint.thread': 'Quarter Thread', 'moduleStudio.joint.snap': 'Flex Snap', 'moduleStudio.joint.dovetail': 'Slide Rail', 'moduleStudio.joint.none': 'Open',
+});
+Object.assign(vi, {
+  'nav.moduleStudio': 'Xưởng module',
+  'moduleStudio.back': 'Quay lại trang web', 'moduleStudio.projectName': 'Tên dự án', 'moduleStudio.autosaved': 'Đã tự động lưu trên máy', 'moduleStudio.modules': 'Module', 'moduleStudio.open': 'Mở', 'moduleStudio.save': 'Lưu',
+  'moduleStudio.mobileNavigation': 'Các bảng điều khiển', 'moduleStudio.properties': 'Thuộc tính', 'moduleStudio.sketch': 'Vẽ biên dạng', 'moduleStudio.sketchHint': 'Vẽ từ dưới lên trên. Biên dạng sẽ được xoay thành vỏ 3D có thể in.',
+  'moduleStudio.preset.soft': 'Mềm mại', 'moduleStudio.preset.tower': 'Tháp', 'moduleStudio.preset.wave': 'Gợn sóng', 'moduleStudio.preset.bell': 'Chuông', 'moduleStudio.addModule': 'Thêm module',
+  'moduleStudio.kind.core': 'Đế lõi', 'moduleStudio.kind.adapter': 'Ngàm bộ đèn', 'moduleStudio.kind.sketch': 'Chao từ nét vẽ', 'moduleStudio.kind.spacer': 'Vòng đệm', 'moduleStudio.kind.diffuser': 'Tán sáng', 'moduleStudio.kind.cap': 'Nắp trên',
+  'moduleStudio.stack': 'Cụm module', 'moduleStudio.moveUp': 'Đưa module lên', 'moduleStudio.moveDown': 'Đưa module xuống', 'moduleStudio.hide': 'Ẩn module', 'moduleStudio.show': 'Hiện module',
+  'moduleStudio.viewer': 'Khung xem module 3D tương tác', 'moduleStudio.realtime': 'Hình học từ nét vẽ theo thời gian thực', 'moduleStudio.front': 'Mặt trước', 'moduleStudio.top': 'Mặt trên', 'moduleStudio.dragHint': 'Kéo module đang chọn theo chiều dọc để chỉnh độ lệch',
+  'moduleStudio.hardware': 'Bộ đèn', 'moduleStudio.hardwareNote': 'Kích thước ngàm có thể tùy chỉnh. Hãy đo lại phiên bản phần cứng thực tế trước khi sản xuất.',
+  'moduleStudio.moduleName': 'Tên module', 'moduleStudio.diameter': 'Đường kính', 'moduleStudio.height': 'Chiều cao', 'moduleStudio.wall': 'Độ dày thành', 'moduleStudio.offset': 'Độ lệch dọc', 'moduleStudio.rotation': 'Góc xoay',
+  'moduleStudio.bottomJoint': 'Khớp dưới', 'moduleStudio.topJoint': 'Khớp trên', 'moduleStudio.clearance': 'Dung sai khớp', 'moduleStudio.duplicate': 'Nhân bản', 'moduleStudio.delete': 'Xóa',
+  'moduleStudio.lighting': 'Xem trước ánh sáng', 'moduleStudio.brightness': 'Độ sáng', 'moduleStudio.temperature': 'Nhiệt độ màu', 'moduleStudio.validation': 'Kiểm tra khả năng in',
+  'moduleStudio.wallCheck': 'Thành mỏng nhất ≥ 1,2 mm', 'moduleStudio.clearanceCheck': 'Dung sai khớp ≥ 0,2 mm', 'moduleStudio.stackCheck': 'Căn chỉnh cụm module', 'moduleStudio.reset': 'Đặt lại dự án', 'moduleStudio.invalidProject': 'Tệp dự án không hợp lệ hoặc không được hỗ trợ.',
+  'moduleStudio.library': 'Thư viện', 'moduleStudio.assembly': 'Lắp ráp', 'moduleStudio.selected': 'Đang chọn', 'moduleStudio.status.safe': 'An toàn', 'moduleStudio.status.warning': 'Cảnh báo', 'moduleStudio.status.error': 'Lỗi',
+  'moduleStudio.joint.bayonet': 'Khớp xoay lõi', 'moduleStudio.joint.thread': 'Ren một phần tư', 'moduleStudio.joint.snap': 'Khớp bấm dẻo', 'moduleStudio.joint.dovetail': 'Ray đuôi én', 'moduleStudio.joint.none': 'Không có khớp',
+});
 Object.assign(vi, { 'admin.flexLampMode': 'Chế độ' });
 
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };

@@ -10,6 +10,7 @@ Premium storefront and geometry foundation for modular, FDM-printed lamp shades 
 - Supabase-compatible Postgres migration with product, collection, province, hardware, order, email, design-project and settings models.
 - Fastify API with server-side price calculation, rate limiting, validation, Supabase catalog/order persistence when configured, protected admin operations and SMTP email provider.
 - Tauri 2 desktop shell configured for Windows NSIS and macOS DMG targets.
+- Responsive Module Lamp Studio at `#/module-studio`: draw a profile, generate a live 3D shade, arrange configurable modules, select E27 or Bambu LED Kit 001 hardware, choose printable joints, and export a project or STL.
 - GitHub Actions for validation and GitHub Pages deployment.
 
 ## Quick start
