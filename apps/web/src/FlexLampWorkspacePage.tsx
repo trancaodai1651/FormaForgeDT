@@ -100,7 +100,7 @@ function PreviewObject({ mesh, color, view, material }: { mesh: MeshData; color:
     ABS: { roughness: .92, clearcoat: 0, envMapIntensity: .25 },
   }[material];
   return <mesh geometry={geometry} castShadow receiveShadow>
-    <meshPhysicalMaterial color={color} roughness={view === 'matte' ? Math.max(materialSettings.roughness, .6) : materialSettings.roughness} clearcoat={materialSettings.clearcoat} clearcoatRoughness={.1} envMapIntensity={materialSettings.envMapIntensity} metalness={0} flatShading transparent={isXray} opacity={isXray ? .34 : 1} depthWrite={!isXray} side={THREE.DoubleSide} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .22 : 0} transmission={isLight ? .45 : 0} thickness={isLight ? 3 : 0} ior={1.46} />
+    <meshPhysicalMaterial color={color} roughness={view === 'matte' ? Math.max(materialSettings.roughness, .6) : materialSettings.roughness} clearcoat={materialSettings.clearcoat} clearcoatRoughness={.1} envMapIntensity={materialSettings.envMapIntensity} metalness={0} flatShading transparent={isXray} opacity={isXray ? .34 : 1} depthWrite={!isXray} side={isXray ? THREE.DoubleSide : THREE.FrontSide} emissive={isLight ? color : '#000000'} emissiveIntensity={isLight ? .22 : 0} transmission={isLight ? .45 : 0} thickness={isLight ? 3 : 0} ior={1.46} />
   </mesh>;
 }
 
