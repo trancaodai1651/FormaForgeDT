@@ -1,6 +1,6 @@
 import {
-  ArrowLeft, Box, Check, ChevronDown, ChevronUp, Copy, Download, Eye, EyeOff,
-  FileUp, GripVertical, Languages, Layers3, Lightbulb, Move3D, Plus, RotateCcw,
+  ArrowLeft, BookmarkPlus, Box, Check, ChevronDown, ChevronUp, Copy, Download, Eye, EyeOff,
+  FileUp, GripVertical, Languages, Layers3, Library, Lightbulb, Move3D, Plus, RotateCcw,
   Save, ShieldCheck, SlidersHorizontal, Sparkles, Spline, Trash2,
 } from 'lucide-react';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
@@ -18,6 +18,11 @@ import {
   buildModuleGeometry, computeAssemblyPlacements, exportModuleAssemblySTL,
   getAssemblyDimensions, type ModuleGeometryPart,
 } from './moduleStudio/geometry';
+import { ModuleLibraryDialog } from './moduleStudio/ModuleLibraryDialog';
+import {
+  BUILT_IN_MODULE_PRESETS, createCustomPreset, createModuleFromPreset, loadCustomModulePresets,
+  saveCustomModulePresets, type ModulePreset,
+} from './moduleStudio/library';
 import './moduleStudio/styles.css';
 
 type CameraPreset = 'iso' | 'front' | 'top';
@@ -139,6 +144,8 @@ export function ModuleLampStudioPage() {
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('iso');
   const [autoRotate, setAutoRotate] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('view');
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [customPresets, setCustomPresets] = useState<ModulePreset[]>(loadCustomModulePresets);
   const openInput = useRef<HTMLInputElement>(null);
   const dimensions = useMemo(() => getAssemblyDimensions(project.modules), [project.modules]);
   const selected = project.modules.find((module) => module.id === selectedId) ?? project.modules[0];
@@ -155,6 +162,15 @@ export function ModuleLampStudioPage() {
     const module = createLampModule(kind, project.hardware, project.modules.filter((item) => item.kind === kind).length);
     updateProject({ modules: [...project.modules, module] }); setSelectedId(module.id); setMobilePanel('properties');
   };
+  const addPresetModule = (preset: ModulePreset, localizedName: string) => {
+    const module = createModuleFromPreset(preset, project.hardware, localizedName); const rank: Record<ModuleKind, number> = { core: 0, adapter: 1, base: 2, decor: 3, spacer: 3, diffuser: 3, sketch: 4, shade: 4, cap: 5 };
+    const insertAt = project.modules.findIndex((item) => rank[item.kind] > rank[module.kind]); const modules = [...project.modules]; modules.splice(insertAt < 0 ? modules.length : insertAt, 0, module);
+    updateProject({ modules }); setSelectedId(module.id); setMobilePanel('properties'); setLibraryOpen(false);
+  };
+  const saveSelectedToLibrary = () => {
+    if (!selected) return; const preset = createCustomPreset(selected); const next = [preset, ...customPresets]; setCustomPresets(next); saveCustomModulePresets(next);
+  };
+  const deleteCustomPreset = (id: string) => { const next = customPresets.filter((preset) => preset.id !== id); setCustomPresets(next); saveCustomModulePresets(next); };
   const moveModule = (id: string, direction: -1 | 1) => {
     const index = project.modules.findIndex((module) => module.id === id); const target = index + direction;
     if (index < 0 || target < 0 || target >= project.modules.length) return;
@@ -210,7 +226,7 @@ export function ModuleLampStudioPage() {
     <div className="module-studio-layout">
       <aside className="module-studio-sidebar">
         <SketchCard points={project.sketch} moduleId={selected?.kind === 'sketch' ? selected.id : project.modules.find((module) => module.kind === 'sketch')?.id} onOpen={() => saveModuleStudioProject(project)} />
-        <section className="module-library"><div className="module-section-title"><div><span>02 / {t('moduleStudio.library').toUpperCase()}</span><strong>{t('moduleStudio.addModule')}</strong></div></div><div className="module-library-grid">{(['core', 'adapter', 'sketch', 'spacer', 'diffuser', 'cap'] as ModuleKind[]).map((kind) => <button type="button" key={kind} onClick={() => addModule(kind)}><Plus size={15} /><span>{t(`moduleStudio.kind.${kind}`)}</span></button>)}</div></section>
+        <section className="module-library"><div className="module-section-title"><div><span>02 / {t('moduleStudio.library').toUpperCase()}</span><strong>{t('moduleLibrary.readyModules')}</strong></div><Library size={16} /></div><button type="button" className="module-library-open" onClick={() => setLibraryOpen(true)}><span><Library size={18} /></span><span><strong>{t('moduleLibrary.openLibrary')}</strong><small>{BUILT_IN_MODULE_PRESETS.length} {t('moduleLibrary.builtIn')} · {customPresets.length} {t('moduleLibrary.saved')}</small></span><Plus size={16} /></button><div className="module-library-summary"><span><b>6</b>{t('moduleLibrary.category.shade')}</span><span><b>5</b>{t('moduleLibrary.category.decor')}</span><span><b>4</b>{t('moduleLibrary.category.base')}</span></div><div className="module-library-actions"><button type="button" disabled={!selected} onClick={saveSelectedToLibrary}><BookmarkPlus size={14} />{t('moduleLibrary.saveCurrent')}</button><button type="button" onClick={() => addModule('spacer')}><Plus size={14} />{t('moduleStudio.kind.spacer')}</button></div></section>
         <section className="module-stack"><div className="module-section-title"><div><span>03 / {t('moduleStudio.assembly').toUpperCase()}</span><strong>{t('moduleStudio.stack')}</strong></div><Move3D size={16} /></div><ModuleList modules={project.modules} selectedId={selectedId} onSelect={setSelectedId} onMove={moveModule} onToggle={(id) => updateModule(id, { visible: !project.modules.find((module) => module.id === id)?.visible })} onDelete={removeModule} onDropModule={reorderModules} /></section>
       </aside>
 
@@ -232,5 +248,6 @@ export function ModuleLampStudioPage() {
         <button type="button" className="module-reset" onClick={resetProject}><RotateCcw size={15} />{t('moduleStudio.reset')}</button>
       </aside>
     </div>
+    {libraryOpen && <ModuleLibraryDialog hardware={project.hardware} customPresets={customPresets} currentModule={selected} onAdd={addPresetModule} onSaveCurrent={saveSelectedToLibrary} onDeleteCustom={deleteCustomPreset} onClose={() => setLibraryOpen(false)} />}
   </main>;
 }

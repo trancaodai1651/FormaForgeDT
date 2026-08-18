@@ -2,8 +2,18 @@ import { HARDWARE_SPECS } from '@hometown/types';
 import { sanitizeCadDocument, type CadDocument } from './cad';
 
 export type HardwareId = 'E27' | 'BAMBU_LED_KIT_001';
-export type ModuleKind = 'core' | 'adapter' | 'sketch' | 'spacer' | 'diffuser' | 'cap';
+export type ModuleKind = 'core' | 'adapter' | 'sketch' | 'spacer' | 'diffuser' | 'cap' | 'shade' | 'decor' | 'base';
 export type JointType = 'bayonet' | 'thread' | 'snap' | 'dovetail' | 'none';
+export type ModuleShape =
+  | 'standard' | 'shade-ringed-drum' | 'shade-pleated-cone' | 'shade-smooth-drum'
+  | 'shade-globe' | 'shade-ribbed-drum' | 'shade-square'
+  | 'decor-sphere' | 'decor-faceted' | 'decor-torus' | 'decor-diamond' | 'decor-cube'
+  | 'base-disc' | 'base-square' | 'base-flower' | 'base-pyramid';
+
+export const MODULE_SHAPES: ModuleShape[] = [
+  'standard', 'shade-ringed-drum', 'shade-pleated-cone', 'shade-smooth-drum', 'shade-globe', 'shade-ribbed-drum', 'shade-square',
+  'decor-sphere', 'decor-faceted', 'decor-torus', 'decor-diamond', 'decor-cube', 'base-disc', 'base-square', 'base-flower', 'base-pyramid',
+];
 
 export type SketchPoint = { radius: number; height: number };
 
@@ -64,6 +74,8 @@ export type LampModule = {
   clearance: number;
   lockAngle: number;
   visible: boolean;
+  shape?: ModuleShape;
+  presetId?: string;
 };
 
 export type ModuleStudioProject = {
@@ -137,6 +149,9 @@ export function createLampModule(kind: ModuleKind, hardware: HardwareId, index =
     spacer: { name: `Spacer Ring ${index + 1}`, diameter: 92, height: 18, wallThickness: 2, offsetY: 0, rotation: 0, color: '#b88b52', topJoint: 'bayonet', bottomJoint: 'bayonet', clearance: .35, lockAngle: 35, visible: true },
     diffuser: { name: `Light Diffuser ${index + 1}`, diameter: 112, height: 54, wallThickness: 1.2, offsetY: 0, rotation: 0, color: '#fff4d8', topJoint: 'snap', bottomJoint: 'snap', clearance: .3, lockAngle: 0, visible: true },
     cap: { name: `Top Cap ${index + 1}`, diameter: 118, height: 12, wallThickness: 2, offsetY: 0, rotation: 0, color: '#d7c4a5', topJoint: 'none', bottomJoint: 'snap', clearance: .3, lockAngle: 0, visible: true },
+    shade: { name: `Ready Shade ${index + 1}`, diameter: 184, height: 190, wallThickness: 1.6, offsetY: 0, rotation: 0, color: '#eee9df', topJoint: 'none', bottomJoint: 'bayonet', clearance: .35, lockAngle: 35, visible: true, shape: 'shade-smooth-drum' },
+    decor: { name: `Decor Body ${index + 1}`, diameter: 92, height: 62, wallThickness: 2.2, offsetY: 0, rotation: 0, color: '#b88b52', topJoint: 'bayonet', bottomJoint: 'bayonet', clearance: .35, lockAngle: 35, visible: true, shape: 'decor-sphere' },
+    base: { name: `Decor Base ${index + 1}`, diameter: 142, height: 24, wallThickness: 2.6, offsetY: 0, rotation: 0, color: '#3a3e45', topJoint: 'bayonet', bottomJoint: 'none', clearance: .35, lockAngle: 35, visible: true, shape: 'base-disc' },
   };
   return { id: `module-${Date.now()}-${moduleSequence}`, kind, ...defaults[kind] };
 }
@@ -167,6 +182,7 @@ export function parseModuleProject(input: unknown): ModuleStudioProject {
     hardware: project.hardware === 'E27' ? 'E27' : 'BAMBU_LED_KIT_001',
     modules: project.modules.map((module, index) => {
       const migrated = { ...createLampModule(module.kind ?? 'sketch', project.hardware === 'E27' ? 'E27' : 'BAMBU_LED_KIT_001', index), ...module };
+      migrated.shape = MODULE_SHAPES.includes(migrated.shape ?? 'standard') ? migrated.shape : 'standard';
       if (migrated.kind === 'sketch' && migrated.diameter === 148 && migrated.height === 178) return { ...migrated, diameter: 184, height: 218 };
       return migrated;
     }),

@@ -130,6 +130,49 @@ Object.assign(vi, {
   'moduleSketch.revolveProfile': 'Biên dạng xoay', 'moduleSketch.sectionAA': 'MẶT CẮT A-A', 'moduleSketch.hint.select': 'Chọn hình học hoặc kéo điểm điều khiển. Kéo vùng trống để pan; giữ Shift để chọn nhiều.',
 });
 
+Object.assign(en, {
+  'moduleStudio.kind.shade': 'Ready-made shade', 'moduleStudio.kind.decor': 'Decorative body', 'moduleStudio.kind.base': 'Decorative base',
+  'moduleLibrary.title': 'Ready Module Library', 'moduleLibrary.close': 'Close module library', 'moduleLibrary.readyModules': 'Ready-made module library', 'moduleLibrary.openLibrary': 'Open full library', 'moduleLibrary.builtIn': 'built-in', 'moduleLibrary.saved': 'saved',
+  'moduleLibrary.saveCurrent': 'Save current module', 'moduleLibrary.search': 'Search modules…', 'moduleLibrary.category.all': 'All modules', 'moduleLibrary.category.shade': 'Shades', 'moduleLibrary.category.decor': 'Bodies', 'moduleLibrary.category.base': 'Bases', 'moduleLibrary.category.custom': 'My library',
+  'moduleLibrary.compatible': 'Connector compatible', 'moduleLibrary.compatibleHint': 'Every module keeps editable dimensions, material and top/bottom joints.', 'moduleLibrary.results': 'modules', 'moduleLibrary.clickPreview': 'Double-click to add quickly', 'moduleLibrary.custom': 'MY MODULE', 'moduleLibrary.customDescription': 'A reusable module saved from your current design.', 'moduleLibrary.empty': 'No module found', 'moduleLibrary.emptyHint': 'Try another keyword or category.', 'moduleLibrary.deletePreset': 'Delete preset', 'moduleLibrary.addToLamp': 'Add to lamp', 'moduleLibrary.unnamed': 'Untitled module',
+  'moduleLibrary.preset.ringed-drum.name': 'Ringed Drum Shade', 'moduleLibrary.preset.ringed-drum.description': 'Tall cylindrical shade with horizontal print-friendly rings.',
+  'moduleLibrary.preset.pleated-cone.name': 'Pleated Cone Shade', 'moduleLibrary.preset.pleated-cone.description': 'Classic tapered shade with vertical ribs and an open top.',
+  'moduleLibrary.preset.smooth-drum.name': 'Smooth Drum Shade', 'moduleLibrary.preset.smooth-drum.description': 'Minimal smooth cylinder for soft and even light.',
+  'moduleLibrary.preset.soft-globe.name': 'Soft Globe Shade', 'moduleLibrary.preset.soft-globe.description': 'Rounded shade with a gentle organic silhouette.',
+  'moduleLibrary.preset.ribbed-drum.name': 'Ribbed Drum Shade', 'moduleLibrary.preset.ribbed-drum.description': 'Compact cylindrical shade with vertical structural ribs.',
+  'moduleLibrary.preset.square-shade.name': 'Square Ribbed Shade', 'moduleLibrary.preset.square-shade.description': 'Four-sided open shade with horizontal surface detailing.',
+  'moduleLibrary.preset.round-body.name': 'Round Body', 'moduleLibrary.preset.round-body.description': 'Smooth spherical connector module for playful lamp stacks.',
+  'moduleLibrary.preset.faceted-body.name': 'Faceted Body', 'moduleLibrary.preset.faceted-body.description': 'Low-poly geometric body with crisp printable facets.',
+  'moduleLibrary.preset.donut-body.name': 'Donut Body', 'moduleLibrary.preset.donut-body.description': 'Soft torus spacer for rounded modular compositions.',
+  'moduleLibrary.preset.diamond-body.name': 'Diamond Body', 'moduleLibrary.preset.diamond-body.description': 'Angular double-pyramid module with an eight-sided profile.',
+  'moduleLibrary.preset.cube-body.name': 'Cube Body', 'moduleLibrary.preset.cube-body.description': 'Simple square body for graphic and architectural lamps.',
+  'moduleLibrary.preset.round-base.name': 'Round Base', 'moduleLibrary.preset.round-base.description': 'Wide stable circular base with a centered top connector.',
+  'moduleLibrary.preset.square-base.name': 'Square Base', 'moduleLibrary.preset.square-base.description': 'Low rectangular base for a clean modern footprint.',
+  'moduleLibrary.preset.flower-base.name': 'Flower Base', 'moduleLibrary.preset.flower-base.description': 'Twelve-petal base for colorful decorative lamps.',
+  'moduleLibrary.preset.pyramid-base.name': 'Pyramid Base', 'moduleLibrary.preset.pyramid-base.description': 'Four-sided tapered base with a compact connector collar.',
+});
+Object.assign(vi, {
+  'moduleStudio.kind.shade': 'Chao đèn có sẵn', 'moduleStudio.kind.decor': 'Thân trang trí', 'moduleStudio.kind.base': 'Đế trang trí',
+  'moduleLibrary.title': 'Kho module có sẵn', 'moduleLibrary.close': 'Đóng kho module', 'moduleLibrary.readyModules': 'Kho module dựng sẵn', 'moduleLibrary.openLibrary': 'Mở toàn bộ kho', 'moduleLibrary.builtIn': 'mẫu có sẵn', 'moduleLibrary.saved': 'đã lưu',
+  'moduleLibrary.saveCurrent': 'Lưu module hiện tại', 'moduleLibrary.search': 'Tìm kiếm module…', 'moduleLibrary.category.all': 'Tất cả module', 'moduleLibrary.category.shade': 'Chao đèn', 'moduleLibrary.category.decor': 'Thân đèn', 'moduleLibrary.category.base': 'Đế đèn', 'moduleLibrary.category.custom': 'Kho của tôi',
+  'moduleLibrary.compatible': 'Tương thích khớp nối', 'moduleLibrary.compatibleHint': 'Mọi module đều giữ khả năng chỉnh kích thước, vật liệu và khớp trên/dưới.', 'moduleLibrary.results': 'module', 'moduleLibrary.clickPreview': 'Nhấp đúp để thêm nhanh', 'moduleLibrary.custom': 'MODULE CỦA TÔI', 'moduleLibrary.customDescription': 'Module tái sử dụng được lưu từ thiết kế hiện tại.', 'moduleLibrary.empty': 'Không tìm thấy module', 'moduleLibrary.emptyHint': 'Hãy thử từ khóa hoặc danh mục khác.', 'moduleLibrary.deletePreset': 'Xóa mẫu', 'moduleLibrary.addToLamp': 'Thêm vào đèn', 'moduleLibrary.unnamed': 'Module chưa đặt tên',
+  'moduleLibrary.preset.ringed-drum.name': 'Chao trụ vòng ngang', 'moduleLibrary.preset.ringed-drum.description': 'Chao trụ cao với các vòng ngang dễ in FDM.',
+  'moduleLibrary.preset.pleated-cone.name': 'Chao nón xếp ly', 'moduleLibrary.preset.pleated-cone.description': 'Chao côn cổ điển với gân dọc và phần đỉnh mở.',
+  'moduleLibrary.preset.smooth-drum.name': 'Chao trụ trơn', 'moduleLibrary.preset.smooth-drum.description': 'Chao trụ tối giản cho ánh sáng mềm và đồng đều.',
+  'moduleLibrary.preset.soft-globe.name': 'Chao cầu mềm', 'moduleLibrary.preset.soft-globe.description': 'Chao bo tròn với đường nét hữu cơ nhẹ nhàng.',
+  'moduleLibrary.preset.ribbed-drum.name': 'Chao trụ gân dọc', 'moduleLibrary.preset.ribbed-drum.description': 'Chao trụ nhỏ gọn với các gân dọc tăng độ cứng.',
+  'moduleLibrary.preset.square-shade.name': 'Chao vuông có gân', 'moduleLibrary.preset.square-shade.description': 'Chao mở bốn mặt với chi tiết các đường gân ngang.',
+  'moduleLibrary.preset.round-body.name': 'Thân cầu tròn', 'moduleLibrary.preset.round-body.description': 'Module nối hình cầu trơn cho cụm đèn vui nhộn.',
+  'moduleLibrary.preset.faceted-body.name': 'Thân đa diện', 'moduleLibrary.preset.faceted-body.description': 'Thân low-poly với các mặt phẳng sắc nét, dễ in.',
+  'moduleLibrary.preset.donut-body.name': 'Thân bánh vòng', 'moduleLibrary.preset.donut-body.description': 'Module đệm dạng torus mềm mại cho bố cục bo tròn.',
+  'moduleLibrary.preset.diamond-body.name': 'Thân kim cương', 'moduleLibrary.preset.diamond-body.description': 'Module lưỡng tháp góc cạnh với tiết diện tám cạnh.',
+  'moduleLibrary.preset.cube-body.name': 'Thân khối vuông', 'moduleLibrary.preset.cube-body.description': 'Thân vuông đơn giản cho kiểu đèn hình học hiện đại.',
+  'moduleLibrary.preset.round-base.name': 'Đế tròn', 'moduleLibrary.preset.round-base.description': 'Đế tròn rộng, ổn định với khớp nối ở chính giữa.',
+  'moduleLibrary.preset.square-base.name': 'Đế vuông', 'moduleLibrary.preset.square-base.description': 'Đế chữ nhật thấp với dấu chân hiện đại, gọn gàng.',
+  'moduleLibrary.preset.flower-base.name': 'Đế cánh hoa', 'moduleLibrary.preset.flower-base.description': 'Đế mười hai cánh cho các mẫu đèn trang trí nhiều màu.',
+  'moduleLibrary.preset.pyramid-base.name': 'Đế kim tự tháp', 'moduleLibrary.preset.pyramid-base.description': 'Đế côn bốn mặt với cổ khớp nối nhỏ gọn.',
+});
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 

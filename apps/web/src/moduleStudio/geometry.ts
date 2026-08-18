@@ -45,9 +45,87 @@ function createRingGeometry(outerRadius: number, innerRadius: number, height: nu
   return geometry;
 }
 
+const verticalRibs = (module: LampModule, count: number, radiusScale = .94, taper = 0): ModuleGeometryPart[] => Array.from({ length: count }, (_, index) => {
+  const angle = index / count * Math.PI * 2; const yScale = module.height * .92; const radius = module.diameter / 2 * radiusScale;
+  const geometry = new THREE.BoxGeometry(Math.max(.9, module.wallThickness * .72), yScale, Math.max(1.3, module.wallThickness * 1.05));
+  if (taper) geometry.rotateZ(taper * Math.sin(angle));
+  return { geometry, position: [Math.cos(angle) * radius, 0, Math.sin(angle) * radius] as [number, number, number], rotation: [0, -angle, 0] as [number, number, number], role: 'body' as const };
+});
+
+const coneRibs = (module: LampModule, count: number, bottomScale = 1, topScale = .72): ModuleGeometryPart[] => Array.from({ length: count }, (_, index) => {
+  const angle = index / count * Math.PI * 2; const bottomRadius = module.diameter / 2 * bottomScale; const topRadius = module.diameter / 2 * topScale;
+  const radialDelta = topRadius - bottomRadius; const length = Math.hypot(module.height * .94, radialDelta); const midRadius = (bottomRadius + topRadius) / 2;
+  return { geometry: new THREE.CylinderGeometry(Math.max(.65, module.wallThickness * .48), Math.max(.75, module.wallThickness * .55), length, 6), position: [Math.cos(angle) * midRadius, 0, Math.sin(angle) * midRadius] as [number, number, number], rotation: [0, -angle, -Math.atan2(radialDelta, module.height)] as [number, number, number], role: 'body' as const };
+});
+
+const horizontalRings = (module: LampModule, count: number, radiusScale = .95): ModuleGeometryPart[] => Array.from({ length: count }, (_, index) => ({
+  geometry: new THREE.TorusGeometry(module.diameter / 2 * radiusScale, Math.max(.65, module.wallThickness * .48), 6, 96),
+  position: [0, -module.height / 2 + (index + .7) / count * module.height, 0] as [number, number, number], rotation: [Math.PI / 2, 0, 0] as [number, number, number], role: 'body' as const,
+}));
+
+function createSquareShade(module: LampModule): ModuleGeometryPart[] {
+  const width = module.diameter; const depth = module.diameter * .82; const wall = module.wallThickness; const height = module.height;
+  const parts: ModuleGeometryPart[] = [
+    { geometry: new THREE.BoxGeometry(width, height, wall), position: [0, 0, depth / 2 - wall / 2], role: 'body' },
+    { geometry: new THREE.BoxGeometry(width, height, wall), position: [0, 0, -depth / 2 + wall / 2], role: 'body' },
+    { geometry: new THREE.BoxGeometry(wall, height, depth - wall * 2), position: [width / 2 - wall / 2, 0, 0], role: 'body' },
+    { geometry: new THREE.BoxGeometry(wall, height, depth - wall * 2), position: [-width / 2 + wall / 2, 0, 0], role: 'body' },
+  ];
+  for (let index = 1; index < 12; index += 1) {
+    const y = -height / 2 + index / 12 * height; const rib = Math.max(.7, wall * .45);
+    parts.push(
+      { geometry: new THREE.BoxGeometry(width + rib, rib, rib), position: [0, y, depth / 2], role: 'body' },
+      { geometry: new THREE.BoxGeometry(width + rib, rib, rib), position: [0, y, -depth / 2], role: 'body' },
+      { geometry: new THREE.BoxGeometry(rib, rib, depth), position: [width / 2, y, 0], role: 'body' },
+      { geometry: new THREE.BoxGeometry(rib, rib, depth), position: [-width / 2, y, 0], role: 'body' },
+    );
+  }
+  return parts;
+}
+
+function createFlowerGeometry(radius: number, height: number) {
+  const shape = new THREE.Shape(); const petals = 12;
+  for (let index = 0; index <= petals * 2; index += 1) {
+    const angle = index / (petals * 2) * Math.PI * 2; const currentRadius = radius * (index % 2 ? .84 : 1);
+    const x = Math.cos(angle) * currentRadius; const y = Math.sin(angle) * currentRadius;
+    if (index === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+  }
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: true, bevelSegments: 2, bevelSize: Math.min(2, height * .12), bevelThickness: Math.min(2, height * .12), curveSegments: 2 });
+  geometry.center(); geometry.rotateX(-Math.PI / 2); geometry.computeVertexNormals(); return geometry;
+}
+
+function connectorCollar(module: LampModule, top = true): ModuleGeometryPart {
+  const outerRadius = Math.min(25, Math.max(17, module.diameter * .2)); const innerRadius = Math.max(8, outerRadius - module.wallThickness * 2.2);
+  return { geometry: createRingGeometry(outerRadius, innerRadius, 5), position: [0, (top ? 1 : -1) * (module.height / 2 + 1.5), 0], role: 'body' };
+}
+
+function buildLibraryShape(module: LampModule): ModuleGeometryPart[] | null {
+  const shape = module.shape ?? 'standard'; const radius = module.diameter / 2;
+  if (shape === 'standard') return null;
+  if (shape === 'shade-ringed-drum') return [{ geometry: createSketchShell(module, [{ radius: .95, height: 0 }, { radius: .95, height: 1 }]), role: 'body' }, ...horizontalRings(module, 18)];
+  if (shape === 'shade-pleated-cone') return [{ geometry: createSketchShell(module, [{ radius: 1, height: 0 }, { radius: .72, height: 1 }]), role: 'body' }, ...coneRibs(module, 32)];
+  if (shape === 'shade-smooth-drum') return [{ geometry: createSketchShell(module, [{ radius: .94, height: 0 }, { radius: .94, height: 1 }]), role: 'body' }];
+  if (shape === 'shade-globe') return [{ geometry: createSketchShell(module, [{ radius: .72, height: 0 }, { radius: .9, height: .18 }, { radius: 1, height: .5 }, { radius: .9, height: .82 }, { radius: .74, height: 1 }]), role: 'body' }];
+  if (shape === 'shade-ribbed-drum') return [{ geometry: createSketchShell(module, [{ radius: .93, height: 0 }, { radius: .93, height: 1 }]), role: 'body' }, ...verticalRibs(module, 36, .94)];
+  if (shape === 'shade-square') return createSquareShade(module);
+  if (shape === 'decor-sphere') { const geometry = new THREE.SphereGeometry(radius, 64, 40); geometry.scale(1, module.height / module.diameter, 1); return [{ geometry, role: 'body' }, connectorCollar(module), connectorCollar(module, false)]; }
+  if (shape === 'decor-faceted') { const geometry = new THREE.DodecahedronGeometry(radius, 0); geometry.scale(1, module.height / module.diameter, 1); return [{ geometry, role: 'body' }, connectorCollar(module), connectorCollar(module, false)]; }
+  if (shape === 'decor-torus') { const geometry = new THREE.TorusGeometry(radius * .62, radius * .3, 18, 72); geometry.rotateX(Math.PI / 2); geometry.scale(1, module.height / Math.max(1, radius * .6), 1); return [{ geometry, role: 'body' }, connectorCollar(module), connectorCollar(module, false)]; }
+  if (shape === 'decor-diamond') return [
+    { geometry: new THREE.CylinderGeometry(0, radius, module.height / 2, 8), position: [0, module.height / 4, 0], role: 'body' },
+    { geometry: new THREE.CylinderGeometry(radius, 0, module.height / 2, 8), position: [0, -module.height / 4, 0], role: 'body' }, connectorCollar(module), connectorCollar(module, false),
+  ];
+  if (shape === 'decor-cube') return [{ geometry: new THREE.BoxGeometry(module.diameter * .78, module.height, module.diameter * .78), role: 'body' }, connectorCollar(module), connectorCollar(module, false)];
+  if (shape === 'base-disc') return [{ geometry: new THREE.CylinderGeometry(radius, radius, module.height, 96), role: 'body' }, connectorCollar(module)];
+  if (shape === 'base-square') return [{ geometry: new THREE.BoxGeometry(module.diameter, module.height, module.diameter * .82), role: 'body' }, connectorCollar(module)];
+  if (shape === 'base-flower') return [{ geometry: createFlowerGeometry(radius, module.height), role: 'body' }, connectorCollar(module)];
+  if (shape === 'base-pyramid') return [{ geometry: new THREE.CylinderGeometry(radius * .24, radius, module.height, 4), role: 'body' }, connectorCollar(module)];
+  return null;
+}
+
 function createJointPart(module: LampModule, joint: JointType, top: boolean): ModuleGeometryPart[] {
   if (joint === 'none') return [];
-  const radius = module.kind === 'sketch' ? Math.min(40, module.diameter / 2 - module.wallThickness * 1.5) : Math.max(16, module.diameter / 2 - module.wallThickness * 1.5);
+  const radius = ['sketch', 'shade', 'base'].includes(module.kind) ? Math.min(40, module.diameter / 2 - module.wallThickness * 1.5) : Math.max(16, module.diameter / 2 - module.wallThickness * 1.5);
   const y = (top ? 1 : -1) * (module.height / 2 - 1.2);
   if (joint === 'bayonet') return [
     { geometry: new THREE.TorusGeometry(radius, .85, 8, 72), position: [0, y, 0], rotation: [Math.PI / 2, 0, 0], role: 'joint' },
@@ -61,7 +139,9 @@ function createJointPart(module: LampModule, joint: JointType, top: boolean): Mo
 export function buildModuleGeometry(module: LampModule, sketch: SketchPoint[], hardware: HardwareId): ModuleGeometryPart[] {
   const radius = module.diameter / 2;
   let body: ModuleGeometryPart[];
-  if (module.kind === 'sketch') {
+  const libraryShape = buildLibraryShape(module);
+  if (libraryShape) body = libraryShape;
+  else if (module.kind === 'sketch') {
     const profile = normalizeSketch(sketch);
     const bottomRadius = profile[0].radius * radius;
     const topRadius = profile.at(-1)!.radius * radius;
