@@ -185,6 +185,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
         wasm,
         blockAssets,
         keycapAsset,
+        socket,
         msg.regions,
         msg.outline,
         msg.params,

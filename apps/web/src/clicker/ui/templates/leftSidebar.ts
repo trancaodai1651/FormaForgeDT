@@ -60,6 +60,7 @@ export const renderLeftSidebar = () => `
       </div>
       <input type="range" id="blockKeycapGap" min="0" max="3" step="0.1" />
     </div>
+    <div id="blocksLegacyBaseControls">
     <div class="switch-row">
       <span class="switch-label">Flat underside</span>
       <label class="toggle"><input id="blockFlatBottom" type="checkbox" /><span class="slider"></span></label>
@@ -80,6 +81,7 @@ export const renderLeftSidebar = () => `
     <div class="prow-stacked">
       <div class="prow-header"><label for="blockBaseCornerRadius">Base corner radius</label><input type="text" class="val" id="blockBaseCornerRadiusVal" /></div>
       <input type="range" id="blockBaseCornerRadius" min="0.5" max="8" step="0.25" />
+    </div>
     </div>
     <div class="label" style="margin-top: 16px;">Keycap geometry</div>
     <div class="field">
@@ -120,13 +122,34 @@ export const renderLeftSidebar = () => `
         <option value="6.5">6.5u Spacebar</option>
       </select>
     </div>
-    <div class="switch-row" id="hybridSquareModuleRow">
-      <span class="switch-label">Square block sides</span>
-      <label class="toggle"><input id="hybridSquareModuleBase" type="checkbox" checked /><span class="slider"></span></label>
-    </div>
-    <div class="prow-stacked" id="hybridImageSizeRow">
-      <div class="prow-header"><label for="hybridImageSize">Size</label><input type="text" class="val" id="hybridImageSizeVal" /></div>
-      <input type="range" id="hybridImageSize" min="20" max="100" step="1" />
+    <div id="hybridBodyControls" hidden>
+      <div class="label" style="margin-top: 16px;">Image head</div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridImageSize">Image size</label><input type="text" class="val" id="hybridImageSizeVal" /></div>
+        <input type="range" id="hybridImageSize" min="30" max="140" step="1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridImageThickness">Image thickness</label><input type="text" class="val" id="hybridImageThicknessVal" /></div>
+        <input type="range" id="hybridImageThickness" min="4" max="24" step="0.5" />
+      </div>
+      <div class="label" style="margin-top: 16px;">Continuous rounded base</div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridBaseWidth">Base width</label><input type="text" class="val" id="hybridBaseWidthVal" /></div>
+        <input type="range" id="hybridBaseWidth" min="22" max="60" step="0.5" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridBaseEndPadding">End padding</label><input type="text" class="val" id="hybridBaseEndPaddingVal" /></div>
+        <input type="range" id="hybridBaseEndPadding" min="10" max="35" step="0.5" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridBaseThickness">Base thickness</label><input type="text" class="val" id="hybridBaseThicknessVal" /></div>
+        <input type="range" id="hybridBaseThickness" min="5" max="20" step="0.5" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridBaseCornerRadius">Tail corner radius</label><input type="text" class="val" id="hybridBaseCornerRadiusVal" /></div>
+        <input type="range" id="hybridBaseCornerRadius" min="1" max="14" step="0.5" />
+      </div>
+      <p class="field-help">The image head is always kept thicker than the socket base.</p>
     </div>
     <div class="prow-stacked">
       <div class="prow-header"><label for="blockKeycapHeight">Keycap height</label><input type="text" class="val" id="blockKeycapHeightVal" /></div>

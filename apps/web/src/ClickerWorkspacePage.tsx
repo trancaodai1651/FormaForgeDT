@@ -4,7 +4,6 @@ import { bootstrapClickerWorkspace, unmountClickerWorkspace } from './clicker/bo
 import clickerStyle from './clicker/style.css?inline';
 import flexKeychainStyle from './clicker/features/flexKeychain/styles.css?inline';
 import flexOrganizerStyle from './clicker/features/flexOrganizer/styles.css?inline';
-import imageKeychainStyle from './clicker/features/imageKeychain/styles.css?inline';
 
 type ClickerWorkspaceLabels = {
   clicker: string;
@@ -54,7 +53,7 @@ function ClickerRuntime({ mode }: { mode: ClickerMode }) {
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
     shadow.replaceChildren();
     const style = document.createElement('style');
-    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${imageKeychainStyle}\n${runtimeOverrides}`;
+    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${runtimeOverrides}`;
     const surface = document.createElement('div');
     surface.className = 'clicker-surface';
     shadow.append(style, surface);

@@ -125,6 +125,16 @@ export interface BuildParams {
   imageDepth: number;
   /** Absolute image badge size in Image + Blocks mode (largest dimension, mm). */
   hybridImageSizeMm?: number;
+  /** Total thickness of the imported-image head. It must remain thicker than the carrier base. */
+  hybridImageThicknessMm?: number;
+  /** Cross-axis width of the continuous rounded carrier in Image + Blocks mode. */
+  hybridBaseWidthMm?: number;
+  /** Material beyond the first and last socket along the carrier. */
+  hybridBaseEndPaddingMm?: number;
+  /** Total carrier thickness measured down from the keycap seating plane. */
+  hybridBaseThicknessMm?: number;
+  /** Outside corner radius of the continuous carrier. */
+  hybridBaseCornerRadiusMm?: number;
   imageMargin: number;
   borderWidth: number;
   capProud: number;

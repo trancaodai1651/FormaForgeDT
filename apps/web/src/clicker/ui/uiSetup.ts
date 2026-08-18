@@ -137,8 +137,12 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockKeycapMount: (mount) => { store.set({ blockKeycapMount: mount }); debouncedRebuild(); },
     onBlockKeycapProfile: (profile) => { store.set({ blockKeycapProfile: profile }); debouncedRebuild(); },
     onBlockKeySize: (unit) => { store.set({ blockKeycapUnit: Math.max(1, Math.min(6.5, unit)) }); debouncedRebuild(); },
-    onHybridSquareModuleBase: (on) => { store.set({ hybridSquareModuleBase: on }); debouncedRebuild(); },
-    onHybridImageSize: (sizeMm) => { store.set({ hybridImageSizeMm: Math.max(20, Math.min(100, sizeMm)) }); debouncedRebuild(); },
+    onHybridImageSize: (sizeMm) => { store.set({ hybridImageSizeMm: Math.max(30, Math.min(140, sizeMm)) }); debouncedRebuild(); },
+    onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base + 0.8, Math.min(24, value)) }); debouncedRebuild(); },
+    onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(22, Math.min(60, value)) }); debouncedRebuild(); },
+    onHybridBaseEndPadding: (value) => { store.set({ hybridBaseEndPaddingMm: Math.max(10, Math.min(35, value)) }); debouncedRebuild(); },
+    onHybridBaseThickness: (value) => { const thickness = Math.max(5, Math.min(20, value)); store.set({ hybridBaseThicknessMm: thickness, hybridImageThicknessMm: Math.max(thickness + 0.8, store.get().hybridImageThicknessMm) }); debouncedRebuild(); },
+    onHybridBaseCornerRadius: (value) => { store.set({ hybridBaseCornerRadiusMm: Math.max(1, Math.min(14, value)) }); debouncedRebuild(); },
     onFontSelect: (fontId) => { appData.currentFontId = fontId; if (store.get().importMode === 'blocks' || store.get().importMode === 'hybrid') reprocess(); else store.set({ status: 'Font changed.' }); },
     onImportFont: async (file) => {
       try {

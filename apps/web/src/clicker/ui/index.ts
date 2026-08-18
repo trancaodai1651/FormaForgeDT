@@ -120,6 +120,16 @@ export function createUi(
     setVal('blockKeycapCornerRadiusVal', `${state.blockKeycapCornerRadiusMm.toFixed(1)} mm`);
     if ($('hybridImageSize')) $<HTMLInputElement>('hybridImageSize').value = String(state.hybridImageSizeMm);
     setVal('hybridImageSizeVal', `${state.hybridImageSizeMm.toFixed(0)} mm`);
+    if ($('hybridImageThickness')) $<HTMLInputElement>('hybridImageThickness').value = String(state.hybridImageThicknessMm);
+    setVal('hybridImageThicknessVal', `${state.hybridImageThicknessMm.toFixed(1)} mm`);
+    if ($('hybridBaseWidth')) $<HTMLInputElement>('hybridBaseWidth').value = String(state.hybridBaseWidthMm);
+    setVal('hybridBaseWidthVal', `${state.hybridBaseWidthMm.toFixed(1)} mm`);
+    if ($('hybridBaseEndPadding')) $<HTMLInputElement>('hybridBaseEndPadding').value = String(state.hybridBaseEndPaddingMm);
+    setVal('hybridBaseEndPaddingVal', `${state.hybridBaseEndPaddingMm.toFixed(1)} mm`);
+    if ($('hybridBaseThickness')) $<HTMLInputElement>('hybridBaseThickness').value = String(state.hybridBaseThicknessMm);
+    setVal('hybridBaseThicknessVal', `${state.hybridBaseThicknessMm.toFixed(1)} mm`);
+    if ($('hybridBaseCornerRadius')) $<HTMLInputElement>('hybridBaseCornerRadius').value = String(state.hybridBaseCornerRadiusMm);
+    setVal('hybridBaseCornerRadiusVal', `${state.hybridBaseCornerRadiusMm.toFixed(1)} mm`);
     if ($('blockKeycapProfile')) $<HTMLSelectElement>('blockKeycapProfile').value = state.blockKeycapProfile;
     if ($('blockKeySize')) $<HTMLSelectElement>('blockKeySize').value = String(state.blockKeycapUnit);
 
@@ -241,9 +251,8 @@ export function createUi(
     getClickerDocument().querySelectorAll('#blockOrient [data-orient]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.orient === state.blockOrientation));
     getClickerDocument().querySelectorAll('#blockKeycapShape [data-keycap-shape]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapShape === state.blockKeycapShape));
     getClickerDocument().querySelectorAll('#blockKeycapMount [data-keycap-mount]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapMount === state.blockKeycapMount));
-    if ($('hybridSquareModuleBase')) $<HTMLInputElement>('hybridSquareModuleBase').checked = state.hybridSquareModuleBase;
-    if ($('hybridSquareModuleRow')) ($('hybridSquareModuleRow') as HTMLElement).style.display = state.importMode === 'hybrid' ? '' : 'none';
-    if ($('hybridImageSizeRow')) ($('hybridImageSizeRow') as HTMLElement).style.display = state.importMode === 'hybrid' ? '' : 'none';
+    if ($('hybridBodyControls')) ($('hybridBodyControls') as HTMLElement).hidden = state.importMode !== 'hybrid';
+    if ($('blocksLegacyBaseControls')) ($('blocksLegacyBaseControls') as HTMLElement).hidden = state.importMode === 'hybrid';
 
     // Cáº­p nháº­t View Tabs
     getClickerDocument().querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.view === state.view));

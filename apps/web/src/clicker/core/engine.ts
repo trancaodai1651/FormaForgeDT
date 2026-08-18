@@ -205,7 +205,11 @@ export function rebuild(quiet = false) {
 
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
-    imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm, imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
+    imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
+    hybridImageThicknessMm: s.hybridImageThicknessMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
+    hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
+    hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm,
+    imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: 0.6, travel: 4.0, floorThickness: 1.6,
@@ -266,7 +270,7 @@ export function rebuild(quiet = false) {
           keycapMount: s.blockKeycapMount,
           keycapProfile: s.blockKeycapProfile,
           keycapUnit: s.blockKeycapUnit,
-          squareModuleBase: s.hybridSquareModuleBase,
+          squareModuleBase: true,
           keychainEnd: 'left',
         },
       });
@@ -309,7 +313,7 @@ export function rebuild(quiet = false) {
           keycapMount: s.blockKeycapMount,
           keycapProfile: s.blockKeycapProfile,
           keycapUnit: s.blockKeycapUnit,
-          squareModuleBase: s.hybridSquareModuleBase,
+          squareModuleBase: true,
           keychainEnd: 'left',
         },
       });
@@ -395,7 +399,7 @@ function partColorTarget(name: string): ColorTarget | null {
     || /^block-side-wall-\d+$/.test(name)
   ) return { kind: 'body' };
   if (/^block-\d+(?:-wall)?$/.test(name)) return { kind: 'body' };
-  if (name === 'hybrid-image-base' || name === 'hybrid-image-deck' || name === 'hybrid-image-bridge' || name === 'hybrid-image-transition' || name === 'hybrid-square-module-base') return { kind: 'body' };
+  if (name === 'hybrid-continuous-base' || name === 'hybrid-image-deck') return { kind: 'body' };
   if (/^hybrid-image-(\d+)$/.test(name)) return { kind: 'region', index: Number(name.slice('hybrid-image-'.length)), compIndex: 0 };
   if (/^block-color-\d+$/.test(name)) return { kind: 'region', index: 0, compIndex: 0 };
   if (/^cap-\d+$/.test(name)) return { kind: 'region', index: 0, compIndex: 0 };

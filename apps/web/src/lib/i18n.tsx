@@ -173,16 +173,6 @@ Object.assign(vi, {
   'moduleLibrary.preset.pyramid-base.name': 'Đế kim tự tháp', 'moduleLibrary.preset.pyramid-base.description': 'Đế côn bốn mặt với cổ khớp nối nhỏ gọn.',
 });
 
-Object.assign(en, {
-  'admin.imageKeychain': 'Image Name Keychain',
-  'admin.imageKeychainDescription': 'Combine an imported image badge with a name-driven socket base and matching source keycaps.',
-});
-
-Object.assign(vi, {
-  'admin.imageKeychain': 'Móc khóa ảnh + tên',
-  'admin.imageKeychainDescription': 'Ghép badge ảnh nhập vào với base đục socket theo tên và bộ keycap ký tự tương ứng.',
-});
-
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 

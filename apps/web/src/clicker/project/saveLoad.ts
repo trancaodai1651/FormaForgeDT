@@ -32,7 +32,10 @@ export function saveProject() {
     version: 3,
     settings: {
       colorCount: s.colorCount, baseShape: s.baseShape, capWidthMm: s.capWidthMm,
-      topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm, imageMargin: s.imageMargin,
+      topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
+      hybridImageThicknessMm: s.hybridImageThicknessMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
+      hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
+      hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, imageMargin: s.imageMargin,
       borderWidth: s.borderWidth, baseHeight: s.baseHeight, mergeTopFrame: s.mergeTopFrame, keepMeshesSeparate: s.keepMeshesSeparate, 
       tolerance: s.tolerance, stemTolerance: s.stemTolerance, switches: s.switches, keychain: s.keychain, 
       smoothing: s.smoothing, photoFlatten: s.photoFlatten, removeBg: s.removeBg, importMode: s.importMode, 
@@ -54,7 +57,6 @@ export function saveProject() {
       blockKeycapMount: s.blockKeycapMount,
       blockKeycapProfile: s.blockKeycapProfile,
       blockKeycapUnit: s.blockKeycapUnit,
-      hybridSquareModuleBase: s.hybridSquareModuleBase,
     },
     palette: s.palette,
     image: appData.originalImage ? imageToDataUrl(appData.originalImage) : null,
@@ -86,6 +88,11 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       topThickness: set.topThickness ?? store.get().topThickness, imageDepth: set.imageDepth ?? store.get().imageDepth,
       flatKeychainThicknessMm: set.flatKeychainThicknessMm ?? store.get().flatKeychainThicknessMm,
       hybridImageSizeMm: set.hybridImageSizeMm ?? store.get().hybridImageSizeMm,
+      hybridImageThicknessMm: set.hybridImageThicknessMm ?? store.get().hybridImageThicknessMm,
+      hybridBaseWidthMm: set.hybridBaseWidthMm ?? store.get().hybridBaseWidthMm,
+      hybridBaseEndPaddingMm: set.hybridBaseEndPaddingMm ?? store.get().hybridBaseEndPaddingMm,
+      hybridBaseThicknessMm: set.hybridBaseThicknessMm ?? store.get().hybridBaseThicknessMm,
+      hybridBaseCornerRadiusMm: set.hybridBaseCornerRadiusMm ?? store.get().hybridBaseCornerRadiusMm,
       imageMargin: set.imageMargin ?? store.get().imageMargin, borderWidth: set.borderWidth ?? store.get().borderWidth,
       mergeTopFrame: set.mergeTopFrame ?? false, keepMeshesSeparate: set.keepMeshesSeparate ?? true,
       tolerance: set.tolerance ?? store.get().tolerance, stemTolerance: set.stemTolerance ?? 0,
@@ -114,7 +121,6 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       blockKeycapMount: set.blockKeycapMount === 'above' ? 'above' : (set.blockKeycapMount ?? store.get().blockKeycapMount),
       blockKeycapProfile: ['standard', 'low', 'thocky', 'choc-v1'].includes(set.blockKeycapProfile) ? set.blockKeycapProfile : store.get().blockKeycapProfile,
       blockKeycapUnit: [1, 1.25, 1.5, 1.75, 2, 2.25, 2.75, 6, 6.25, 6.5].includes(set.blockKeycapUnit) ? set.blockKeycapUnit : store.get().blockKeycapUnit,
-      hybridSquareModuleBase: set.hybridSquareModuleBase ?? store.get().hybridSquareModuleBase,
     });
 
     if ((set.importMode === 'image' || set.importMode === 'hybrid') && proj.image) appData.originalImage = await dataUrlToImage(proj.image);

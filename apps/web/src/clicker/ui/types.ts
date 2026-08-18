@@ -11,7 +11,7 @@ import type { SectionAxis } from '../viewer/viewer';
 export interface UiState {
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
   baseShape: BaseShapeKind; bottomBaseMode?: 'match' | 'custom';
-  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
+  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageThicknessMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;
   smoothing: number; photoFlatten: boolean; keychain: KeychainParams; removeBg: boolean; view: ViewMode; showSwitch: boolean;
@@ -29,7 +29,6 @@ export interface UiState {
   blockKeycapMount: 'above' | 'recessed';
   blockKeycapProfile: 'standard' | 'low' | 'thocky' | 'choc-v1';
   blockKeycapUnit: number;
-  hybridSquareModuleBase: boolean;
   selectedParts: string[]; canUndo: boolean; canRedo: boolean; canRefresh: boolean;
 }
 
@@ -67,8 +66,12 @@ export interface UiCallbacks {
   onBlockKeycapMount(mount: 'above' | 'recessed'): void;
   onBlockKeycapProfile(profile: 'standard' | 'low' | 'thocky' | 'choc-v1'): void;
   onBlockKeySize(unit: number): void;
-  onHybridSquareModuleBase(on: boolean): void;
   onHybridImageSize(sizeMm: number): void;
+  onHybridImageThickness(value: number): void;
+  onHybridBaseWidth(value: number): void;
+  onHybridBaseEndPadding(value: number): void;
+  onHybridBaseThickness(value: number): void;
+  onHybridBaseCornerRadius(value: number): void;
   onBlockModuleThickness(value: number): void;
   onBlockModuleSideThickness(value: number): void;
   onGenerate(): void; onUndo(): void; onRedo(): void; onRefresh(): void; onBackToHome(): void;

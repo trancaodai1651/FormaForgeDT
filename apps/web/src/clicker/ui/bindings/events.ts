@@ -39,8 +39,12 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   });
   $('blockKeycapProfile')?.addEventListener('change', (e: Event) => cb.onBlockKeycapProfile((e.target as HTMLSelectElement).value as 'standard' | 'low' | 'thocky' | 'choc-v1'));
   $('blockKeySize')?.addEventListener('change', (e: Event) => cb.onBlockKeySize(+(e.target as HTMLSelectElement).value));
-  $('hybridSquareModuleBase')?.addEventListener('change', (e: Event) => cb.onHybridSquareModuleBase((e.target as HTMLInputElement).checked));
   $('hybridImageSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
+  $('hybridImageThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
+  $('hybridBaseWidth')?.addEventListener('input', (e: Event) => cb.onHybridBaseWidth(+(e.target as HTMLInputElement).value));
+  $('hybridBaseEndPadding')?.addEventListener('input', (e: Event) => cb.onHybridBaseEndPadding(+(e.target as HTMLInputElement).value));
+  $('hybridBaseThickness')?.addEventListener('input', (e: Event) => cb.onHybridBaseThickness(+(e.target as HTMLInputElement).value));
+  $('hybridBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onHybridBaseCornerRadius(+(e.target as HTMLInputElement).value));
 
   // --- Color Count & Smoothing ---
   const ccount = $<HTMLSelectElement>('ccount');
