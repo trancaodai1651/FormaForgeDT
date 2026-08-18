@@ -305,6 +305,7 @@ export type GeometryRequest =
   | ({ type: 'init'; socket: ArrayBuffer; stem: ArrayBuffer; switch: ArrayBuffer } & Partial<BlockAssetMessageBuffers>)
   | {
       type: 'buildClicker';
+      requestId?: number;
       regions: BuildRegion[];
       outline: Ring[];
       bottomOutline?: Ring[]; // 👈 THÊM DÒNG NÀY (Viền của tấm ảnh thứ 2)

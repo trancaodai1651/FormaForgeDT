@@ -193,7 +193,7 @@
 .admin-tool-directory-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; }
 .admin-tool-directory-heading h2 { margin: 12px 0 0; font-size: clamp(2rem, 4vw, 3.2rem); }
 .admin-tool-directory-heading p { max-width: 420px; margin: 0; font-size: 12px; }
-.admin-tool-directory-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.admin-tool-directory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .admin-tool-directory-card { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); transition: border-color .2s, background .2s, transform .2s; }
 .admin-tool-directory-card:hover { border-color: rgba(240,185,103,.55); background: color-mix(in srgb, var(--surface) 70%, rgba(240,185,103,.12)); transform: translateY(-3px); }
 .admin-tool-directory-mark { width: 38px; height: 38px; border-radius: 12px; font-size: 18px; }

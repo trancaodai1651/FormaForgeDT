@@ -166,7 +166,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
       }
 
       // Post parts and include any non-fatal build warnings collected in buildClicker
-      post({ type: 'parts', parts, switchPlacements, warnings }, transfer);
+      post({ type: 'parts', requestId: msg.requestId, parts, switchPlacements, warnings }, transfer);
       return;
     }
 
