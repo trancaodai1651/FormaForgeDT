@@ -6,6 +6,48 @@ export type JointType = 'bayonet' | 'thread' | 'snap' | 'dovetail' | 'none';
 
 export type SketchPoint = { radius: number; height: number };
 
+export const MODULE_STUDIO_STORAGE_KEY = 'hometown-module-studio';
+
+const DEFAULT_SKETCH_PROFILE: SketchPoint[] = [
+  { radius: .76, height: 0 }, { radius: .84, height: .12 }, { radius: .94, height: .38 },
+  { radius: 1, height: .66 }, { radius: .92, height: .88 }, { radius: .86, height: 1 },
+];
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+export function sanitizeSketch(points: SketchPoint[]): SketchPoint[] {
+  const safe = points
+    .map((point) => ({ radius: clamp(Number(point.radius), .3, 1), height: clamp(Number(point.height), 0, 1) }))
+    .filter((point) => Number.isFinite(point.radius) && Number.isFinite(point.height))
+    .sort((a, b) => a.height - b.height);
+  if (safe.length < 2) return [{ radius: .78, height: 0 }, { radius: .86, height: 1 }];
+
+  const buckets = new Map<number, number[]>();
+  for (const point of safe) {
+    const bucket = Math.round(point.height * 20);
+    buckets.set(bucket, [...(buckets.get(bucket) ?? []), point.radius]);
+  }
+  let profile = [...buckets.entries()].map(([bucket, radii]) => ({
+    height: bucket / 20,
+    radius: radii.reduce((sum, radius) => sum + radius, 0) / radii.length,
+  })).sort((a, b) => a.height - b.height);
+  if (profile[0].height > 0) profile.unshift({ height: 0, radius: profile[0].radius });
+  if (profile.at(-1)!.height < 1) profile.push({ height: 1, radius: profile.at(-1)!.radius });
+  const roughness = profile.slice(1).reduce((sum, point, index) => sum + Math.abs(point.radius - profile[index].radius), 0);
+  if (roughness > 1.45) return DEFAULT_SKETCH_PROFILE.map((point) => ({ ...point }));
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    profile = profile.map((point, index, source) => index === 0 || index === source.length - 1 ? point : ({
+      height: point.height,
+      radius: source[index - 1].radius * .2 + point.radius * .6 + source[index + 1].radius * .2,
+    }));
+  }
+  for (let index = 1; index < profile.length; index += 1) {
+    profile[index].radius = clamp(profile[index].radius, profile[index - 1].radius - .16, profile[index - 1].radius + .16);
+  }
+  return profile.map((point) => ({ height: point.height, radius: clamp(point.radius, .3, 1) }));
+}
+
 export type LampModule = {
   id: string;
   name: string;
@@ -66,8 +108,7 @@ export const HARDWARE_CATALOG = {
 
 export const SKETCH_PRESETS: Record<'soft' | 'tower' | 'wave' | 'bell', SketchPoint[]> = {
   soft: [
-    { radius: .62, height: 0 }, { radius: .68, height: .18 }, { radius: .72, height: .42 },
-    { radius: .67, height: .68 }, { radius: .57, height: .88 }, { radius: .52, height: 1 },
+    ...DEFAULT_SKETCH_PROFILE.map((point) => ({ ...point })),
   ],
   tower: [
     { radius: .72, height: 0 }, { radius: .7, height: .25 }, { radius: .64, height: .58 },
@@ -90,7 +131,7 @@ export function createLampModule(kind: ModuleKind, hardware: HardwareId, index =
   const defaults: Record<ModuleKind, Omit<LampModule, 'id' | 'kind'>> = {
     core: { name: 'Core Base', diameter: 84, height: 24, wallThickness: 2.4, offsetY: 0, rotation: 0, color: '#25282d', topJoint: 'bayonet', bottomJoint: 'none', clearance: .35, lockAngle: 35, visible: true },
     adapter: { name: `${hardwareSpec.shortName} Adapter`, diameter: Math.max(60, hardwareSpec.diameter + 12), height: hardware === 'E27' ? 38 : 20, wallThickness: 2.2, offsetY: 0, rotation: 0, color: '#3a3e45', topJoint: 'bayonet', bottomJoint: 'bayonet', clearance: hardwareSpec.clearance, lockAngle: 35, visible: true },
-    sketch: { name: `Sketch Shade ${index + 1}`, diameter: 148, height: 178, wallThickness: 1.6, offsetY: 0, rotation: 0, color: '#e2d7c4', topJoint: 'none', bottomJoint: 'bayonet', clearance: .35, lockAngle: 35, visible: true },
+    sketch: { name: `Sketch Shade ${index + 1}`, diameter: 184, height: 218, wallThickness: 1.6, offsetY: 0, rotation: 0, color: '#e2d7c4', topJoint: 'none', bottomJoint: 'bayonet', clearance: .35, lockAngle: 35, visible: true },
     spacer: { name: `Spacer Ring ${index + 1}`, diameter: 92, height: 18, wallThickness: 2, offsetY: 0, rotation: 0, color: '#b88b52', topJoint: 'bayonet', bottomJoint: 'bayonet', clearance: .35, lockAngle: 35, visible: true },
     diffuser: { name: `Light Diffuser ${index + 1}`, diameter: 112, height: 54, wallThickness: 1.2, offsetY: 0, rotation: 0, color: '#fff4d8', topJoint: 'snap', bottomJoint: 'snap', clearance: .3, lockAngle: 0, visible: true },
     cap: { name: `Top Cap ${index + 1}`, diameter: 118, height: 12, wallThickness: 2, offsetY: 0, rotation: 0, color: '#d7c4a5', topJoint: 'none', bottomJoint: 'snap', clearance: .3, lockAngle: 0, visible: true },
@@ -122,8 +163,25 @@ export function parseModuleProject(input: unknown): ModuleStudioProject {
     ...project,
     version: 1,
     hardware: project.hardware === 'E27' ? 'E27' : 'BAMBU_LED_KIT_001',
-    modules: project.modules.map((module, index) => ({ ...createLampModule(module.kind ?? 'sketch', project.hardware === 'E27' ? 'E27' : 'BAMBU_LED_KIT_001', index), ...module })),
-    sketch: project.sketch.map((point) => ({ radius: Number(point.radius), height: Number(point.height) })).filter((point) => Number.isFinite(point.radius) && Number.isFinite(point.height)),
+    modules: project.modules.map((module, index) => {
+      const migrated = { ...createLampModule(module.kind ?? 'sketch', project.hardware === 'E27' ? 'E27' : 'BAMBU_LED_KIT_001', index), ...module };
+      if (migrated.kind === 'sketch' && migrated.diameter === 148 && migrated.height === 178) return { ...migrated, diameter: 184, height: 218 };
+      return migrated;
+    }),
+    sketch: sanitizeSketch(project.sketch),
     updatedAt: new Date().toISOString(),
   };
+}
+
+export function loadModuleStudioProject() {
+  try {
+    const stored = localStorage.getItem(MODULE_STUDIO_STORAGE_KEY);
+    return stored ? parseModuleProject(JSON.parse(stored)) : createDefaultModuleProject();
+  } catch {
+    return createDefaultModuleProject();
+  }
+}
+
+export function saveModuleStudioProject(project: ModuleStudioProject) {
+  localStorage.setItem(MODULE_STUDIO_STORAGE_KEY, JSON.stringify({ ...project, sketch: sanitizeSketch(project.sketch), updatedAt: new Date().toISOString() }));
 }

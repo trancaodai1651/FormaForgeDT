@@ -60,7 +60,10 @@
 .module-section-title > svg { color: var(--ms-accent); }
 .module-live { display: inline-flex; align-items: center; gap: 6px; color: var(--ms-muted); font: 500 8px 'DM Mono', monospace; }
 .module-sketch-pad { display: block; width: 100%; aspect-ratio: 272 / 240; border: 1px solid var(--ms-line); border-radius: 18px; background: #111419; color: var(--ms-accent); cursor: crosshair; touch-action: none; user-select: none; }
+.module-sketch-pad.summary { cursor: default; }
 .module-sketch-card > p, .module-hardware-note { margin: 10px 2px 0; color: var(--ms-muted); font-size: 9px; line-height: 1.55; }
+.module-open-sketch { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; margin-top: 12px; border: 1px solid rgba(240,185,103,.48); border-radius: 11px; background: rgba(240,185,103,.08); color: var(--ms-accent); font-size: 9px; font-weight: 700; }
+.module-open-sketch:hover { background: var(--ms-accent); color: #171108; }
 .module-preset-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 12px; }
 .module-preset-row button { min-height: 31px; padding: 0 5px; border: 1px solid var(--ms-line); border-radius: 9px; background: transparent; color: var(--ms-muted); font-size: 8px; }
 .module-preset-row button:hover { border-color: var(--ms-accent); color: var(--ms-accent); }
@@ -80,6 +83,7 @@
 .module-list-actions { gap: 2px; }
 .module-list-actions button { display: grid; place-items: center; width: 25px; height: 25px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--ms-muted); }
 .module-list-actions button:hover { background: rgba(255,255,255,.06); color: var(--ms-text); }
+.module-list-actions button.delete:hover { background: rgba(241,110,96,.12); color: #f18d80; }
 .module-list-actions button:disabled { opacity: .22; }
 
 .module-studio-viewport { position: relative; min-width: 0; overflow: hidden; background: #101215; }

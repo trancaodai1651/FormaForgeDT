@@ -85,6 +85,21 @@ Object.assign(vi, {
 });
 Object.assign(vi, { 'admin.flexLampMode': 'Chế độ' });
 
+Object.assign(en, {
+  'moduleStudio.openSketch': 'Open Sketch workspace',
+  'moduleSketch.back': 'Back to assembly', 'moduleSketch.title': 'Shade Profile Sketch', 'moduleSketch.undo': 'Undo', 'moduleSketch.redo': 'Redo', 'moduleSketch.reset': 'Reset', 'moduleSketch.apply': 'Apply profile', 'moduleSketch.tools': 'Sketch tools',
+  'moduleSketch.select': 'Select', 'moduleSketch.spline': 'Spline', 'moduleSketch.pencil': 'Pencil', 'moduleSketch.erase': 'Erase', 'moduleSketch.snap': 'Snap', 'moduleSketch.points': 'control points',
+  'moduleSketch.help.select': 'Drag a control point to refine the shade profile.', 'moduleSketch.help.spline': 'Click the grid to add a new spline control point.', 'moduleSketch.help.pencil': 'Draw one continuous stroke from the bottom to the top.', 'moduleSketch.help.erase': 'Click a control point to remove it.',
+  'moduleSketch.preview': 'Revolved 3D preview', 'moduleSketch.parameters': 'Profile dimensions', 'moduleSketch.presets': 'Profile presets',
+});
+Object.assign(vi, {
+  'moduleStudio.openSketch': 'Mở trang Sketch chuyên dụng',
+  'moduleSketch.back': 'Quay lại lắp ráp', 'moduleSketch.title': 'Sketch biên dạng chao đèn', 'moduleSketch.undo': 'Hoàn tác', 'moduleSketch.redo': 'Làm lại', 'moduleSketch.reset': 'Đặt lại', 'moduleSketch.apply': 'Áp dụng biên dạng', 'moduleSketch.tools': 'Công cụ Sketch',
+  'moduleSketch.select': 'Chọn', 'moduleSketch.spline': 'Spline', 'moduleSketch.pencil': 'Bút vẽ', 'moduleSketch.erase': 'Xóa điểm', 'moduleSketch.snap': 'Bắt lưới', 'moduleSketch.points': 'điểm điều khiển',
+  'moduleSketch.help.select': 'Kéo điểm điều khiển để tinh chỉnh biên dạng chao đèn.', 'moduleSketch.help.spline': 'Chạm lên lưới để thêm điểm điều khiển spline.', 'moduleSketch.help.pencil': 'Vẽ một nét liên tục từ dưới lên trên.', 'moduleSketch.help.erase': 'Chạm vào một điểm điều khiển để xóa.',
+  'moduleSketch.preview': 'Xem trước khối xoay 3D', 'moduleSketch.parameters': 'Kích thước biên dạng', 'moduleSketch.presets': 'Biên dạng mẫu',
+});
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 
