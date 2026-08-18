@@ -1,4 +1,5 @@
 import { HARDWARE_SPECS } from '@hometown/types';
+import { sanitizeCadDocument, type CadDocument } from './cad';
 
 export type HardwareId = 'E27' | 'BAMBU_LED_KIT_001';
 export type ModuleKind = 'core' | 'adapter' | 'sketch' | 'spacer' | 'diffuser' | 'cap';
@@ -74,6 +75,7 @@ export type ModuleStudioProject = {
   lightOn: boolean;
   lightTemperature: number;
   brightness: number;
+  cadSketch?: CadDocument;
   updatedAt: string;
 };
 
@@ -169,6 +171,7 @@ export function parseModuleProject(input: unknown): ModuleStudioProject {
       return migrated;
     }),
     sketch: sanitizeSketch(project.sketch),
+    cadSketch: sanitizeCadDocument(project.cadSketch),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -183,5 +186,5 @@ export function loadModuleStudioProject() {
 }
 
 export function saveModuleStudioProject(project: ModuleStudioProject) {
-  localStorage.setItem(MODULE_STUDIO_STORAGE_KEY, JSON.stringify({ ...project, sketch: sanitizeSketch(project.sketch), updatedAt: new Date().toISOString() }));
+  localStorage.setItem(MODULE_STUDIO_STORAGE_KEY, JSON.stringify({ ...project, sketch: sanitizeSketch(project.sketch), cadSketch: sanitizeCadDocument(project.cadSketch), updatedAt: new Date().toISOString() }));
 }
