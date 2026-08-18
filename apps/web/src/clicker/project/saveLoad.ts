@@ -32,7 +32,7 @@ export function saveProject() {
     version: 3,
     settings: {
       colorCount: s.colorCount, baseShape: s.baseShape, capWidthMm: s.capWidthMm,
-      topThickness: s.topThickness, imageDepth: s.imageDepth, hybridImageSizeMm: s.hybridImageSizeMm, imageMargin: s.imageMargin,
+      topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm, imageMargin: s.imageMargin,
       borderWidth: s.borderWidth, baseHeight: s.baseHeight, mergeTopFrame: s.mergeTopFrame, keepMeshesSeparate: s.keepMeshesSeparate, 
       tolerance: s.tolerance, stemTolerance: s.stemTolerance, switches: s.switches, keychain: s.keychain, 
       smoothing: s.smoothing, photoFlatten: s.photoFlatten, removeBg: s.removeBg, importMode: s.importMode, 
@@ -84,6 +84,7 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       importMode: set.importMode ?? 'image', colorCount: set.colorCount ?? store.get().colorCount,
       baseShape: set.baseShape ?? store.get().baseShape, capWidthMm: set.capWidthMm ?? store.get().capWidthMm,
       topThickness: set.topThickness ?? store.get().topThickness, imageDepth: set.imageDepth ?? store.get().imageDepth,
+      flatKeychainThicknessMm: set.flatKeychainThicknessMm ?? store.get().flatKeychainThicknessMm,
       hybridImageSizeMm: set.hybridImageSizeMm ?? store.get().hybridImageSizeMm,
       imageMargin: set.imageMargin ?? store.get().imageMargin, borderWidth: set.borderWidth ?? store.get().borderWidth,
       mergeTopFrame: set.mergeTopFrame ?? false, keepMeshesSeparate: set.keepMeshesSeparate ?? true,

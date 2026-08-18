@@ -205,7 +205,7 @@ export function rebuild(quiet = false) {
 
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
-    imageDepth: s.imageDepth, hybridImageSizeMm: s.hybridImageSizeMm, imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
+    imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm, imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: 0.6, travel: 4.0, floorThickness: 1.6,

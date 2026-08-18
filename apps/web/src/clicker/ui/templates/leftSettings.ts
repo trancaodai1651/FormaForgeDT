@@ -36,6 +36,10 @@ export const renderLeftSettings = () => `
             <span class="switch-label" style="font-size: 0.9em;">Flat keychain <br/><i style="font-size:0.8em; color:var(--muted);">Create a flat keychain plate without molding the switch stem under it.</i></span>
             <label class="toggle"><input id="isFlatKeychain" type="checkbox" /><span class="slider"></span></label>
           </div>
+          <div class="prow-stacked" id="flatKeychainThicknessRow" style="display:none; margin: 0 0 12px 12px; padding-left: 12px; border-left: 2px solid var(--accent);">
+            <div class="prow-header"><label for="flatKeychainThickness">Flat plate thickness</label><input type="text" class="val" id="flatKeychainThicknessVal" /></div>
+            <input type="range" id="flatKeychainThickness" min="1" max="12" step="0.1" />
+          </div>
           <div id="keychainOpts" style="display:none;">
             <div class="prow-stacked">
               <div class="prow-header"><label>Position ${tip('Slides the keychain attachment around the edge of the body.')}</label></div>
@@ -60,6 +64,7 @@ export const renderLeftSettings = () => `
                 <span class="tol-val" id="keychainSizeVal">5.2 mm</span>
                 <button class="btn" id="keychainSizePlus" type="button">+</button>
               </div>
+              <input type="range" id="keychainHoleDiameter" min="3" max="16" step="0.1" aria-label="Hole diameter" />
             </div>
           </div>
         </div>
@@ -107,7 +112,7 @@ export const renderLeftSettings = () => `
           <input type="range" id="profileHeight" min="2" max="250" step="0.5" value="5" />
         </div>
 
-        <div class="prow-stacked">
+        <div class="prow-stacked" id="topThicknessRow">
           <div class="prow-header">
             <label for="topthick">Top thickness</label>
             <input type="text" class="val" id="topthickVal" />

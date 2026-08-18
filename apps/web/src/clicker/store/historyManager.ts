@@ -4,7 +4,7 @@ import { debounce } from '../utils/helpers';
 const HISTORY_FIELDS = [
   'palette', 'paletteOverrides', 'partOverrides', 'bodyColorRgb', 'baseColorOverride',
   'componentHeights', 'edgeSettings', 'extrudeChamfer', 'baseShape', 'capWidthMm', 'topThickness',
-  'imageDepth', 'imageMargin', 'borderWidth', 'mergeTopFrame', 'tolerance', 'stemTolerance', 'switches', 'keychain', 'keepMeshesSeparate',
+  'imageDepth', 'flatKeychainThicknessMm', 'imageMargin', 'borderWidth', 'mergeTopFrame', 'tolerance', 'stemTolerance', 'switches', 'keychain', 'keepMeshesSeparate',
 ] as const;
 
 let history: string[] = [];

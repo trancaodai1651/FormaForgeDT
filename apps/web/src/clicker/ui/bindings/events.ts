@@ -63,6 +63,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   const baseHeight = $<HTMLInputElement>('baseHeight'); baseHeight?.addEventListener('input', () => cb.onBaseHeight(+baseHeight.value));
   const topthick = $<HTMLInputElement>('topthick'); topthick?.addEventListener('input', () => cb.onTopThickness(+topthick.value));
   const imgdepth = $<HTMLInputElement>('imgdepth'); imgdepth?.addEventListener('input', () => cb.onImageDepth(+imgdepth.value));
+  const flatKeychainThickness = $<HTMLInputElement>('flatKeychainThickness'); flatKeychainThickness?.addEventListener('input', () => cb.onFlatKeychainThickness(+flatKeychainThickness.value));
   const margin = $<HTMLInputElement>('margin'); margin?.addEventListener('input', () => cb.onImageMargin(+margin.value));
   const borderWidth = $<HTMLInputElement>('borderwidth'); borderWidth?.addEventListener('input', () => cb.onBorderWidth(+borderWidth.value));
 
@@ -71,6 +72,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   bindValInput('baseHeightVal', 'baseHeight', cb.onBaseHeight);
   bindValInput('topthickVal', 'topthick', cb.onTopThickness);
   bindValInput('imgdepthVal', 'imgdepth', cb.onImageDepth);
+  bindValInput('flatKeychainThicknessVal', 'flatKeychainThickness', cb.onFlatKeychainThickness);
   bindValInput('marginVal', 'margin', cb.onImageMargin);
   bindValInput('borderwidthVal', 'borderwidth', cb.onBorderWidth);
 
@@ -90,6 +92,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('keychainOffsetPlus')?.addEventListener('click', () => cb.onKeychainOffset(1.0));
   $('keychainSizeMinus')?.addEventListener('click', () => cb.onKeychainSize(-0.4));
   $('keychainSizePlus')?.addEventListener('click', () => cb.onKeychainSize(0.4));
+  $('keychainHoleDiameter')?.addEventListener('input', (e: Event) => cb.onKeychainHoleDiameter(+(e.target as HTMLInputElement).value));
 
   // --- Bottom Base Alignment & Expansion Controls ---
   const baseExpand = $<HTMLInputElement>('baseExpand');

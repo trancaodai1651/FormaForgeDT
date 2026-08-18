@@ -113,7 +113,13 @@ export function buildClicker(
   const bodyFootprint = customBasePlate ? ctx.simp(customBasePlate) : ctx.simp(ctx.grow(wellFootprint, Math.max(0.4, params.borderWidth)));
 
   // Tính toán Z Bound
-  const cavityFloorZ = socketBB.max[2], slabBottomZ = stemBB.max[2], backing = Math.max(0, params.topThickness), imageDepth = Math.max(0.2, params.imageDepth);
+  const cavityFloorZ = socketBB.max[2], slabBottomZ = stemBB.max[2];
+  const requestedImageDepth = Math.max(0.2, params.imageDepth);
+  const flatThickness = Math.max(1, Math.min(12, params.flatKeychainThicknessMm ?? (Math.max(0, params.topThickness) + requestedImageDepth)));
+  // Flat keychain mode owns the total plate height. The image remains a top
+  // relief inside that height instead of deciding how thick the whole plate is.
+  const imageDepth = isFlatKeychain ? Math.min(requestedImageDepth, Math.max(0.2, flatThickness - 0.2)) : requestedImageDepth;
+  const backing = isFlatKeychain ? Math.max(0.2, flatThickness - imageDepth) : Math.max(0, params.topThickness);
   
   const profile = (params as any).topProfile || 'flat';
   const pHeight = Math.max(0, (params as any).topProfileHeight ?? 5.0);
@@ -380,7 +386,7 @@ export function buildClicker(
     if (Math.abs((params.keychain.angleDeg ?? 90) - 90) > 0.001) loopFootprint = ctx.track(loopFootprint.rotate((params.keychain.angleDeg ?? 90) - 90));
     loopFootprint = ctx.track(loopFootprint.translate([px, py]));
     if (isFlatKeychain) loopFootprint = ctx.track(loopFootprint.subtract(imageArea));
-    const loopTh = isFlatKeychain ? (backing + imageDepth) : Math.max(2.5, Math.min(4.0, (bodyTopZ - bodyBottomZ) * 0.35));
+    const loopTh = isFlatKeychain ? flatThickness : Math.max(2.5, Math.min(4.0, (bodyTopZ - bodyBottomZ) * 0.35));
     const loopZb = isFlatKeychain ? slabBottomZ : bodyBottomZ;
     const hole = ctx.extrudeAt(ctx.track(ctx.wasm.CrossSection.circle(Math.max(1.5, (params.keychain.holeDiameterMm ?? 5.2) / 2), 48).translate([-loopR * Math.sin(((params.keychain.angleDeg ?? 90) - 90) * Math.PI / 180) + px, loopR * Math.cos(((params.keychain.angleDeg ?? 90) - 90) * Math.PI / 180) + py])), loopTh + 2, loopZb - 1, sectionIsEmpty);
     if (isFlatKeychain) { base = ctx.track(base.add(ctx.extrudeAt(loopFootprint, loopTh, loopZb, sectionIsEmpty))); base = ctx.track(base.subtract(hole)); } 

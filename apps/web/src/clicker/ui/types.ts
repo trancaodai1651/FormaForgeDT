@@ -11,7 +11,7 @@ import type { SectionAxis } from '../viewer/viewer';
 export interface UiState {
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
   baseShape: BaseShapeKind; bottomBaseMode?: 'match' | 'custom';
-  capWidthMm: number; topThickness: number; imageDepth: number; hybridImageSizeMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
+  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;
   smoothing: number; photoFlatten: boolean; keychain: KeychainParams; removeBg: boolean; view: ViewMode; showSwitch: boolean;
@@ -46,7 +46,8 @@ export interface UiCallbacks {
   onSwitchNudge(dx: number, dy: number): void; onSwitchRotate(deltaDeg: number): void;
   onSwitchReset(): void; onSwitchCount(n: number): void; onActiveSwitch(i: number): void;
   onSwitchResetAll(): void; onKeychainToggle(on: boolean): void; onKeychainRotate(deltaDeg: number): void;
-  onKeychainSize(deltaMm: number): void; onKeychainOffset(deltaMm: number): void;
+  onKeychainSize(deltaMm: number): void; onKeychainHoleDiameter(mm: number): void; onKeychainOffset(deltaMm: number): void;
+  onFlatKeychainThickness(mm: number): void;
   onRemoveBg(on: boolean): void; onPhotoFlatten(on: boolean): void; onView(mode: ViewMode): void; onShowSwitch(on: boolean): void;
   onSection(axis: SectionAxis, pos: number): void; onExport(): void; onExportSTL(): void;
   onRenderPng(): void; onAiPrompt(): void; onSaveProject(): void; onLoadProject(file: File): void;

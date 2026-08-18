@@ -93,6 +93,8 @@ export function createUi(
     if ($('baseHeight')) $<HTMLInputElement>('baseHeight').value = String((state as any).baseHeight ?? 12); setVal('baseHeightVal', ((state as any).baseHeight ?? 12).toFixed(1) + ' mm');
     if ($('topthick')) $<HTMLInputElement>('topthick').value = String(state.topThickness); setVal('topthickVal', state.topThickness.toFixed(1) + ' mm');
     if ($('imgdepth')) $<HTMLInputElement>('imgdepth').value = String(state.imageDepth); setVal('imgdepthVal', state.imageDepth.toFixed(1) + ' mm');
+    if ($('flatKeychainThickness')) $<HTMLInputElement>('flatKeychainThickness').value = String(state.flatKeychainThicknessMm);
+    setVal('flatKeychainThicknessVal', state.flatKeychainThicknessMm.toFixed(1) + ' mm');
     if ($('margin')) $<HTMLInputElement>('margin').value = String(state.imageMargin); setVal('marginVal', state.imageMargin.toFixed(1) + ' mm');
     if ($('borderwidth')) $<HTMLInputElement>('borderwidth').value = String(state.borderWidth); setVal('borderwidthVal', state.borderWidth.toFixed(1) + ' mm');
     if ($('legendSize')) $<HTMLInputElement>('legendSize').value = String(state.legendScale);
@@ -178,6 +180,7 @@ export function createUi(
     if ($('keychainAngleVal')) $('keychainAngleVal').textContent = `${Math.round((((kc.angleDeg % 360) + 360) % 360))}Â°`;
     if ($('keychainOffsetVal')) $('keychainOffsetVal').textContent = `${(kc.offsetMm ?? 0.0).toFixed(1)} mm`;
     if ($('keychainSizeVal')) $('keychainSizeVal').textContent = `${kc.holeDiameterMm.toFixed(1)} mm`;
+    if ($('keychainHoleDiameter')) $<HTMLInputElement>('keychainHoleDiameter').value = String(kc.holeDiameterMm);
 
     if ($('removebg')) $<HTMLInputElement>('removebg').checked = state.removeBg;
     if ($('removebgSvg')) $<HTMLInputElement>('removebgSvg').checked = state.removeBg;
@@ -186,6 +189,8 @@ export function createUi(
     if ($('mergeTopFrame')) $<HTMLInputElement>('mergeTopFrame').checked = state.mergeTopFrame;
     if ($('keepMeshesSeparate')) $<HTMLInputElement>('keepMeshesSeparate').checked = state.keepMeshesSeparate;
     if ($('isFlatKeychain')) $<HTMLInputElement>('isFlatKeychain').checked = !!state.isFlatKeychain;
+    if ($('flatKeychainThicknessRow')) $('flatKeychainThicknessRow').style.display = state.isFlatKeychain ? '' : 'none';
+    if ($('topThicknessRow')) $('topThicknessRow').style.display = state.isFlatKeychain ? 'none' : '';
     
     if ($('keepMeshesRow')) $('keepMeshesRow').style.display = state.mergeTopFrame ? 'flex' : 'none';
     if ($('sectionSwitch')) $('sectionSwitch').style.display = state.isFlatKeychain ? 'none' : 'block';

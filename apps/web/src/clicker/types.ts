@@ -144,6 +144,8 @@ export interface BuildParams {
   mergeTopFrame: boolean;
   keepMeshesSeparate: boolean;
   isFlatKeychain?: boolean;
+  /** Total printable plate thickness for Flat keychain mode, independent of image preprocessing. */
+  flatKeychainThicknessMm?: number;
 
   // 🟢 THÊM 4 THUỘC TÍNH NÀY:
   bottomOffsetX?: number;

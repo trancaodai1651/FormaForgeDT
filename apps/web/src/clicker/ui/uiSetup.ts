@@ -69,6 +69,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBaseHeight: (mm) => { store.set({ baseHeight: mm }); debouncedRebuild(); },
     onTopThickness: (mm) => { store.set({ topThickness: mm }); debouncedRebuild(); },
     onImageDepth: (mm) => { store.set({ imageDepth: mm }); debouncedRebuild(); },
+    onFlatKeychainThickness: (mm) => { if (!Number.isFinite(mm)) return; store.set({ flatKeychainThicknessMm: Math.max(1, Math.min(12, mm)) }); debouncedRebuild(); },
     onImageMargin: (mm) => { store.set({ imageMargin: mm }); debouncedRebuild(); },
     onSocketTolStep: (delta) => { store.set({ tolerance: Math.round(Math.max(0.1, Math.min(1.0, store.get().tolerance + delta)) * 100) / 100 }); debouncedRebuild(); },
     onStemTolStep: (delta) => { store.set({ stemTolerance: Math.round(Math.max(-1.0, Math.min(1.0, store.get().stemTolerance + delta)) * 10) / 10 }); debouncedRebuild(); },
@@ -90,7 +91,8 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     
     onKeychainToggle: (on) => { store.set({ keychain: { ...store.get().keychain, enabled: on } }); debouncedRebuild(); },
     onKeychainRotate: (deltaDeg) => { const kc = store.get().keychain; store.set({ keychain: { ...kc, angleDeg: (((kc.angleDeg + deltaDeg) % 360) + 360) % 360 } }); debouncedRebuild(); },
-    onKeychainSize: (deltaMm) => { const kc = store.get().keychain; store.set({ keychain: { ...kc, holeDiameterMm: Math.round(Math.max(3.0, Math.min(8.0, kc.holeDiameterMm + deltaMm)) * 10) / 10 } }); debouncedRebuild(); },
+    onKeychainSize: (deltaMm) => { const kc = store.get().keychain; store.set({ keychain: { ...kc, holeDiameterMm: Math.round(Math.max(3.0, Math.min(16.0, kc.holeDiameterMm + deltaMm)) * 10) / 10 } }); debouncedRebuild(); },
+    onKeychainHoleDiameter: (mm) => { if (!Number.isFinite(mm)) return; const kc = store.get().keychain; store.set({ keychain: { ...kc, holeDiameterMm: Math.round(Math.max(3.0, Math.min(16.0, mm)) * 10) / 10 } }); debouncedRebuild(); },
     onKeychainOffset: (deltaMm) => { const kc = store.get().keychain; store.set({ keychain: { ...kc, offsetMm: Math.round(Math.max(-15.0, Math.min(15.0, (kc.offsetMm ?? 0) + deltaMm)) * 10) / 10 } }); debouncedRebuild(); },
     
     onSmoothing: (v) => { store.set({ smoothing: v }); if ((store.get().importMode === 'image' || store.get().importMode === 'hybrid') && appData.originalImage) debouncedReprocess(); },
