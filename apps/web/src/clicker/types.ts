@@ -135,6 +135,12 @@ export interface BuildParams {
   hybridBaseThicknessMm?: number;
   /** Outside corner radius of the continuous carrier. */
   hybridBaseCornerRadiusMm?: number;
+  /** Wall height above the switch seating plane, used to hide the switch body. */
+  hybridBaseWallHeightMm?: number;
+  /** Length of the tapered rectangular neck between image head and carrier. */
+  hybridNeckLengthMm?: number;
+  /** Width of the neck where it meets the carrier. */
+  hybridNeckWidthMm?: number;
   imageMargin: number;
   borderWidth: number;
   capProud: number;

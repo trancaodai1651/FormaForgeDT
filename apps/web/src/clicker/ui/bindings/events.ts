@@ -45,6 +45,9 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('hybridBaseEndPadding')?.addEventListener('input', (e: Event) => cb.onHybridBaseEndPadding(+(e.target as HTMLInputElement).value));
   $('hybridBaseThickness')?.addEventListener('input', (e: Event) => cb.onHybridBaseThickness(+(e.target as HTMLInputElement).value));
   $('hybridBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onHybridBaseCornerRadius(+(e.target as HTMLInputElement).value));
+  $('hybridBaseWallHeight')?.addEventListener('input', (e: Event) => cb.onHybridBaseWallHeight(+(e.target as HTMLInputElement).value));
+  $('hybridNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
+  $('hybridNeckWidth')?.addEventListener('input', (e: Event) => cb.onHybridNeckWidth(+(e.target as HTMLInputElement).value));
 
   // --- Color Count & Smoothing ---
   const ccount = $<HTMLSelectElement>('ccount');

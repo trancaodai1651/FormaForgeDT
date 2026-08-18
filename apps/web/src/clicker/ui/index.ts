@@ -130,6 +130,12 @@ export function createUi(
     setVal('hybridBaseThicknessVal', `${state.hybridBaseThicknessMm.toFixed(1)} mm`);
     if ($('hybridBaseCornerRadius')) $<HTMLInputElement>('hybridBaseCornerRadius').value = String(state.hybridBaseCornerRadiusMm);
     setVal('hybridBaseCornerRadiusVal', `${state.hybridBaseCornerRadiusMm.toFixed(1)} mm`);
+    if ($('hybridBaseWallHeight')) $<HTMLInputElement>('hybridBaseWallHeight').value = String(state.hybridBaseWallHeightMm);
+    setVal('hybridBaseWallHeightVal', `${state.hybridBaseWallHeightMm.toFixed(2)} mm`);
+    if ($('hybridNeckLength')) $<HTMLInputElement>('hybridNeckLength').value = String(state.hybridNeckLengthMm);
+    setVal('hybridNeckLengthVal', `${state.hybridNeckLengthMm.toFixed(1)} mm`);
+    if ($('hybridNeckWidth')) $<HTMLInputElement>('hybridNeckWidth').value = String(state.hybridNeckWidthMm);
+    setVal('hybridNeckWidthVal', `${state.hybridNeckWidthMm.toFixed(1)} mm`);
     if ($('blockKeycapProfile')) $<HTMLSelectElement>('blockKeycapProfile').value = state.blockKeycapProfile;
     if ($('blockKeySize')) $<HTMLSelectElement>('blockKeySize').value = String(state.blockKeycapUnit);
 

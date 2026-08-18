@@ -131,6 +131,9 @@ export function buildHybridClicker(
   const baseWidth = clamp(params.hybridBaseWidthMm, 22, 60, 27);
   const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 13);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 8);
+  const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 4);
+  const neckLength = clamp(params.hybridNeckLengthMm, 6, 50, 18);
+  const neckWidth = Math.min(baseWidth - 2, clamp(params.hybridNeckWidthMm, 8, 40, 18));
   const imageThickness = Math.max(baseThickness + 0.8, clamp(params.hybridImageThicknessMm, 4, 24, 11));
   const carrierLength = Math.max(baseWidth, (count - 1) * pitch + endPadding * 2);
   const carrierWidth = vertical ? baseWidth : carrierLength;
@@ -161,27 +164,54 @@ export function buildHybridClicker(
   const badgeBounds = badgeSection.bounds();
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
-  const overlap = Math.max(3, Math.min(7, baseWidth * 0.2));
+  const overlap = Math.max(2, Math.min(4, baseWidth * 0.12));
   let shiftX = 0;
   let shiftY = 0;
-  if (vertical) shiftY = -badgeDepth / 2 - carrierDepth / 2 + overlap;
-  else shiftX = badgeWidth / 2 + carrierWidth / 2 - overlap;
+  if (vertical) shiftY = -badgeDepth / 2 - neckLength - carrierDepth / 2;
+  else shiftX = badgeWidth / 2 + neckLength + carrierWidth / 2;
 
   const carrierProfile = ctx.track(roundedRect(ctx, carrierWidth, carrierDepth, cornerRadius)
     .translate([shiftX, shiftY]));
-  let carrier = ctx.track(wasm.Manifold.extrude(carrierProfile, baseThickness)
+  let carrier = ctx.track(wasm.Manifold.extrude(carrierProfile, baseThickness + baseWallHeight)
+    .translate([0, 0, -baseThickness]));
+
+  // A long tapered rectangle bridges the image and the carrier. It overlaps
+  // both bodies, so the export remains one watertight printable component.
+  const imageHalf = Math.max(3, neckWidth * 0.36);
+  const baseHalf = neckWidth / 2;
+  const neckPoints: Ring = vertical
+    ? [
+      [-imageHalf, -badgeDepth / 2 + overlap],
+      [imageHalf, -badgeDepth / 2 + overlap],
+      [baseHalf, shiftY + carrierDepth / 2 - overlap],
+      [-baseHalf, shiftY + carrierDepth / 2 - overlap],
+    ]
+    : [
+      [badgeWidth / 2 - overlap, -imageHalf],
+      [shiftX - carrierWidth / 2 + overlap, -baseHalf],
+      [shiftX - carrierWidth / 2 + overlap, baseHalf],
+      [badgeWidth / 2 - overlap, imageHalf],
+    ];
+  let neckProfile = ctx.track(new wasm.CrossSection([neckPoints], 'NonZero'));
+  try {
+    const rounded = ctx.track(neckProfile.offset(Math.min(1.4, neckWidth * 0.07), 'Round', 2, 36));
+    if (!rounded.isEmpty()) neckProfile = rounded;
+  } catch {
+    // The raw tapered rectangle remains valid at the smallest neck size.
+  }
+  const neck = ctx.track(wasm.Manifold.extrude(neckProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
   const shiftedPlacements = placements.map((placement) => ({
     ...placement,
     x: placement.x + shiftX,
     y: placement.y + shiftY,
   }));
-  const pocketSize = Math.max(14, Math.min(18, baseWidth - 4));
+  const pocketSize = Math.max(18, Math.min(22, baseWidth - 3));
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
   for (const placement of shiftedPlacements) {
     const pocketProfile = ctx.track(roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4))
       .translate([placement.x, placement.y]));
-    const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + 0.2)
+    const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + baseWallHeight + 0.4)
       .translate([0, 0, -pocketDepth]));
     carrier = ctx.track(carrier.subtract(pocket));
     try {
@@ -196,7 +226,7 @@ export function buildHybridClicker(
 
   const badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
-  const mergedBody = ctx.track(badgeBody.add(carrier));
+  const mergedBody = ctx.track(badgeBody.add(carrier).add(neck));
   const imageHeadTop = imageThickness - baseThickness;
   const deckHeight = Math.max(0.8, Math.min(1.8, params.imageDepth + 0.35));
   const profile = params.topProfile ?? 'flat';

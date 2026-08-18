@@ -146,8 +146,21 @@ export const renderLeftSidebar = () => `
         <input type="range" id="hybridBaseThickness" min="5" max="20" step="0.5" />
       </div>
       <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridBaseWallHeight">Switch-cover height</label><input type="text" class="val" id="hybridBaseWallHeightVal" /></div>
+        <input type="range" id="hybridBaseWallHeight" min="0" max="8" step="0.25" />
+      </div>
+      <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseCornerRadius">Tail corner radius</label><input type="text" class="val" id="hybridBaseCornerRadiusVal" /></div>
         <input type="range" id="hybridBaseCornerRadius" min="1" max="14" step="0.5" />
+      </div>
+      <div class="label" style="margin-top: 16px;">Tapered connector neck</div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridNeckLength">Neck length</label><input type="text" class="val" id="hybridNeckLengthVal" /></div>
+        <input type="range" id="hybridNeckLength" min="6" max="50" step="0.5" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridNeckWidth">Neck width</label><input type="text" class="val" id="hybridNeckWidthVal" /></div>
+        <input type="range" id="hybridNeckWidth" min="8" max="40" step="0.5" />
       </div>
       <p class="field-help">The image head is always kept thicker than the socket base.</p>
     </div>
