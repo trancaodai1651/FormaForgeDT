@@ -215,7 +215,8 @@ export function createUi(
     if ($('mergeTopFrame')) $<HTMLInputElement>('mergeTopFrame').checked = state.mergeTopFrame;
     if ($('keepMeshesSeparate')) $<HTMLInputElement>('keepMeshesSeparate').checked = state.keepMeshesSeparate;
     if ($('isFlatKeychain')) $<HTMLInputElement>('isFlatKeychain').checked = !!state.isFlatKeychain;
-    if ($('flatKeychainThicknessRow')) $('flatKeychainThicknessRow').style.display = state.isFlatKeychain ? '' : 'none';
+    if ($('flatKeychainRow')) $('flatKeychainRow').style.display = state.importMode === 'blocks' || state.importMode === 'hybrid' ? 'none' : '';
+    if ($('flatKeychainThicknessRow')) $('flatKeychainThicknessRow').style.display = state.isFlatKeychain && state.importMode !== 'blocks' && state.importMode !== 'hybrid' ? '' : 'none';
     if ($('topThicknessRow')) $('topThicknessRow').style.display = state.isFlatKeychain ? 'none' : '';
     
     if ($('keepMeshesRow')) $('keepMeshesRow').style.display = state.mergeTopFrame ? 'flex' : 'none';
@@ -264,8 +265,13 @@ export function createUi(
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {
       const el = getClickerDocument().getElementById(id);
       const field = el?.closest('.prow-stacked') ?? el?.parentElement;
-      const hideInHybrid = isHybridMode && (id === 'topthick' || id === 'socketTolStepper');
+      const hideInHybrid = isHybridMode && (id === 'topthick' || id === 'imgdepth' || id === 'socketTolStepper');
       if (field) (field as HTMLElement).style.display = isBlocksMode || hideInHybrid ? 'none' : '';
+    }
+    for (const id of ['keychainRotStepper', 'keychainOffsetStepper']) {
+      const el = getClickerDocument().getElementById(id);
+      const field = el?.closest('.prow-stacked');
+      if (field) (field as HTMLElement).style.display = isHybridMode ? 'none' : '';
     }
     getClickerDocument().querySelectorAll('#blockOrient [data-orient]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.orient === state.blockOrientation));
     getClickerDocument().querySelectorAll('#blockKeycapShape [data-keycap-shape]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapShape === state.blockKeycapShape));

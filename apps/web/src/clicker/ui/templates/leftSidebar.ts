@@ -124,7 +124,7 @@ export const renderLeftSidebar = () => `
       </select>
     </div>
     <div id="hybridBodyControls" hidden>
-      <div class="label" style="margin-top: 16px;">${tx('Image head', 'Đầu hình ảnh')}</div>
+      <div class="label" style="margin-top: 16px;">${tx('Flat image keychain plate', 'Plate flat keychain của hình ảnh')}</div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridImageSize">${tx('Image size', 'Kích thước hình ảnh')}</label><input type="text" class="val" id="hybridImageSizeVal" /></div>
         <input type="range" id="hybridImageSize" min="30" max="140" step="1" />
@@ -179,7 +179,7 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridBaseImageOverlap">${tx('Base insertion depth', 'Độ sâu base đâm vào hình')}</label><input type="text" class="val" id="hybridBaseImageOverlapVal" /></div>
         <input type="range" id="hybridBaseImageOverlap" min="0" max="20" step="0.5" />
       </div>
-      <p class="field-help">${tx('Image and base thickness can match. Relief heights are controlled separately.', 'Độ dày hình ảnh có thể bằng base. Chiều cao đùn nổi được chỉnh riêng.')}</p>
+      <p class="field-help">${tx('The image is a flat keychain plate without a switch. Enable Keychain in More Settings to add its loop.', 'Hình ảnh là plate flat keychain không có switch. Bật Keychain trong Cài đặt thêm để tạo vòng móc.')}</p>
     </div>
     <div class="prow-stacked">
       <div class="prow-header"><label for="blockKeycapHeight">${tx('Keycap height', 'Chiều cao keycap')}</label><input type="text" class="val" id="blockKeycapHeightVal" /></div>

@@ -147,7 +147,7 @@ export function buildHybridClicker(
   const vertical = blockParams.vertical;
   const count = placements.length;
   const sourcePitch = Math.max(16, assets.pitch || assets.pitchMax || 19.05);
-  const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 60);
+  const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 45);
   const baseWidth = clamp(params.hybridBaseWidthMm, 20, 60, 30);
   const pocketClearance = clamp(params.hybridKeycapClearanceMm, 0.2, 4, 2);
   const pocketSize = Math.max(16, Math.min(baseWidth - 2, keycapFootprint(keycap) + pocketClearance * 2));
@@ -158,7 +158,7 @@ export function buildHybridClicker(
   const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 5);
   const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
-  const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, baseThickness));
+  const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 15));
   const headPadding = pocketSize / 2 + headLength;
   const tailPadding = Math.max(endPadding, pocketSize / 2 + 1.5);
   const carrierLength = Math.max(baseWidth, overlap + headPadding + (count - 1) * pitch + tailPadding);
@@ -262,11 +262,12 @@ export function buildHybridClicker(
   }
   const mergedBody = ctx.track(badgeBody.add(carrier));
   const imageHeadTop = imageThickness - baseThickness;
-  const deckHeight = Math.max(0.8, Math.min(1.8, params.imageDepth + 0.35));
-  const profile = params.topProfile ?? 'flat';
-  const profileHeight = profile === 'flat' ? 0 : Math.max(0, Math.min(40, params.topProfileHeight ?? 5));
-  const imageProfile = buildImageProfile(ctx, badgeSection, deckHeight, profileHeight, imageHeadTop, profile);
-  const imageTop = imageHeadTop + deckHeight + profileHeight;
+  // The imported image is the flat-keychain plate in Image + Blocks mode.
+  // Keep the plate itself flat and switch-free; only its colour layers receive
+  // the separate image relief setting below. The top-profile controls belong
+  // to the regular clicker image mode and must not dome this plate.
+  const imageTopScale = 1;
+  const imageTop = imageHeadTop;
 
   const movableParts = blockResult.parts.filter((part) => !(part.kind === 'body' && part.group === 'base'));
   for (const part of movableParts) {
@@ -278,7 +279,6 @@ export function buildHybridClicker(
   const parts: ClickerPart[] = [
     ...movableParts,
     toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'),
-    toPart(imageProfile.solid, 'body', 'base', bodyColor, 'hybrid-image-deck'),
   ];
 
   for (let index = 0; index < imageRegions.length; index++) {
@@ -292,9 +292,9 @@ export function buildHybridClicker(
     if (!rings.length) continue;
     try {
       const section = ctx.track(new wasm.CrossSection(rings, 'NonZero'));
-      const topLayer = imageProfile.topScale === 1
+      const topLayer = imageTopScale === 1
         ? section
-        : ctx.track(section.scale([imageProfile.topScale, imageProfile.topScale]));
+        : ctx.track(section.scale([imageTopScale, imageTopScale]));
       const imageExtrude = clamp(params.hybridImageExtrudeMm, 0.2, 6, 0.9);
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageExtrude).translate([0, 0, imageTop - 0.05]));
       if (!sectionIsEmpty(section) && !layer.isEmpty()) {
