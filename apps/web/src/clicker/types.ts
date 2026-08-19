@@ -109,8 +109,10 @@ export interface SwitchPlacement {
   x: number;
   y: number;
   rotation: number;
-  /** Optional local Z seat used by composite builders with a separate carrier. */
+  /** Optional local Z seating plane used by composite builders with a separate carrier. */
   seatZ?: number;
+  /** Optional local Z target for the visible top of the switch mesh. */
+  topZ?: number;
 }
 
 /** Keychain attachment settings. */
@@ -180,7 +182,7 @@ export interface BuildParams {
   hybridBaseThicknessMm?: number;
   /** Outside corner radius of the continuous carrier. */
   hybridBaseCornerRadiusMm?: number;
-  /** Wall height above the switch seating plane, used to hide the switch body. */
+  /** Height of the carrier wall above the switch plane, used to hide the switch body. */
   hybridBaseWallHeightMm?: number;
   /** Straight material before the first keycap; the carrier itself overlaps the image head. */
   hybridNeckLengthMm?: number;

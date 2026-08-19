@@ -150,7 +150,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridKeycapClearance: (value) => { store.set({ hybridKeycapClearanceMm: Math.max(0.2, Math.min(4, value)) }); debouncedRebuild(); },
     onHybridBaseThickness: (value) => { const thickness = Math.max(5, Math.min(20, value)); store.set({ hybridBaseThicknessMm: thickness, hybridImageThicknessMm: Math.max(thickness, store.get().hybridImageThicknessMm) }); debouncedRebuild(); },
     onHybridBaseCornerRadius: (value) => { store.set({ hybridBaseCornerRadiusMm: Math.max(1, Math.min(14, value)) }); debouncedRebuild(); },
-    onHybridBaseWallHeight: (value) => { store.set({ hybridBaseWallHeightMm: Math.max(0, Math.min(8, value)) }); debouncedRebuild(); },
+    onHybridBaseWallHeight: (value) => { store.set({ hybridBaseWallHeightMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridNeckLength: (value) => { store.set({ hybridNeckLengthMm: Math.max(0, Math.min(30, value)) }); debouncedRebuild(); },
     onHybridBaseImageOverlap: (value) => { store.set({ hybridBaseImageOverlapMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridNeckWidth: (value) => { store.set({ hybridNeckWidthMm: Math.max(8, Math.min(40, value)) }); debouncedRebuild(); },

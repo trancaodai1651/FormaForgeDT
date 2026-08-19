@@ -165,7 +165,7 @@ export const renderLeftSidebar = () => `
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseWallHeight">${tx('Switch-cover height', 'Chiều cao che switch')}</label><input type="text" class="val" id="hybridBaseWallHeightVal" /></div>
-        <input type="range" id="hybridBaseWallHeight" min="0" max="8" step="0.25" />
+        <input type="range" id="hybridBaseWallHeight" min="0" max="20" step="0.25" />
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseCornerRadius">${tx('Tail corner radius', 'Bán kính bo góc đuôi')}</label><input type="text" class="val" id="hybridBaseCornerRadiusVal" /></div>

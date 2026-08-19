@@ -155,7 +155,10 @@ export function buildHybridClicker(
   const pitch = Math.max(sourcePitch, pocketSize) + keycapSpacing;
   const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 15);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 9);
-  const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 5);
+  // This is a real carrier-wall height, not a cosmetic offset for the
+  // preview. Keep the range comparable to base thickness so increasing it
+  // produces a taller solid that actually covers the switch.
+  const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 20, 5);
   const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
   const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 15));
@@ -234,10 +237,10 @@ export function buildHybridClicker(
   const keycapPocketFloorZ = baseWallHeight - keycapPocketDepth;
   const shiftedPlacements = localPlacements.map((placement) => ({
     ...placement,
-    // The asset is normalized with its top at Z=0. Leave a small seating
-    // recess under the pocket floor so the preview switch is inside the
-    // smaller socket instead of hovering above the carrier.
-    seatZ: keycapPocketFloorZ - 0.8,
+    // The switch asset is normalized by its seating plane, not by its top.
+    // Pass the desired visible top separately so the viewer can subtract the
+    // real switch height instead of placing the whole switch above the base.
+    topZ: keycapPocketFloorZ - 0.8,
   }));
   for (const placement of shiftedPlacements) {
     // Match the selected keycap footprint: rounded caps get rounded sockets,

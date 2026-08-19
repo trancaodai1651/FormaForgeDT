@@ -431,7 +431,9 @@ export function createViewer(container: HTMLElement): Viewer {
     }
     // Keep switches seated under the caps in assembled mode. In exploded
     // mode lift the full-height MX mesh clear of the base underside as well.
-    const hasExplicitSeat = switchPlacements.some((placement) => Number.isFinite(placement.seatZ));
+    const hasExplicitSeat = switchPlacements.some((placement) =>
+      Number.isFinite(placement.seatZ) || Number.isFinite(placement.topZ),
+    );
     switchGroup.position.z = switchSeatZ
       + (viewMode === 'exploded' && !hasExplicitSeat ? switchExplodedLift : 0);
     const section = viewMode === 'section';
@@ -500,8 +502,15 @@ export function createViewer(container: HTMLElement): Viewer {
 
   function setSwitchPlacements(placements: SwitchPlacement[]) {
     switchPlacements = placements.length ? placements : [{ x: 0, y: 0, rotation: 0 }];
-    const explicitSeat = switchPlacements.find((placement) => Number.isFinite(placement.seatZ))?.seatZ;
-    if (Number.isFinite(explicitSeat)) switchSeatZ = explicitSeat as number;
+    const explicitTop = switchPlacements.find((placement) => Number.isFinite(placement.topZ))?.topZ;
+    if (Number.isFinite(explicitTop) && switchGeometry) {
+      switchGeometry.computeBoundingBox();
+      const switchTop = switchGeometry.boundingBox?.max.z;
+      if (Number.isFinite(switchTop)) switchSeatZ = (explicitTop as number) - (switchTop as number);
+    } else {
+      const explicitSeat = switchPlacements.find((placement) => Number.isFinite(placement.seatZ))?.seatZ;
+      if (Number.isFinite(explicitSeat)) switchSeatZ = explicitSeat as number;
+    }
     rebuildSwitchMeshes();
     applyView();
   }
