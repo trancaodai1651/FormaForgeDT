@@ -224,7 +224,16 @@ export function buildHybridClicker(
     y: vertical ? -badgeDepth / 2 - headPadding - index * pitch : 0,
   }));
   const shiftedPlacements = localPlacements;
-  const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
+  // Match the deep switch well used by the Image builder.  The old 1.8 mm
+  // limit only skimmed the carrier's top and left the keycap pocket looking
+  // like a shallow tray around the MX housing.  Keep a printable floor while
+  // allowing the pocket to descend through the full carrier wall.
+  const pocketFloorMargin = Math.max(1.2, Math.min(2.0, baseThickness * 0.2));
+  const pocketTotalDepth = Math.max(
+    4,
+    Math.min(10, baseThickness + baseWallHeight - pocketFloorMargin),
+  );
+  const pocketDepth = Math.max(0.8, pocketTotalDepth - baseWallHeight);
   for (const placement of shiftedPlacements) {
     // Match the selected keycap footprint: rounded caps get rounded sockets,
     // while square caps receive a real square cutout instead of a rounded one.
