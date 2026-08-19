@@ -164,6 +164,7 @@ export function createUi(
     setVal('hybridImagePaddingVal', `${state.hybridImagePaddingMm.toFixed(1)} mm`);
     if ($('hybridKeychainHeight')) $<HTMLInputElement>('hybridKeychainHeight').value = String(state.hybridKeychainHeightMm);
     setVal('hybridKeychainHeightVal', `${state.hybridKeychainHeightMm.toFixed(1)} mm`);
+    if ($('hybridKeychainPosition')) $<HTMLSelectElement>('hybridKeychainPosition').value = state.keychain.hybridPosition === 'bottom' ? 'bottom' : 'top';
     if ($('hybridImageExtrude')) $<HTMLInputElement>('hybridImageExtrude').value = String(state.hybridImageExtrudeMm);
     setVal('hybridImageExtrudeVal', `${state.hybridImageExtrudeMm.toFixed(2)} mm`);
     if ($('hybridTextExtrude')) $<HTMLInputElement>('hybridTextExtrude').value = String(state.hybridTextExtrudeMm);

@@ -146,13 +146,16 @@ export function buildHybridClicker(
   const bodyColor = blockParams.bodyColorRgb ?? params.bodyColorRgb ?? DEFAULT_BODY;
   const vertical = blockParams.vertical;
   const count = placements.length;
-  const sourcePitch = Math.max(16, assets.pitch || assets.pitchMax || 19.05);
   const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 50);
   const baseWidth = clamp(params.hybridBaseWidthMm, 20, 60, 30);
   const pocketClearance = clamp(params.hybridKeycapClearanceMm, 0.2, 4, 2);
-  const pocketSize = Math.max(16, Math.min(baseWidth - 2, keycapFootprint(keycap) + pocketClearance * 2));
+  const keycapSize = keycapFootprint(keycap);
+  const pocketSize = Math.max(16, Math.min(baseWidth - 2, keycapSize + pocketClearance * 2));
   const keycapSpacing = clamp(params.hybridKeycapSpacingMm, 0, 15, 0);
-  const pitch = Math.max(sourcePitch, pocketSize) + keycapSpacing;
+  // Keycap spacing is the visible gap between caps. Do not derive it from the
+  // larger switch pocket: pocket clearance is intentionally independent and
+  // must not make a 0 mm spacing setting look like a multi-millimetre gap.
+  const pitch = Math.max(16, keycapSize) + keycapSpacing;
   const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 15);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 9);
   // This is a real carrier-wall height, not a cosmetic offset for the
@@ -272,29 +275,30 @@ export function buildHybridClicker(
   let badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
   if (params.keychain?.enabled) {
-    // Image + Blocks has a fixed product orientation: the ring is attached to
-    // the outside/top of the image head, never to the last text block.
+    // Image + Blocks keeps the ring attached to the imported image head, never
+    // to the last text block. The user can choose either end of the head.
     const holeDiameter = clamp(params.keychain.holeDiameterMm, 3, 16, 5.2);
     const tabWidth = Math.max(10, holeDiameter + 5);
     const tabLength = Math.max(9, holeDiameter + 4);
     const tabOverlap = Math.min(3, Math.max(1.2, overlap * 0.35));
-    const tabCenter: [number, number] = vertical
-      ? [0, badgeDepth / 2 + tabLength / 2 - tabOverlap]
-      : [-badgeWidth / 2 - tabLength / 2 + tabOverlap, 0];
-    const keychainHeight = Math.min(imageThickness, clamp(params.hybridKeychainHeightMm, 1, 15, 3.2));
-    // The loop is a separate, shorter part. Seat it on the bottom plane so it
-    // stays below the image plate instead of rising flush with the image top.
+    const hybridPosition = params.keychain.hybridPosition === 'bottom' ? 'bottom' : 'top';
+    const tabCenter: [number, number] = hybridPosition === 'bottom'
+      ? [0, -badgeDepth / 2 - tabLength / 2 + tabOverlap]
+      : [0, badgeDepth / 2 + tabLength / 2 - tabOverlap];
+    const keychainThickness = clamp(params.hybridKeychainHeightMm, 1, 15, 3.2);
+    // The loop is a separate part with its own Z thickness. Seat it on the
+    // image bottom plane so changing its thickness does not move the image.
     const keychainBottomZ = -baseThickness;
     const tabProfile = ctx.track(roundedRect(ctx, tabWidth, tabLength, Math.min(tabWidth, tabLength) / 2)
       .translate(tabCenter));
-    const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, keychainHeight)
+    const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, keychainThickness)
       .translate([0, 0, keychainBottomZ]));
-    const holeCenter: [number, number] = vertical
-      ? [tabCenter[0], tabCenter[1] + tabLength / 2 - holeDiameter / 2 - 1.4]
-      : [tabCenter[0] - tabLength / 2 + holeDiameter / 2 + 1.4, tabCenter[1]];
+    const holeCenter: [number, number] = hybridPosition === 'bottom'
+      ? [tabCenter[0], tabCenter[1] - tabLength / 2 + holeDiameter / 2 + 1.4]
+      : [tabCenter[0], tabCenter[1] + tabLength / 2 - holeDiameter / 2 - 1.4];
     const holeProfile = ctx.track(wasm.CrossSection.circle(holeDiameter / 2, 48)
       .translate(holeCenter));
-    const hole = ctx.track(wasm.Manifold.extrude(holeProfile, keychainHeight + 2)
+    const hole = ctx.track(wasm.Manifold.extrude(holeProfile, keychainThickness + 2)
       .translate([0, 0, keychainBottomZ - 1]));
     badgeBody = ctx.track(badgeBody.add(tabSolid).subtract(hole));
   }

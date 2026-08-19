@@ -71,6 +71,7 @@ export interface UiCallbacks {
   onHybridImageThickness(value: number): void;
   onHybridImagePadding(value: number): void;
   onHybridKeychainHeight(value: number): void;
+  onHybridKeychainPosition(position: 'top' | 'bottom'): void;
   onHybridImageExtrude(value: number): void;
   onHybridTextExtrude(value: number): void;
   onHybridBaseWidth(value: number): void;

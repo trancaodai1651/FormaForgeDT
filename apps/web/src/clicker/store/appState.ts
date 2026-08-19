@@ -47,7 +47,7 @@ export const store = createStore<UiState>({
   activeSwitchIndex: 0,
   smoothing: 0.1,
   photoFlatten: false,
-  keychain: { enabled: false, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0 },
+  keychain: { enabled: false, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0, hybridPosition: 'top' },
   removeBg: true,
   view: 'exploded',
   showSwitch: true,

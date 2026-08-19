@@ -127,6 +127,8 @@ export interface KeychainParams {
   /** Lateral offset along the body edge tangent, mm. Positive = counter-clockwise
    *  shift from the angle-derived anchor, negative = clockwise. Default 0. */
   offsetMm: number;
+  /** Image + Blocks loop position relative to the imported image head. */
+  hybridPosition?: 'top' | 'bottom';
 }
 
 /** Bambu-style image preprocessing. Adjustment values are multipliers, 1 = neutral. */
@@ -170,7 +172,7 @@ export interface BuildParams {
   hybridImageThicknessMm?: number;
   /** Padding from the imported image silhouette to its flat keychain plate. */
   hybridImagePaddingMm?: number;
-  /** Printable height of the optional keychain tab, independent of the image head. */
+  /** Printable Z thickness of the optional keychain tab, independent of the image head. */
   hybridKeychainHeightMm?: number;
   /** Raised height of imported image colour layers. */
   hybridImageExtrudeMm?: number;

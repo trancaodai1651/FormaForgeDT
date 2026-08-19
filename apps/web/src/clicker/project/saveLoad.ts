@@ -111,7 +111,9 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       mergeTopFrame: set.mergeTopFrame ?? false, keepMeshesSeparate: set.keepMeshesSeparate ?? true,
       tolerance: set.tolerance ?? store.get().tolerance, stemTolerance: set.stemTolerance ?? 0,
       switches: Array.isArray(set.switches) && set.switches.length ? set.switches : [{ x: set.switchOffsetX ?? 0, y: set.switchOffsetY ?? 0, rotation: set.switchRotation ?? 0 }],
-      activeSwitchIndex: 0, keychain: set.keychain && typeof set.keychain === 'object' ? { offsetMm: 0, ...set.keychain } : { enabled: set.keychain === true, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0 },
+      activeSwitchIndex: 0, keychain: set.keychain && typeof set.keychain === 'object'
+        ? { offsetMm: 0, hybridPosition: 'top', ...set.keychain }
+        : { enabled: set.keychain === true, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0, hybridPosition: 'top' },
       smoothing: set.smoothing ?? store.get().smoothing, photoFlatten: set.photoFlatten ?? store.get().photoFlatten, removeBg: set.removeBg ?? store.get().removeBg,
       currentIconName: appData.currentIconName || 'circle', colorMode: set.colorMode ?? 'normal',
       limitedColors: set.limitedColors ?? [], bodyColorRgb: set.bodyColorRgb ?? [120, 124, 130],

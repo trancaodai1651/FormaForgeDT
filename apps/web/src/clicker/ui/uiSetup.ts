@@ -142,6 +142,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base, Math.min(24, value)) }); debouncedRebuild(); },
     onHybridImagePadding: (value) => { store.set({ hybridImagePaddingMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridKeychainHeight: (value) => { store.set({ hybridKeychainHeightMm: Math.max(1, Math.min(15, value)) }); debouncedRebuild(); },
+    onHybridKeychainPosition: (position) => { store.set({ keychain: { ...store.get().keychain, hybridPosition: position } }); debouncedRebuild(); },
     onHybridImageExtrude: (value) => { store.set({ hybridImageExtrudeMm: Math.max(0, Math.min(6, value)) }); debouncedRebuild(); },
     onHybridTextExtrude: (value) => { store.set({ hybridTextExtrudeMm: Math.max(0, Math.min(5, value)) }); debouncedRebuild(); },
     onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(20, Math.min(60, value)) }); debouncedRebuild(); },
