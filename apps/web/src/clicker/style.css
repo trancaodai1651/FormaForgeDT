@@ -1100,14 +1100,14 @@ body.tutorial-active.focus-center #viewport {
 /* Image + Blocks is a primary design surface: give its controls enough room
    for readable labels, values, and touch targets without changing the compact
    layout of the other import modes. */
-body.clicker-hybrid-mode #layout { grid-template-columns: 24vw 1fr 29vw; }
-body.clicker-hybrid-mode .sidebar { padding: 24px; }
-body.clicker-hybrid-mode .field label,
-body.clicker-hybrid-mode .prow-header > label { font-size: 16px; }
-body.clicker-hybrid-mode #blocksTextField textarea,
-body.clicker-hybrid-mode #blocksText { min-height: 60px !important; padding: 12px 14px; font-size: 19px; line-height: 1.35; letter-spacing: .04em; resize: vertical !important; }
-body.clicker-hybrid-mode #hybridBodyControls .prow-stacked { gap: 8px; margin-bottom: 18px; }
-body.clicker-hybrid-mode #hybridBodyControls .prow-stacked input[type="range"] { height: 24px; }
+.clicker-surface.clicker-hybrid-mode #layout { grid-template-columns: 24vw 1fr 29vw; }
+.clicker-surface.clicker-hybrid-mode .sidebar { padding: 24px; }
+.clicker-surface.clicker-hybrid-mode .field label,
+.clicker-surface.clicker-hybrid-mode .prow-header > label { font-size: 16px; }
+.clicker-surface.clicker-hybrid-mode #blocksTextField textarea,
+.clicker-surface.clicker-hybrid-mode #blocksText { min-height: 60px !important; padding: 12px 14px; font-size: 19px; line-height: 1.35; letter-spacing: .04em; resize: vertical !important; }
+.clicker-surface.clicker-hybrid-mode #hybridBodyControls .prow-stacked { gap: 8px; margin-bottom: 18px; }
+.clicker-surface.clicker-hybrid-mode #hybridBodyControls .prow-stacked input[type="range"] { height: 24px; }
 
 /* The Blocks mode swaps the normal text editor for its own single-line input.
    Keep this explicit because the sidebar also contains legacy field rules. */
