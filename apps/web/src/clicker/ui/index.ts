@@ -312,6 +312,10 @@ export function createUi(
     if ($('blocksSection')) $('blocksSection')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     const isBlocksMode = state.importMode === 'blocks';
     const isHybridMode = state.importMode === 'hybrid';
+    for (const id of ['blockKeycapMount', 'blockKeySize']) {
+      const field = getClickerDocument().getElementById(id)?.closest('.field');
+      if (field) (field as HTMLElement).style.display = isHybridMode ? 'none' : '';
+    }
     getClickerDocument().body.classList.toggle('clicker-hybrid-mode', isHybridMode);
     if ($('baseStyleSection')) $('baseStyleSection')!.hidden = isBlocksMode || isHybridMode;
     if ($('sectionSwitch')) $('sectionSwitch')!.hidden = isBlocksMode || isHybridMode;

@@ -150,24 +150,24 @@ export function buildHybridClicker(
   const vertical = blockParams.vertical;
   const count = placements.length;
   const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 50);
-  const baseWidth = clamp(params.hybridBaseWidthMm, 20, 60, 30);
-  const pocketClearance = clamp(params.hybridKeycapClearanceMm, 0.2, 4, 2);
+  const baseWidth = clamp(params.hybridBaseWidthMm, 20, 60, 29);
+  const pocketClearance = clamp(params.hybridKeycapClearanceMm, 0.2, 4, 1);
   const keycapSize = keycapFootprint(keycap);
   const pocketSize = Math.max(16, Math.min(baseWidth - 2, keycapSize + pocketClearance * 2));
-  const keycapSpacing = clamp(params.hybridKeycapSpacingMm, 0, 15, 0);
+  const keycapSpacing = clamp(params.hybridKeycapSpacingMm, 0, 15, 3.5);
   // Keycap spacing is the visible gap between caps. Do not derive it from the
   // larger switch pocket: pocket clearance is intentionally independent and
   // must not make a 0 mm spacing setting look like a multi-millimetre gap.
   const pitch = Math.max(16, keycapSize) + keycapSpacing;
-  const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 15);
+  const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 14);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 9);
   // This is a real carrier-wall height, not a cosmetic offset for the
   // preview. Keep the range comparable to base thickness so increasing it
   // produces a taller solid that actually covers the switch.
-  const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 20, 5);
-  const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
+  const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 20, 8);
+  const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 3);
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
-  const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 15));
+  const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 17));
   const imagePadding = clamp(params.hybridImagePaddingMm, 0, 20, 1.2);
   const imageTopZ = imageThickness - baseThickness;
   const headPadding = pocketSize / 2 + headLength;
@@ -288,7 +288,7 @@ export function buildHybridClicker(
     const tabCenter: [number, number] = hybridPosition === 'bottom'
       ? [0, -badgeDepth / 2 - tabLength / 2 + tabOverlap]
       : [0, badgeDepth / 2 + tabLength / 2 - tabOverlap];
-    const keychainThickness = clamp(params.hybridKeychainHeightMm, 1, 15, 3.2);
+    const keychainThickness = clamp(params.hybridKeychainHeightMm, 1, 15, 4);
     // The loop is a separate part with its own Z thickness. Seat it on the
     // image bottom plane so changing its thickness does not move the image.
     const keychainBottomZ = -baseThickness;
