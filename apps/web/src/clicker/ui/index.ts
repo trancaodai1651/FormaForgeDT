@@ -259,7 +259,8 @@ export function createUi(
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {
       const el = getClickerDocument().getElementById(id);
       const field = el?.closest('.prow-stacked') ?? el?.parentElement;
-      if (field) (field as HTMLElement).style.display = isBlocksMode ? 'none' : '';
+      const hideInHybrid = isHybridMode && (id === 'topthick' || id === 'socketTolStepper');
+      if (field) (field as HTMLElement).style.display = isBlocksMode || hideInHybrid ? 'none' : '';
     }
     getClickerDocument().querySelectorAll('#blockOrient [data-orient]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.orient === state.blockOrientation));
     getClickerDocument().querySelectorAll('#blockKeycapShape [data-keycap-shape]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapShape === state.blockKeycapShape));
