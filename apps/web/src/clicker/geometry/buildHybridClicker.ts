@@ -226,7 +226,9 @@ export function buildHybridClicker(
   const shiftedPlacements = localPlacements;
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
   for (const placement of shiftedPlacements) {
-    const pocketProfile = ctx.track(roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4))
+    // Match the square keycap footprint. The socket is intentionally square
+    // too, so the cap does not sit on an extra rounded perimeter or lip.
+    const pocketProfile = ctx.track(wasm.CrossSection.square([pocketSize, pocketSize], true)
       .translate([placement.x, placement.y]));
     const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + baseWallHeight + 0.4)
       .translate([0, 0, -pocketDepth]));
@@ -317,13 +319,17 @@ export function buildHybridClicker(
         ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
         ?? 0;
       const imageExtrude = clamp(
-        clamp(params.hybridImageExtrudeMm, 0.2, 6, 0.9)
+        clamp(params.hybridImageExtrudeMm, 0, 6, 0)
           + extrusionLevel * (params.stepHeight ?? 0.6),
-        0.15,
+        0,
         6,
-        0.9,
+        0,
       );
-      const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageExtrude)
+      // A zero-height face is not a printable solid. Keep a microscopic skin
+      // centred on the badge top for the flush default; positive values rise
+      // above that plane as a real image relief.
+      const imageLayerHeight = Math.max(0.04, imageExtrude);
+      const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageLayerHeight)
         .translate([0, 0, imageTop - 0.02]));
       if (!layer.isEmpty()) {
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));

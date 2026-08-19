@@ -111,7 +111,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onLoadProject: (file) => loadProject(file, reprocess, rebuild, ui),
     onBodyColor: (hex) => { const idx = appData.latestParts.findIndex((p) => p.name === 'base-body'); if (idx >= 0) applyModelRecolor({ kind: 'body' }, hexToRgb(hex), idx, viewer); else store.set({ bodyColorRgb: hexToRgb(hex) }); },
     
-    onImportMode: (mode) => { const s = store.get(); store.set({ importMode: mode, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6 }); reprocess(); },
+    onImportMode: (mode) => { const s = store.get(); store.set({ importMode: mode, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'square' : s.blockKeycapShape }); reprocess(); },
     onSvgUpload: async (file) => { try { store.set({ building: true, status: 'Reading SVGâ€¦' }); const svgText = await file.text(); ui.addUploadedSvg(svgText, file.name.replace(/\.svg$/i, '')); store.set({ building: false }); } catch (err) { store.set({ building: false, status: 'Error: ' + err }); } },
     onSelectSvg: (svgText, name) => { appData.currentSvgText = svgText; appData.currentSvgName = name; store.set({ status: `Selected SVG: ${name}` }); },
     onSelectIcon: (svgText, name) => { appData.currentIconText = svgText; appData.currentIconName = name; store.set({ currentIconName: name, status: `Selected icon: ${name}` }); },
@@ -142,7 +142,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base, Math.min(24, value)) }); debouncedRebuild(); },
     onHybridImagePadding: (value) => { store.set({ hybridImagePaddingMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridKeychainHeight: (value) => { store.set({ hybridKeychainHeightMm: Math.max(1, Math.min(15, value)) }); debouncedRebuild(); },
-    onHybridImageExtrude: (value) => { store.set({ hybridImageExtrudeMm: Math.max(0.2, Math.min(6, value)) }); debouncedRebuild(); },
+    onHybridImageExtrude: (value) => { store.set({ hybridImageExtrudeMm: Math.max(0, Math.min(6, value)) }); debouncedRebuild(); },
     onHybridTextExtrude: (value) => { store.set({ hybridTextExtrudeMm: Math.max(0.15, Math.min(5, value)) }); debouncedRebuild(); },
     onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(20, Math.min(60, value)) }); debouncedRebuild(); },
     onHybridBaseEndPadding: (value) => { store.set({ hybridBaseEndPaddingMm: Math.max(10, Math.min(35, value)) }); debouncedRebuild(); },

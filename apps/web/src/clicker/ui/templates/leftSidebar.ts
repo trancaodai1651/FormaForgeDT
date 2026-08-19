@@ -143,7 +143,7 @@ export const renderLeftSidebar = () => `
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridImageExtrude">${tx('Image relief / extrude', 'Đùn nổi hình ảnh')}</label><input type="text" class="val" id="hybridImageExtrudeVal" /></div>
-        <input type="range" id="hybridImageExtrude" min="0.2" max="6" step="0.1" />
+        <input type="range" id="hybridImageExtrude" min="0" max="6" step="0.1" />
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridTextExtrude">${tx('Text relief / extrude', 'Đùn nổi chữ')}</label><input type="text" class="val" id="hybridTextExtrudeVal" /></div>

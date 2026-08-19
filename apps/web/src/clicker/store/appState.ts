@@ -20,7 +20,9 @@ export const store = createStore<UiState>({
   hybridImageThicknessMm: 15,
   hybridImagePaddingMm: 1.2,
   hybridKeychainHeightMm: 3.2,
-  hybridImageExtrudeMm: 0.9,
+  // Keep the imported image flush with the image head by default. A positive
+  // value is still available when a raised image relief is needed.
+  hybridImageExtrudeMm: 0,
   hybridTextExtrudeMm: 0.8,
   hybridBaseWidthMm: 30,
   hybridBaseEndPaddingMm: 15,
@@ -77,7 +79,7 @@ export const store = createStore<UiState>({
   blockBaseCornerRadiusMm: 3,
   blockKeycapHeightMm: 7,
   blockKeycapCornerRadiusMm: 2.8,
-  blockKeycapShape: 'rounded',
+  blockKeycapShape: 'square',
   blockKeycapMount: 'above',
   blockKeycapProfile: 'standard',
   blockKeycapUnit: 1,

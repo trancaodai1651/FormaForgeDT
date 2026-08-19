@@ -205,7 +205,6 @@ export function makeKeycap(
   ctx: BuildContext,
   asset: KeycapAsset,
   stemTolerance: number,
-  lipThicknessMm = 2,
   cornerRadiusMm = 2.8,
   keycapShape: 'rounded' | 'square' = 'rounded',
   keycapProfile: 'standard' | 'low' | 'thocky' | 'choc-v1' = 'standard',
@@ -240,25 +239,8 @@ export function makeKeycap(
     shell = ctx.track(shellSource.translate([-cx, -cy, 0]));
     shell = scaleFromBottom(shell, unit, unit, profileScale);
   }
-  // Add a small adjustable lower rim to both the imported rounded shell and
-  // the procedural square shell. Previously these controls only affected the
-  // square branch (and lip thickness was almost imperceptible), so Image +
-  // Blocks appeared to ignore them. The rim keeps the real shell geometry,
-  // while making lip thickness and corner radius printable parameters.
-  const shellBox = shell.boundingBox();
-  const lip = Math.max(0.8, Math.min(4, lipThicknessMm));
-  const rimExpansion = Math.max(0.2, Math.min(1.6, lip * 0.35));
-  const rimHeight = Math.max(0.4, Math.min(2.2, 0.35 + lip * 0.42));
-  const rimOuterWidth = shellBox.max[0] - shellBox.min[0] + rimExpansion * 2;
-  const rimOuterDepth = shellBox.max[1] - shellBox.min[1] + rimExpansion * 2;
-  const rimOuterRadius = Math.min(rimOuterWidth / 2, rimOuterDepth / 2, Math.max(0.2, cornerRadiusMm) + rimExpansion);
-  const rimInnerRadius = Math.min((shellBox.max[0] - shellBox.min[0]) / 2, (shellBox.max[1] - shellBox.min[1]) / 2, Math.max(0.15, cornerRadiusMm));
-  const rimOuter = ctx.track(roundedRect(ctx, rimOuterWidth, rimOuterDepth, rimOuterRadius));
-  const rimInner = ctx.track(roundedRect(ctx, shellBox.max[0] - shellBox.min[0], shellBox.max[1] - shellBox.min[1], rimInnerRadius));
-  const rim = ctx.track(ctx.wasm.Manifold.extrude(rimOuter, rimHeight)
-    .subtract(ctx.track(ctx.wasm.Manifold.extrude(rimInner, rimHeight + 0.2).translate([0, 0, -0.1])))
-    .translate([0, 0, shellBox.min[2]]));
-  shell = ctx.track(shell.add(rim));
+  // Keep the source shell as-is. Do not add a second lower rim: it creates the
+  // unwanted visible keycap border around the cap and its socket.
   if (!asset.stem) return shell;
   const stemSource = ctx.track(meshSolid(ctx.wasm, asset.stem.positions, asset.stem.indices));
   let stem = ctx.track(stemSource.translate([-cx, -cy, 0]));
@@ -740,7 +722,7 @@ void makeStraightModuleBase;
  * - one connector-aware asset per printed block;
  * - no artificial floor or side rails;
  * - the supplied keycap shell/stem remains the source shape;
- * - optional parametric lips/walls extend outward without changing sockets;
+ * - connector sockets and keycap stems remain aligned to the source assets;
  * - the legend is a separate raised, printable colour part.
  */
 export function buildBlocks(
@@ -837,7 +819,6 @@ export function buildBlocks(
     ctx,
     keycap,
     params.stemTolerance ?? 0,
-    params.keycapThicknessMm ?? 2,
     params.keycapCornerRadiusMm ?? 2.8,
     params.keycapShape ?? 'rounded',
     params.keycapProfile ?? 'standard',

@@ -253,7 +253,6 @@ export interface BlocksBuildParams {
   moduleSideThicknessMm?: number;
   baseCornerRadiusMm?: number;
   keycapHeightMm?: number;
-  keycapThicknessMm?: number;
   keycapCornerRadiusMm?: number;
   keycapShape?: 'rounded' | 'square';
   keycapMount?: 'above' | 'recessed';
