@@ -1,7 +1,7 @@
 import { store } from '../../store/appState';
 import { debouncedRebuild } from '../../core/engine';
 import { $, bindValInput } from '../helpers';
-import type { UiCallbacks } from '../types';
+import type { PlateId, UiCallbacks } from '../types';
 import { SWITCH_STEP } from '../constants';
 
 export function bindGlobalEvents(cb: UiCallbacks) {
@@ -54,6 +54,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('hybridNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
   $('hybridBaseImageOverlap')?.addEventListener('input', (e: Event) => cb.onHybridBaseImageOverlap(+(e.target as HTMLInputElement).value));
   $('hybridNeckWidth')?.addEventListener('input', (e: Event) => cb.onHybridNeckWidth(+(e.target as HTMLInputElement).value));
+  $('plateSelect')?.addEventListener('change', (e: Event) => cb.onPlateChange((e.target as HTMLSelectElement).value as PlateId));
 
   // --- Color Count & Smoothing ---
   const ccount = $<HTMLSelectElement>('ccount');

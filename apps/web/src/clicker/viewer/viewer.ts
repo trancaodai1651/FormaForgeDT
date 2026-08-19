@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { ClickerPart, MeshData, RGB, SwitchPlacement, ViewMode } from '../types';
+import { PLATES, type ClickerPart, type MeshData, type PlateId, type RGB, type SwitchPlacement, type ViewMode } from '../types';
 
 export type SectionAxis = 'x' | 'y' | 'z';
 
@@ -15,6 +15,8 @@ export interface Viewer {
   showSwitch(on: boolean): void;
   /** Place one preview switch mesh per (clamped) placement the geometry was built with. */
   setSwitchPlacements(placements: SwitchPlacement[]): void;
+  /** Select the reference printer plate shown below the model. */
+  setPlate(id: PlateId): void;
   /** Separate modular units like the reference preview when a base module is clicked. */
   setModularSplit(on: boolean, vertical?: boolean): void;
   renderToPng(): Promise<Blob | null>;
@@ -106,13 +108,88 @@ export function createViewer(container: HTMLElement): Viewer {
 
   let gridZ = -20;
   let grid: THREE.GridHelper | null = null;
+  let plateId: PlateId = 'a1';
+  let plateGroup: THREE.Group | null = null;
+
+  function roundedPlateShape(width: number, depth: number, radius: number): THREE.Shape {
+    const x = width / 2;
+    const y = depth / 2;
+    const r = Math.min(radius, x, y);
+    const shape = new THREE.Shape();
+    shape.moveTo(-x + r, -y);
+    shape.lineTo(x - r, -y);
+    shape.quadraticCurveTo(x, -y, x, -y + r);
+    shape.lineTo(x, y - r);
+    shape.quadraticCurveTo(x, y, x - r, y);
+    shape.lineTo(-x + r, y);
+    shape.quadraticCurveTo(-x, y, -x, y - r);
+    shape.lineTo(-x, -y + r);
+    shape.quadraticCurveTo(-x, -y, -x + r, -y);
+    return shape;
+  }
+
+  function clearPlate() {
+    if (!plateGroup) return;
+    plateGroup.removeFromParent();
+    plateGroup.traverse((child) => {
+      const renderable = child as THREE.Mesh | THREE.LineSegments;
+      if (renderable.geometry) renderable.geometry.dispose();
+      if (Array.isArray(renderable.material)) renderable.material.forEach((m) => m.dispose());
+      else if (renderable.material) renderable.material.dispose();
+    });
+    plateGroup = null;
+  }
+
+  function rebuildPlate(theme: string, z: number) {
+    clearPlate();
+    if (plateId === 'grid') return;
+    const option = PLATES.find((item) => item.id === plateId);
+    if (!option?.size) return;
+    const [width, depth] = option.size;
+    const group = new THREE.Group();
+    const geometry = new THREE.ExtrudeGeometry(roundedPlateShape(width, depth, 8), {
+      depth: 0.45,
+      bevelEnabled: false,
+      curveSegments: 12,
+    });
+    geometry.translate(0, 0, z + 0.18);
+    const material = new THREE.MeshStandardMaterial({
+      color: theme === 'dark' ? 0x2a2f39 : 0xe5e7eb,
+      roughness: 0.82,
+      metalness: 0,
+      transparent: true,
+      opacity: theme === 'dark' ? 0.5 : 0.78,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = -2;
+    group.add(mesh);
+
+    const edge = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geometry),
+      new THREE.LineBasicMaterial({
+        color: theme === 'dark' ? 0x6b7280 : 0x9ca3af,
+        transparent: true,
+        opacity: 0.78,
+        depthTest: false,
+      }),
+    );
+    edge.renderOrder = -1.5;
+    group.add(edge);
+    plateGroup = group;
+    scene.add(group);
+  }
 
   function rebuildGrid(theme: string, z: number) {
     if (grid) scene.remove(grid);
     gridZ = z;
     const accentColor = theme === 'dark' ? 0x5b9dff : 0x2563eb;
     const gridColor = theme === 'dark' ? 0x2d3139 : 0xd1d5db;
-    grid = new THREE.GridHelper(300, 30, accentColor, gridColor);
+    const plate = PLATES.find((item) => item.id === plateId);
+    const gridSize = plate?.size ? Math.max(300, Math.max(...plate.size) + 60) : 300;
+    const gridDivisions = Math.max(30, Math.round(gridSize / 10));
+    grid = new THREE.GridHelper(gridSize, gridDivisions, accentColor, gridColor);
     grid.rotation.x = Math.PI / 2;
     grid.position.z = gridZ;
     // Prevent grid lines from bleeding through model body:
@@ -124,6 +201,7 @@ export function createViewer(container: HTMLElement): Viewer {
       grid.material.depthWrite = false;
     }
     scene.add(grid);
+    rebuildPlate(theme, z);
   }
 
   rebuildGrid(currentTheme, gridZ);
@@ -229,6 +307,7 @@ export function createViewer(container: HTMLElement): Viewer {
     clearPlaceholder();
     clearGroup(capGroup);
     clearGroup(bodyGroup);
+    clearPlate();
     materials.length = 0;
     partMeshes.length = 0;
     hoveredIndex = null;
@@ -382,6 +461,12 @@ export function createViewer(container: HTMLElement): Viewer {
   function setSwitchPlacements(placements: SwitchPlacement[]) {
     switchPlacements = placements.length ? placements : [{ x: 0, y: 0, rotation: 0 }];
     rebuildSwitchMeshes();
+  }
+
+  function setPlate(id: PlateId) {
+    plateId = PLATES.some((item) => item.id === id) ? id : 'a1';
+    const activeTheme = getClickerDocument().documentElement.getAttribute('data-theme') || 'dark';
+    rebuildGrid(activeTheme, gridZ);
   }
 
   function setModularSplit(on: boolean, vertical = modularVertical) {
@@ -572,6 +657,7 @@ export function createViewer(container: HTMLElement): Viewer {
     clearGroup(capGroup);
     clearGroup(bodyGroup);
     clearSwitchMeshes();
+    clearPlate();
     switchGeometry?.dispose();
     switchMaterial?.dispose();
     controls.dispose();
@@ -592,6 +678,7 @@ export function createViewer(container: HTMLElement): Viewer {
     setSwitch,
     showSwitch,
     setSwitchPlacements,
+    setPlate,
     setModularSplit,
     renderToPng,
     setTheme,

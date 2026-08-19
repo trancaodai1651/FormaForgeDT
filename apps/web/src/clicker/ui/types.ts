@@ -1,10 +1,10 @@
 // 🟢 Re-export các type từ root src/types.ts ra ngoài
 export type { 
   BaseShapeKind, EditMode, EdgeSetting, EdgeStyle, 
-  KeychainParams, PaletteEntry, SwitchPlacement, ViewMode, RGB, BlockSlot
+  KeychainParams, PaletteEntry, SwitchPlacement, ViewMode, RGB, BlockSlot, PlateId
 } from '../types';
 
-import type { BaseShapeKind, EditMode, EdgeSetting, EdgeStyle, KeychainParams, PaletteEntry, SwitchPlacement, ViewMode, RGB, BlockSlot } from '../types';
+import type { BaseShapeKind, EditMode, EdgeSetting, EdgeStyle, KeychainParams, PaletteEntry, SwitchPlacement, ViewMode, RGB, BlockSlot, PlateId } from '../types';
 import type { RgbaImage } from '../image/decode';
 import type { SectionAxis } from '../viewer/viewer';
 
@@ -29,6 +29,7 @@ export interface UiState {
   blockKeycapMount: 'above' | 'recessed';
   blockKeycapProfile: 'standard' | 'low' | 'thocky' | 'choc-v1';
   blockKeycapUnit: number;
+  plateId: PlateId;
   selectedParts: string[]; canUndo: boolean; canRedo: boolean; canRefresh: boolean;
 }
 
@@ -84,5 +85,6 @@ export interface UiCallbacks {
   onHybridKeycapClearance(value: number): void;
   onBlockModuleThickness(value: number): void;
   onBlockModuleSideThickness(value: number): void;
+  onPlateChange(id: PlateId): void;
   onGenerate(): void; onUndo(): void; onRedo(): void; onRefresh(): void; onBackToHome(): void;
 }

@@ -17,6 +17,7 @@ import { bindHistoryEvents } from './bindings/history';
 
 import { setupWelcomeModal, showTutorialPrompt } from './components/modals';
 import { showColorPopoverAt, renderPalette } from './components/colorPicker';
+import { PLATES } from '../types';
 
 export function createUi(
   sidebarLeft: HTMLElement,
@@ -150,6 +151,10 @@ export function createUi(
     setVal('hybridNeckWidthVal', `${state.hybridNeckWidthMm.toFixed(1)} mm`);
     if ($('blockKeycapProfile')) $<HTMLSelectElement>('blockKeycapProfile').value = state.blockKeycapProfile;
     if ($('blockKeySize')) $<HTMLSelectElement>('blockKeySize').value = String(state.blockKeycapUnit);
+    const plate = PLATES.find((item) => item.id === state.plateId) ?? PLATES[0];
+    if ($('plateSelect')) $<HTMLSelectElement>('plateSelect').value = plate.id;
+    if ($('plateSizeVal')) $('plateSizeVal')!.textContent = plate.size ? `${plate.size[0]} × ${plate.size[1]} mm` : '—';
+    if ($('plateDetails')) $('plateDetails')!.textContent = plate.details;
 
     // Äá»“ng bá»™ giÃ¡ trá»‹ slider má»Ÿ rá»™ng Ä‘áº¿
     const expandPercent = (state as any).bottomExpandPercent ?? 22;

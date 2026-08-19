@@ -85,6 +85,7 @@ export const store = createStore<UiState>({
   blockKeycapMount: 'above',
   blockKeycapProfile: 'standard',
   blockKeycapUnit: 1,
+  plateId: 'a1',
   extrudeHeight: null,
   componentHeights: {},
   selectedParts: [],

@@ -273,6 +273,27 @@ details.section-collapsible[open] > summary { padding-bottom: 14px; }
 }
 .field select:disabled { opacity: 0.45; cursor: not-allowed; }
 
+.plate-control {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 18px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-2) 72%, transparent);
+}
+.plate-control select {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 10px 11px;
+  font: inherit;
+}
+.plate-size { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.plate-control .field-help { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
 button {
   font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
   border-radius: 10px; padding: 10px 15px; cursor: pointer; transition: border-color 0.12s, color 0.12s;

@@ -746,7 +746,7 @@ export function buildBlocks(
   assets: PreparedBlockAssets,
   keycap: KeycapAsset,
   params: BlocksBuildParams,
-  _socket: any | null = null,
+  socket: any | null = null,
 ): { parts: ClickerPart[]; switchPlacements: SwitchPlacement[]; warnings: string[] } {
   const ctx = new BuildContext(wasm);
   const parts: ClickerPart[] = [];
@@ -823,12 +823,32 @@ export function buildBlocks(
     const source = params.flatBottom === false
       ? selected.solid
       : flattenBottom(ctx, selected.solid, commonFloor);
-    const block = addOutwardModuleWall(
+    let block = addOutwardModuleWall(
       ctx,
       scaleFromBottom(source, baseScale),
       params.moduleSideThicknessMm ?? 0,
       params.vertical,
     );
+
+    // The prepared module assets carry the printable shell, but the public
+    // Blocks path used to ignore the worker's real MX socket argument and only
+    // cut a shallow keycap pocket.  The worker normalizes the socket so its
+    // seating face is Z=0; align that face to the module's top before subtracting
+    // it.  This preserves the keyed/stepped MX cavity and keeps the switch body
+    // below the keycap instead of letting it intersect the cap.
+    if (socket) {
+      try {
+        const blockTop = block.boundingBox().max[2];
+        const rotatedSocket = selected.rot
+          ? ctx.track(socket.rotate([0, 0, selected.rot]))
+          : socket;
+        const socketTop = rotatedSocket.boundingBox().max[2];
+        const socketCut = ctx.track(rotatedSocket.translate([0, 0, blockTop - socketTop]));
+        block = ctx.track(block.subtract(socketCut));
+      } catch {
+        warnings.push('A block kept its shallow keycap pocket because the MX socket cutout was unavailable.');
+      }
+    }
     blockSolids.push(block);
     const blockTop = block.boundingBox().max[2];
     const pocketProfile = ctx.track(params.keycapShape === 'square'

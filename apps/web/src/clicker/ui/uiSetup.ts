@@ -130,6 +130,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockBaseHeight: (value) => { store.set({ blockBaseHeightMm: Math.max(8, Math.min(30, value)) }); debouncedRebuild(); },
     onBlockModuleThickness: (value) => { store.set({ blockModuleThicknessMm: Math.max(8, Math.min(40, value)) }); debouncedRebuild(); },
     onBlockModuleSideThickness: (value) => { store.set({ blockModuleSideThicknessMm: Math.max(0, Math.min(33, value)) }); debouncedRebuild(); },
+    onPlateChange: (id) => { store.set({ plateId: id }); },
     onBlockBaseCornerRadius: (value) => { store.set({ blockBaseCornerRadiusMm: Math.max(0.5, Math.min(8, value)) }); debouncedRebuild(); },
     onBlockKeycapHeight: (value) => { store.set({ blockKeycapHeightMm: Math.max(6, Math.min(18, value)) }); debouncedRebuild(); },
     onBlockKeycapCornerRadius: (value) => { store.set({ blockKeycapCornerRadiusMm: Math.max(0.8, Math.min(7, value)) }); debouncedRebuild(); },
@@ -183,6 +184,9 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onRefresh: () => historyShortcuts.refreshDesign(),
   });
 
+  let renderedPlateId = store.get().plateId;
+  viewer.setPlate(renderedPlateId);
+
   // Sá»± kiá»‡n nháº­n yÃªu cáº§u hiá»‡n báº£ng chá»n mÃ u tá»« Engine
   getClickerDocument().addEventListener('show-color-popover', ((e: CustomEvent) => {
     ui.showColorPopoverAt(e.detail.clientX, e.detail.clientY, e.detail.hex, e.detail.options, {
@@ -193,6 +197,10 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
 
   store.subscribe((s) => {
     ui.update(s);
+    if (s.plateId !== renderedPlateId) {
+      renderedPlateId = s.plateId;
+      viewer.setPlate(renderedPlateId);
+    }
     const indices: number[] = [];
     s.selectedParts.forEach((name: string) => { const idx = appData.latestParts.findIndex((p: ClickerPart) => p.name === name); if (idx >= 0) indices.push(idx); });
     viewer.highlightParts(indices);
