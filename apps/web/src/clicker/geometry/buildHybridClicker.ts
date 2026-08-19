@@ -53,6 +53,21 @@ function partSlotIndex(name: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+function keycapFootprint(keycap: KeycapAsset): number {
+  const visibleTop = Math.max(...(keycap.meta.topExtent ?? []));
+  if (Number.isFinite(visibleTop) && visibleTop > 1) return visibleTop;
+  const positions = keycap.shell.positions;
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+  for (let index = 0; index + 2 < positions.length; index += 3) {
+    minX = Math.min(minX, positions[index]);
+    minY = Math.min(minY, positions[index + 1]);
+    maxX = Math.max(maxX, positions[index]);
+    maxY = Math.max(maxY, positions[index + 1]);
+  }
+  const size = Math.max(maxX - minX, maxY - minY);
+  return Number.isFinite(size) && size > 1 ? size : 18;
+}
+
 function buildImageProfile(
   ctx: BuildContext,
   section: any,
@@ -133,17 +148,19 @@ export function buildHybridClicker(
   const count = placements.length;
   const sourcePitch = Math.max(16, assets.pitch || assets.pitchMax || 19.05);
   const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 60);
-  const baseWidth = clamp(params.hybridBaseWidthMm, 22, 60, 27);
-  const pocketSize = Math.max(18, Math.min(22, baseWidth - 3));
-  const keycapSpacing = clamp(params.hybridKeycapSpacingMm, 0, 15, 3);
+  const baseWidth = clamp(params.hybridBaseWidthMm, 20, 60, 24);
+  const pocketClearance = clamp(params.hybridKeycapClearanceMm, 0.2, 4, 0.8);
+  const pocketSize = Math.max(16, Math.min(baseWidth - 2, keycapFootprint(keycap) + pocketClearance * 2));
+  const keycapSpacing = clamp(params.hybridKeycapSpacingMm, 0, 15, 1);
   const pitch = Math.max(sourcePitch, pocketSize) + keycapSpacing;
   const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 13);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 8);
   const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 4);
-  const neckLength = clamp(params.hybridNeckLengthMm, 6, 50, 18);
-  const neckWidth = Math.min(baseWidth - 2, clamp(params.hybridNeckWidthMm, 8, 40, 18));
+  const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
   const imageThickness = Math.max(baseThickness + 0.8, clamp(params.hybridImageThicknessMm, 4, 24, 11));
-  const carrierLength = Math.max(baseWidth, (count - 1) * pitch + endPadding * 2);
+  const headPadding = pocketSize / 2 + headLength;
+  const tailPadding = Math.max(endPadding, pocketSize / 2 + 1.5);
+  const carrierLength = Math.max(baseWidth, headPadding + (count - 1) * pitch + tailPadding);
   const carrierWidth = vertical ? baseWidth : carrierLength;
   const carrierDepth = vertical ? carrierLength : baseWidth;
   const cornerRadius = Math.min(
@@ -173,44 +190,34 @@ export function buildHybridClicker(
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
   const overlap = Math.max(2, Math.min(4, baseWidth * 0.12));
-  let shiftX = 0;
-  let shiftY = 0;
-  if (vertical) shiftY = -badgeDepth / 2 - neckLength - carrierDepth / 2;
-  else shiftX = badgeWidth / 2 + neckLength + carrierWidth / 2;
+  const carrierHeadEdge = vertical ? -badgeDepth / 2 + overlap : badgeWidth / 2 - overlap;
+  const shiftX = vertical ? 0 : carrierHeadEdge + carrierWidth / 2;
+  const shiftY = vertical ? carrierHeadEdge - carrierDepth / 2 : 0;
 
   const carrierProfile = ctx.track(roundedRect(ctx, carrierWidth, carrierDepth, cornerRadius)
     .translate([shiftX, shiftY]));
   let carrier = ctx.track(wasm.Manifold.extrude(carrierProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
 
-  // The image base extends as one straight rounded rectangle into the socket
-  // carrier. Constant width removes the pointed corners created by the old
-  // trapezoid while the overlap at both ends keeps the union watertight.
-  const imageJoin = vertical ? -badgeDepth / 2 + overlap : badgeWidth / 2 - overlap;
-  const carrierJoin = vertical
-    ? shiftY + carrierDepth / 2 - overlap
-    : shiftX - carrierWidth / 2 + overlap;
-  const neckSpan = Math.max(2, Math.abs(carrierJoin - imageJoin));
-  const neckCenter = (carrierJoin + imageJoin) / 2;
-  const neckProfile = ctx.track(roundedRect(
-    ctx,
-    vertical ? neckWidth : neckSpan,
-    vertical ? neckSpan : neckWidth,
-    Math.min(2, neckWidth * 0.12),
-  ).translate(vertical ? [0, neckCenter] : [neckCenter, 0]));
-  const neck = ctx.track(wasm.Manifold.extrude(neckProfile, baseThickness + baseWallHeight)
+  // Square off the image-facing end of the same carrier. The carrier starts
+  // inside the image badge, so there is no separate neck that can protrude or
+  // create a pointed intersection at the first keycap.
+  const squareHeadDepth = Math.min(carrierLength, cornerRadius + overlap + 1);
+  const squareHeadProfile = ctx.track(wasm.CrossSection.square(
+    vertical ? [carrierWidth, squareHeadDepth] : [squareHeadDepth, carrierDepth],
+    true,
+  ).translate(vertical
+    ? [0, carrierHeadEdge - squareHeadDepth / 2]
+    : [carrierHeadEdge + squareHeadDepth / 2, 0]));
+  const squareHead = ctx.track(wasm.Manifold.extrude(squareHeadProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
-  const middle = (count - 1) / 2;
+  carrier = ctx.track(carrier.add(squareHead));
   const localPlacements = placements.map((placement, index) => ({
     ...placement,
-    x: vertical ? 0 : (index - middle) * pitch,
-    y: vertical ? (middle - index) * pitch : 0,
+    x: vertical ? 0 : carrierHeadEdge + headPadding + index * pitch,
+    y: vertical ? carrierHeadEdge - headPadding - index * pitch : 0,
   }));
-  const shiftedPlacements = localPlacements.map((placement) => ({
-    ...placement,
-    x: placement.x + shiftX,
-    y: placement.y + shiftY,
-  }));
+  const shiftedPlacements = localPlacements;
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
   for (const placement of shiftedPlacements) {
     const pocketProfile = ctx.track(roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4))
@@ -230,7 +237,7 @@ export function buildHybridClicker(
 
   const badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
-  const mergedBody = ctx.track(badgeBody.add(carrier).add(neck));
+  const mergedBody = ctx.track(badgeBody.add(carrier));
   const imageHeadTop = imageThickness - baseThickness;
   const deckHeight = Math.max(0.8, Math.min(1.8, params.imageDepth + 0.35));
   const profile = params.topProfile ?? 'flat';

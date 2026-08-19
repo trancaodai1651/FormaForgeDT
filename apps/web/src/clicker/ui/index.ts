@@ -128,6 +128,8 @@ export function createUi(
     setVal('hybridBaseEndPaddingVal', `${state.hybridBaseEndPaddingMm.toFixed(1)} mm`);
     if ($('hybridKeycapSpacing')) $<HTMLInputElement>('hybridKeycapSpacing').value = String(state.hybridKeycapSpacingMm);
     setVal('hybridKeycapSpacingVal', `${state.hybridKeycapSpacingMm.toFixed(1)} mm`);
+    if ($('hybridKeycapClearance')) $<HTMLInputElement>('hybridKeycapClearance').value = String(state.hybridKeycapClearanceMm);
+    setVal('hybridKeycapClearanceVal', `${state.hybridKeycapClearanceMm.toFixed(1)} mm`);
     if ($('hybridBaseThickness')) $<HTMLInputElement>('hybridBaseThickness').value = String(state.hybridBaseThicknessMm);
     setVal('hybridBaseThicknessVal', `${state.hybridBaseThicknessMm.toFixed(1)} mm`);
     if ($('hybridBaseCornerRadius')) $<HTMLInputElement>('hybridBaseCornerRadius').value = String(state.hybridBaseCornerRadiusMm);

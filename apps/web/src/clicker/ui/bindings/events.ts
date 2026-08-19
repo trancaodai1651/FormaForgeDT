@@ -44,6 +44,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('hybridBaseWidth')?.addEventListener('input', (e: Event) => cb.onHybridBaseWidth(+(e.target as HTMLInputElement).value));
   $('hybridBaseEndPadding')?.addEventListener('input', (e: Event) => cb.onHybridBaseEndPadding(+(e.target as HTMLInputElement).value));
   $('hybridKeycapSpacing')?.addEventListener('input', (e: Event) => cb.onHybridKeycapSpacing(+(e.target as HTMLInputElement).value));
+  $('hybridKeycapClearance')?.addEventListener('input', (e: Event) => cb.onHybridKeycapClearance(+(e.target as HTMLInputElement).value));
   $('hybridBaseThickness')?.addEventListener('input', (e: Event) => cb.onHybridBaseThickness(+(e.target as HTMLInputElement).value));
   $('hybridBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onHybridBaseCornerRadius(+(e.target as HTMLInputElement).value));
   $('hybridBaseWallHeight')?.addEventListener('input', (e: Event) => cb.onHybridBaseWallHeight(+(e.target as HTMLInputElement).value));

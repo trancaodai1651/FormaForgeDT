@@ -136,7 +136,7 @@ export const renderLeftSidebar = () => `
       <div class="label" style="margin-top: 16px;">${tx('Continuous rounded base', 'Base liền khối bo góc')}</div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseWidth">${tx('Base width', 'Chiều rộng base')}</label><input type="text" class="val" id="hybridBaseWidthVal" /></div>
-        <input type="range" id="hybridBaseWidth" min="22" max="60" step="0.5" />
+        <input type="range" id="hybridBaseWidth" min="20" max="60" step="0.5" />
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseEndPadding">${tx('End padding', 'Khoảng đệm cuối')}</label><input type="text" class="val" id="hybridBaseEndPaddingVal" /></div>
@@ -145,6 +145,10 @@ export const renderLeftSidebar = () => `
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridKeycapSpacing">${tx('Keycap spacing', 'Khoảng cách keycap')}</label><input type="text" class="val" id="hybridKeycapSpacingVal" /></div>
         <input type="range" id="hybridKeycapSpacing" min="0" max="15" step="0.5" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridKeycapClearance">${tx('Keycap pocket clearance', 'Khe hở quanh keycap')}</label><input type="text" class="val" id="hybridKeycapClearanceVal" /></div>
+        <input type="range" id="hybridKeycapClearance" min="0.2" max="4" step="0.1" />
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseThickness">${tx('Base thickness', 'Độ dày base')}</label><input type="text" class="val" id="hybridBaseThicknessVal" /></div>
@@ -158,14 +162,10 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridBaseCornerRadius">${tx('Tail corner radius', 'Bán kính bo góc đuôi')}</label><input type="text" class="val" id="hybridBaseCornerRadiusVal" /></div>
         <input type="range" id="hybridBaseCornerRadius" min="1" max="14" step="0.5" />
       </div>
-      <div class="label" style="margin-top: 16px;">${tx('Straight connector neck', 'Cổ nối thẳng')}</div>
+      <div class="label" style="margin-top: 16px;">${tx('Straight base head', 'Đầu base thẳng')}</div>
       <div class="prow-stacked">
-        <div class="prow-header"><label for="hybridNeckLength">${tx('Neck length', 'Chiều dài cổ nối')}</label><input type="text" class="val" id="hybridNeckLengthVal" /></div>
-        <input type="range" id="hybridNeckLength" min="6" max="50" step="0.5" />
-      </div>
-      <div class="prow-stacked">
-        <div class="prow-header"><label for="hybridNeckWidth">${tx('Neck width', 'Chiều rộng cổ nối')}</label><input type="text" class="val" id="hybridNeckWidthVal" /></div>
-        <input type="range" id="hybridNeckWidth" min="8" max="40" step="0.5" />
+        <div class="prow-header"><label for="hybridNeckLength">${tx('Material before first keycap', 'Đoạn base trước keycap đầu')}</label><input type="text" class="val" id="hybridNeckLengthVal" /></div>
+        <input type="range" id="hybridNeckLength" min="0" max="30" step="0.5" />
       </div>
       <p class="field-help">${tx('The image head is always kept thicker than the socket base.', 'Phần đầu hình ảnh luôn dày hơn phần base chứa switch.')}</p>
     </div>

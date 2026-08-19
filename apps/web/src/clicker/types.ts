@@ -137,12 +137,14 @@ export interface BuildParams {
   hybridBaseCornerRadiusMm?: number;
   /** Wall height above the switch seating plane, used to hide the switch body. */
   hybridBaseWallHeightMm?: number;
-  /** Length of the straight rectangular neck between image head and carrier. */
+  /** Straight material before the first keycap; the carrier itself overlaps the image head. */
   hybridNeckLengthMm?: number;
-  /** Width of the neck where it meets the carrier. */
+  /** Legacy neck width kept for project compatibility; the carrier now uses its full base width. */
   hybridNeckWidthMm?: number;
   /** Clear wall/gap between adjacent keycap pockets. */
   hybridKeycapSpacingMm?: number;
+  /** Horizontal clearance between a keycap footprint and its shallow base pocket. */
+  hybridKeycapClearanceMm?: number;
   imageMargin: number;
   borderWidth: number;
   capProud: number;

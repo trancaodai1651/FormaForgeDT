@@ -211,6 +211,7 @@ export function rebuild(quiet = false) {
     hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,
     hybridNeckLengthMm: s.hybridNeckLengthMm, hybridNeckWidthMm: s.hybridNeckWidthMm,
     hybridKeycapSpacingMm: s.hybridKeycapSpacingMm,
+    hybridKeycapClearanceMm: s.hybridKeycapClearanceMm,
     imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
