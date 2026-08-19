@@ -157,10 +157,11 @@ export function buildHybridClicker(
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 8);
   const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 4);
   const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
+  const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
   const imageThickness = Math.max(baseThickness + 0.8, clamp(params.hybridImageThicknessMm, 4, 24, 11));
   const headPadding = pocketSize / 2 + headLength;
   const tailPadding = Math.max(endPadding, pocketSize / 2 + 1.5);
-  const carrierLength = Math.max(baseWidth, headPadding + (count - 1) * pitch + tailPadding);
+  const carrierLength = Math.max(baseWidth, overlap + headPadding + (count - 1) * pitch + tailPadding);
   const carrierWidth = vertical ? baseWidth : carrierLength;
   const carrierDepth = vertical ? carrierLength : baseWidth;
   const cornerRadius = Math.min(
@@ -189,7 +190,6 @@ export function buildHybridClicker(
   const badgeBounds = badgeSection.bounds();
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
-  const overlap = Math.max(2, Math.min(4, baseWidth * 0.12));
   const carrierHeadEdge = vertical ? -badgeDepth / 2 + overlap : badgeWidth / 2 - overlap;
   const shiftX = vertical ? 0 : carrierHeadEdge + carrierWidth / 2;
   const shiftY = vertical ? carrierHeadEdge - carrierDepth / 2 : 0;
@@ -214,8 +214,8 @@ export function buildHybridClicker(
   carrier = ctx.track(carrier.add(squareHead));
   const localPlacements = placements.map((placement, index) => ({
     ...placement,
-    x: vertical ? 0 : carrierHeadEdge + headPadding + index * pitch,
-    y: vertical ? carrierHeadEdge - headPadding - index * pitch : 0,
+    x: vertical ? 0 : badgeWidth / 2 + headPadding + index * pitch,
+    y: vertical ? -badgeDepth / 2 - headPadding - index * pitch : 0,
   }));
   const shiftedPlacements = localPlacements;
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));

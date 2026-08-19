@@ -138,6 +138,8 @@ export function createUi(
     setVal('hybridBaseWallHeightVal', `${state.hybridBaseWallHeightMm.toFixed(2)} mm`);
     if ($('hybridNeckLength')) $<HTMLInputElement>('hybridNeckLength').value = String(state.hybridNeckLengthMm);
     setVal('hybridNeckLengthVal', `${state.hybridNeckLengthMm.toFixed(1)} mm`);
+    if ($('hybridBaseImageOverlap')) $<HTMLInputElement>('hybridBaseImageOverlap').value = String(state.hybridBaseImageOverlapMm);
+    setVal('hybridBaseImageOverlapVal', `${state.hybridBaseImageOverlapMm.toFixed(1)} mm`);
     if ($('hybridNeckWidth')) $<HTMLInputElement>('hybridNeckWidth').value = String(state.hybridNeckWidthMm);
     setVal('hybridNeckWidthVal', `${state.hybridNeckWidthMm.toFixed(1)} mm`);
     if ($('blockKeycapProfile')) $<HTMLSelectElement>('blockKeycapProfile').value = state.blockKeycapProfile;

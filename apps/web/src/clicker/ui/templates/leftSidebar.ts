@@ -167,6 +167,10 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridNeckLength">${tx('Material before first keycap', 'Đoạn base trước keycap đầu')}</label><input type="text" class="val" id="hybridNeckLengthVal" /></div>
         <input type="range" id="hybridNeckLength" min="0" max="30" step="0.5" />
       </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridBaseImageOverlap">${tx('Base insertion depth', 'Độ sâu base đâm vào hình')}</label><input type="text" class="val" id="hybridBaseImageOverlapVal" /></div>
+        <input type="range" id="hybridBaseImageOverlap" min="0" max="20" step="0.5" />
+      </div>
       <p class="field-help">${tx('The image head is always kept thicker than the socket base.', 'Phần đầu hình ảnh luôn dày hơn phần base chứa switch.')}</p>
     </div>
     <div class="prow-stacked">

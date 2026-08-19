@@ -49,6 +49,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('hybridBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onHybridBaseCornerRadius(+(e.target as HTMLInputElement).value));
   $('hybridBaseWallHeight')?.addEventListener('input', (e: Event) => cb.onHybridBaseWallHeight(+(e.target as HTMLInputElement).value));
   $('hybridNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
+  $('hybridBaseImageOverlap')?.addEventListener('input', (e: Event) => cb.onHybridBaseImageOverlap(+(e.target as HTMLInputElement).value));
   $('hybridNeckWidth')?.addEventListener('input', (e: Event) => cb.onHybridNeckWidth(+(e.target as HTMLInputElement).value));
 
   // --- Color Count & Smoothing ---
