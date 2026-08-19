@@ -261,6 +261,7 @@ export function createViewer(container: HTMLElement): Viewer {
   // of assuming z=0 is the socket plane.
   let switchSeatZ = 0;
   const switchRecessMm = 0.8;
+  const switchBottomClearanceMm = 0.2;
   const switchExplodedLift = 6;
   let modularSplit = false;
   let modularVertical = false;
@@ -300,17 +301,7 @@ export function createViewer(container: HTMLElement): Viewer {
     placeholder = null;
   }
 
-  function updateSwitchSeat() {
-    if (!switchGeometry || bodyGroup.children.length === 0) {
-      switchSeatZ = 0;
-      return;
-    }
-    switchGeometry.computeBoundingBox();
-    const switchBounds = switchGeometry.boundingBox;
-    if (!switchBounds) {
-      switchSeatZ = 0;
-      return;
-    }
+  function bodyLocalBounds() {
     // Measure the body in the root's local coordinates. setFromObject() also
     // includes root.position, which is the camera-centering offset and caused
     // the preview switch to receive that offset a second time.
@@ -322,9 +313,29 @@ export function createViewer(container: HTMLElement): Viewer {
       const childBounds = child.geometry.boundingBox.clone().applyMatrix4(child.matrix);
       bodyBounds.union(childBounds);
     }
-    switchSeatZ = bodyBounds.isEmpty()
-      ? 0
-      : bodyBounds.max.z - switchBounds.max.z - switchRecessMm;
+    return bodyBounds;
+  }
+
+  function updateSwitchSeat() {
+    if (!switchGeometry || bodyGroup.children.length === 0) {
+      switchSeatZ = 0;
+      return;
+    }
+    switchGeometry.computeBoundingBox();
+    const switchBounds = switchGeometry.boundingBox;
+    if (!switchBounds) {
+      switchSeatZ = 0;
+      return;
+    }
+    const bodyBounds = bodyLocalBounds();
+    if (bodyBounds.isEmpty()) {
+      switchSeatZ = 0;
+      return;
+    }
+    const switchHeight = switchBounds.max.z - switchBounds.min.z;
+    const desiredTop = bodyBounds.max.z - switchRecessMm;
+    const lowestSafeTop = bodyBounds.min.z + switchHeight + switchBottomClearanceMm;
+    switchSeatZ = Math.max(desiredTop, lowestSafeTop) - switchBounds.max.z;
   }
 
   function clearGroup(g: THREE.Group) {
@@ -505,8 +516,14 @@ export function createViewer(container: HTMLElement): Viewer {
     const explicitTop = switchPlacements.find((placement) => Number.isFinite(placement.topZ))?.topZ;
     if (Number.isFinite(explicitTop) && switchGeometry) {
       switchGeometry.computeBoundingBox();
-      const switchTop = switchGeometry.boundingBox?.max.z;
-      if (Number.isFinite(switchTop)) switchSeatZ = (explicitTop as number) - (switchTop as number);
+      const switchBounds = switchGeometry.boundingBox;
+      const bodyBounds = bodyLocalBounds();
+      if (switchBounds && !bodyBounds.isEmpty()) {
+        const switchHeight = switchBounds.max.z - switchBounds.min.z;
+        const lowestSafeTop = bodyBounds.min.z + switchHeight + switchBottomClearanceMm;
+        const resolvedTop = Math.max(explicitTop as number, lowestSafeTop);
+        switchSeatZ = resolvedTop - switchBounds.max.z;
+      }
     } else {
       const explicitSeat = switchPlacements.find((placement) => Number.isFinite(placement.seatZ))?.seatZ;
       if (Number.isFinite(explicitSeat)) switchSeatZ = explicitSeat as number;
