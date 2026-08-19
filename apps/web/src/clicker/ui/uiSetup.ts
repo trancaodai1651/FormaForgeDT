@@ -7,7 +7,6 @@ import { loadFileToImage } from '../image/decode';
 import { importFontFile } from '../image/letter';
 import { downloadThreeMF, downloadSTL } from '../export';
 import { hexToRgb, downloadBlob } from '../utils/helpers';
-import { handleExportLicense } from './licenseManager';
 import { saveProject, loadProject } from '../project/saveLoad';
 import type { ClickerPart } from '../types';
 
@@ -102,8 +101,8 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on); },
     onSection: (axis, pos) => viewer.setSection(axis, pos),
     
-    onExport: () => { if (!appData.latestParts.length) return; downloadThreeMF(appData.latestParts, 'clicker.3mf'); handleExportLicense(); },
-    onExportSTL: () => { if (!appData.latestParts.length) return; downloadSTL(appData.latestParts, 'clicker.stl'); handleExportLicense(); },
+    onExport: () => { if (!appData.latestParts.length) return; downloadThreeMF(appData.latestParts, 'clicker.3mf'); },
+    onExportSTL: () => { if (!appData.latestParts.length) return; downloadSTL(appData.latestParts, 'clicker.stl'); },
     onRenderPng: async () => { const blob = await viewer.renderToPng(); if (blob) downloadBlob(blob, 'clicker-render.png'); },
     onAiPrompt: async () => { await navigator.clipboard.writeText("Create a simple, flat vector-style illustration suitable for a small multi-color 3D print..."); store.set({ status: 'AI prompt copied âœ“' }); },
     

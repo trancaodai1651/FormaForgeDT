@@ -718,7 +718,7 @@ void buildBlocksLegacy;
 void makeStraightModuleBase;
 
 /**
- * Blocks implementation matching the Vostok Labs generator:
+ * Connector-aware blocks implementation for FormaForgeDT:
  * - one connector-aware asset per printed block;
  * - no artificial floor or side rails;
  * - the supplied keycap shell/stem remains the source shape;

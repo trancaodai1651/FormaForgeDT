@@ -10,13 +10,6 @@ export const renderLeftSidebar = () => `
     </button>
     <h1>Clicker Generator</h1>
     <p class="app-subtitle">${tx('Generate a printable 3D clicker from an image', 'Tạo mô hình clicker 3D có thể in từ hình ảnh')}</p>
-    <p class="app-credit">Made by
-      <a class="app-credit-link" href="https://makerworld.com/en/@Vostok_Labs" target="_blank" rel="noopener noreferrer">
-        <img class="credit-logo only-dark" src="${ASSET_BASE}assets/favicon/vostokfaviconwhite.png" alt="" aria-hidden="true" />
-        <img class="credit-logo only-light" src="${ASSET_BASE}assets/favicon/Vostokfaviconblack.png" alt="" aria-hidden="true" />
-        Vostok Labs
-      </a>
-    </p>
   </div>
 
   <div class="section" id="previewViewSection">
