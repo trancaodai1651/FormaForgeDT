@@ -226,14 +226,11 @@ export function buildHybridClicker(
     x: vertical ? 0 : badgeWidth / 2 + headPadding + index * pitch,
     y: vertical ? -badgeDepth / 2 - headPadding - index * pitch : 0,
   }));
-  // Match the reference/Image construction: the keycap recess is a broad,
-  // rounded top pocket, while the smaller MX socket continues down through
-  // its floor. Keep the broad pocket slightly deeper than the old Image +
-  // Blocks cut so the switch housing can actually nest into the opening.
-  const keycapPocketDepth = Math.min(
-    2.4,
-    Math.max(1.2, (blockParams.moduleThicknessMm ?? 18) * 0.12),
-  );
+  // Match Clicker's two-level well: the large rounded keycap pocket runs from
+  // the carrier surface down to a fixed floor, while the smaller MX socket
+  // continues below that floor. The cover-height control is the large-pocket
+  // depth itself; it must not be reduced to the old 2.16 mm heuristic.
+  const keycapPocketDepth = Math.max(1.4, baseWallHeight);
   const keycapPocketFloorZ = baseWallHeight - keycapPocketDepth;
   const switchTopClearance = 0.8;
   const shiftedPlacements = localPlacements.map((placement) => ({
