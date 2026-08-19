@@ -293,6 +293,11 @@ export function buildHybridClicker(
     toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'),
   ];
 
+  // Palette regions can share a traced boundary (and anti-aliased source
+  // pixels can make them overlap by a fraction). Remove already placed image
+  // areas before creating the next solid so no two coplanar colour meshes
+  // compete in the depth buffer and produce flicker/white rays.
+  let placedImage2D: any = null;
   for (let index = 0; index < imageRegions.length; index++) {
     const region = imageRegions[index];
     const rings = region.rings
@@ -303,7 +308,9 @@ export function buildHybridClicker(
       ] as [number, number]));
     if (!rings.length) continue;
     try {
-      const section = ctx.track(new wasm.CrossSection(rings, 'NonZero'));
+      let section = ctx.track(new wasm.CrossSection(rings, 'NonZero'));
+      if (placedImage2D) section = ctx.track(section.subtract(placedImage2D));
+      if (sectionIsEmpty(section)) continue;
       const topLayer = imageTopScale === 1
         ? section
         : ctx.track(section.scale([imageTopScale, imageTopScale]));
@@ -321,8 +328,11 @@ export function buildHybridClicker(
       const imageFaceOffset = 0.04;
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageExtrude)
         .translate([0, 0, imageTop + imageFaceOffset - imageExtrude]));
-      if (!sectionIsEmpty(section) && !layer.isEmpty()) {
+      if (!layer.isEmpty()) {
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
+        placedImage2D = placedImage2D
+          ? ctx.track(placedImage2D.add(section))
+          : section;
       }
     } catch {
       warnings.push(`Image region ${index + 1} could not be printed.`);
