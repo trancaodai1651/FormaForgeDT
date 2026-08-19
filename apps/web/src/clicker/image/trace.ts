@@ -38,10 +38,22 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
   ];
 
   const contourGen = contours().size([width, height]).thresholds([0.5]);
-  const minRingArea = 0.0002 * maxSide * maxSide; // drop noise specks (px²) — lowered to preserve thin strokes
-  const resampleStep = Math.max(0.5, maxSide / 900); // uniform contour spacing (px) - higher resolution
+  const smoothingLevel = Math.max(0, Math.min(1, Number.isFinite(smoothing) ? smoothing : 0.5));
+  // Keep the thresholds in pixel space. The old implementation compared a
+  // pixel-component size with a contour area, which made cleanup unpredictable
+  // when the imported image had been resized.
+  const minRingArea = 0.0002 * maxSide * maxSide;
+  const minLabelComponent = Math.max(
+    12,
+    Math.round(minRingArea * (1 + (preserveDetail ? 8 : 12) * smoothingLevel * smoothingLevel)),
+  );
+  // A slightly coarser, uniform sampling gives the slicer fewer tiny segments
+  // without changing the silhouette at printable scale.
+  const resampleStep = Math.max(0.75, maxSide / 720);
   // Smoothing strength → Gaussian sigma in px. `smoothing` is 0..1 from the UI.
-  const sigmaPx = 1.0 + Math.max(0, Math.min(1, smoothing)) * 14;
+  // This is deliberately capped below the previous 15 px kernel: very large
+  // kernels collapsed small closed contours into self-intersecting rings.
+  const sigmaPx = 0.7 + smoothingLevel * 8.3;
   const sigmaPts = Math.max(0.6, sigmaPx / resampleStep);
 
   // Vector-style smoothing: the staircase boundary is resampled to uniform spacing
@@ -63,52 +75,43 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
         // rings (letter counters, eyes) get up to ~4× less so their features survive
         // the same kernel that only lightly touches the silhouette.
         const featureScale = preserveDetail
-          ? Math.max(0.25, Math.min(1.0, Math.sqrt(A) / (0.15 * maxSide)))
+          ? Math.max(0.35, Math.min(1.0, Math.sqrt(A) / (0.15 * maxSide)))
           : 1;
-        const smooth = gaussianSmoothClosed(sampled, sigmaPts * featureScale);
-        const simplified = rdp(smooth, resampleStep * 0.25); // higher resolution simplification
-        if (simplified.length >= 3) compRings.push(simplified.map(norm));
+        // At the top of the slider, small rings must be cleaned as well. Keeping
+        // the old protection factor at 100% was the source of most of the
+        // pepper-like islands in slicers.
+        const effectiveFeatureScale = smoothingLevel >= 0.8
+          ? Math.max(featureScale, smoothingLevel * 0.72)
+          : featureScale;
+        const smooth = gaussianSmoothClosed(sampled, sigmaPts * effectiveFeatureScale);
+        const smoothedArea = Math.abs(ringArea(smooth));
+        const minSmoothedArea = minRingArea * (smoothingLevel > 0.75 ? 0.35 : 0.5);
+        const simplified = rdp(
+          smooth,
+          resampleStep * (0.35 + smoothingLevel * 0.85),
+        );
+        if (smoothedArea >= minSmoothedArea && simplified.length >= 3) {
+          compRings.push(simplified.map(norm));
+        }
       }
       if (compRings.length > 0) out.push(compRings);
     }
     return out;
   };
 
-  // --- Re-tile colors via blurred argmax: smooths boundaries AND keeps every
-  //     foreground pixel assigned (no gaps) with shared edges between colors. ---
-  const K = palette.length;
-  const fields: Float64Array[] = [];
-  const blurRad = smoothing * 2.0; // scale with user's smoothing (default 0.1 -> 0.2, skips blur)
-  for (let k = 0; k < K; k++) {
-    const m = new Float64Array(width * height);
-    for (let p = 0; p < indices.length; p++) if (indices[p] === k) m[p] = 1;
-    if (blurRad >= 0.5) {
-      fields.push(boxBlur(m, width, height, blurRad));
-    } else {
-      fields.push(m);
-    }
-  }
-  const label = new Int16Array(width * height).fill(-1);
-  for (let p = 0; p < indices.length; p++) {
-    if (indices[p] < 0) continue;
-    let best = 0;
-    let bestV = -1;
-    for (let k = 0; k < K; k++) {
-      const v = fields[k][p];
-      if (v > bestV) {
-        bestV = v;
-        best = k;
-      }
-    }
-    label[p] = best;
-  }
+  // Keep the quantizer's original ownership map. Re-blurring each color mask and
+  // re-running argmax looks attractive in a preview, but it creates new one-pixel
+  // islands along every palette boundary. Those islands become separate solids in
+  // the 3MF and are exactly what slicers render as acne/white rays. The contours
+  // below already provide the controlled geometric smoothing.
+  const label = new Int16Array(indices);
 
   // Minimum-feature absorption: instead of tracing (and later dropping) tiny color
   // specks — which leaves backing-color holes — reassign each below-threshold label
   // component to the majority label of its neighbours, so the speck merges into its
   // surround. Runs on the label map before contouring; the outline (all foreground)
   // is untouched so the silhouette is unaffected.
-  if (preserveDetail) {
+  if (preserveDetail || smoothingLevel > 0.01) {
     const comp = new Int32Array(width * height).fill(-1);
     const sizes: number[] = [];
     const stack: number[] = [];
@@ -132,8 +135,8 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
       sizes.push(size);
     }
     // Tally the labels bordering each small component, then reassign it wholesale to
-    // the dominant neighbour (majority vote). Threshold = the ring-drop area, so any
-    // speck that WOULD be dropped is instead absorbed.
+    // the dominant neighbour (majority vote). The threshold grows with smoothing so
+    // the 100% setting removes print-hostile islands instead of preserving them.
     const votes = new Map<number, Map<number, number>>();
     const addVote = (id: number, l: number) => {
       let m = votes.get(id);
@@ -144,7 +147,7 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
       for (let x = 0; x < width; x++) {
         const p = y * width + x;
         const id = comp[p];
-        if (id < 0 || sizes[id] >= minRingArea) continue;
+        if (id < 0 || sizes[id] >= minLabelComponent) continue;
         if (x > 0 && label[p - 1] >= 0 && comp[p - 1] !== id) addVote(id, label[p - 1]);
         if (x < width - 1 && label[p + 1] >= 0 && comp[p + 1] !== id) addVote(id, label[p + 1]);
         if (y > 0 && label[p - width] >= 0 && comp[p - width] !== id) addVote(id, label[p - width]);
@@ -176,12 +179,12 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
     regions.push({ quantRgb: palette[k].rgb as RGB, components, coverage: palette[k].coverage });
   }
 
-  // Outline = all foreground. It's a single region (no adjacency gaps), so blur
-  // it for an extra-smooth cap edge when smoothing is requested.
+  // Outline = all foreground. It uses the same contour smoothing as the colour
+  // regions; no raster blur is applied, so the outer shell cannot acquire a
+  // second halo or tiny detached components at high smoothing.
   const fgMask = new Float64Array(width * height);
   for (let p = 0; p < indices.length; p++) fgMask[p] = indices[p] >= 0 ? 1 : 0;
-  const outlineMask = blurRad >= 0.5 ? boxBlur(fgMask, width, height, blurRad) : fgMask;
-  const outline = componentsFromMask(outlineMask).flat();
+  const outline = componentsFromMask(fgMask).flat();
 
   return { regions, outline, aspect: bw / bh };
 }
@@ -193,38 +196,6 @@ function ringArea(pts: [number, number][]): number {
     a += pts[j][0] * pts[i][1] - pts[i][0] * pts[j][1];
   }
   return a / 2;
-}
-
-/** Separable box blur over a w×h field (radius in px, fractional ok). */
-function boxBlur(src: Float64Array, w: number, h: number, radius: number): Float64Array {
-  const r = Math.max(1, Math.round(radius));
-  const tmp = new Float64Array(w * h);
-  const out = new Float64Array(w * h);
-  const norm = 1 / (2 * r + 1);
-  // Horizontal pass.
-  for (let y = 0; y < h; y++) {
-    const row = y * w;
-    let sum = 0;
-    for (let x = -r; x <= r; x++) sum += src[row + clampI(x, 0, w - 1)];
-    for (let x = 0; x < w; x++) {
-      tmp[row + x] = sum * norm;
-      sum += src[row + clampI(x + r + 1, 0, w - 1)] - src[row + clampI(x - r, 0, w - 1)];
-    }
-  }
-  // Vertical pass.
-  for (let x = 0; x < w; x++) {
-    let sum = 0;
-    for (let y = -r; y <= r; y++) sum += tmp[clampI(y, 0, h - 1) * w + x];
-    for (let y = 0; y < h; y++) {
-      out[y * w + x] = sum * norm;
-      sum += tmp[clampI(y + r + 1, 0, h - 1) * w + x] - tmp[clampI(y - r, 0, h - 1) * w + x];
-    }
-  }
-  return out;
-}
-
-function clampI(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
 }
 
 /** Drop a duplicate closing vertex if present. */

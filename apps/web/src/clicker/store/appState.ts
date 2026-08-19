@@ -45,7 +45,9 @@ export const store = createStore<UiState>({
   stemTolerance: 0,
   switches: [{ x: 0, y: 0, rotation: 0 }],
   activeSwitchIndex: 0,
-  smoothing: 0.1,
+  // A modest cleanup is the safe print default: it removes pixel stair-steps
+  // without erasing the image details that users still expect to see.
+  smoothing: 0.25,
   photoFlatten: false,
   keychain: { enabled: false, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0, hybridPosition: 'top' },
   removeBg: true,
