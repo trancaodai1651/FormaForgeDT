@@ -409,12 +409,15 @@
 .admin-native-workspace {
   position: fixed;
   z-index: 20;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
+  inset: 16px;
+  width: auto;
+  height: calc(100dvh - 32px);
   min-height: 0;
   overflow: hidden;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 26px;
   background: #101319;
+  box-shadow: 0 28px 90px rgba(0,0,0,.42), 0 0 0 1px rgba(240,185,103,.04);
 }
 .admin-native-workspace .clicker-workspace-shell,
 .admin-native-workspace .clicker-runtime {
@@ -425,9 +428,18 @@
 .admin-native-workspace .clicker-workspace-shell {
   min-width: 0;
   overflow: hidden;
+  border-radius: inherit;
 }
 .admin-native-workspace .clicker-runtime {
   display: block;
+}
+
+@media (max-width: 720px) {
+  .admin-native-workspace {
+    inset: 8px;
+    height: calc(100dvh - 16px);
+    border-radius: 18px;
+  }
 }
 
 /* Flex Lamp reference parity. The original uses a light neumorphic surface

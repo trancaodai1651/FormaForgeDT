@@ -64,7 +64,7 @@ export function saveProject() {
     palette: s.palette,
     image: appData.originalImage ? imageToDataUrl(appData.originalImage) : null,
   };
-  downloadBlob(new Blob([JSON.stringify(proj)], { type: 'application/json' }), 'clicker-project.json');
+  downloadBlob(new Blob([JSON.stringify(proj)], { type: 'application/json' }), 'FormaForgeDT_Project.json');
   store.set({ status: 'Project saved âœ“' });
 }
 
