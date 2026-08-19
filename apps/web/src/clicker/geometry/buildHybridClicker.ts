@@ -147,7 +147,7 @@ export function buildHybridClicker(
   const vertical = blockParams.vertical;
   const count = placements.length;
   const sourcePitch = Math.max(16, assets.pitch || assets.pitchMax || 19.05);
-  const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 45);
+  const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 50);
   const baseWidth = clamp(params.hybridBaseWidthMm, 20, 60, 30);
   const pocketClearance = clamp(params.hybridKeycapClearanceMm, 0.2, 4, 2);
   const pocketSize = Math.max(16, Math.min(baseWidth - 2, keycapFootprint(keycap) + pocketClearance * 2));
@@ -226,10 +226,12 @@ export function buildHybridClicker(
   const shiftedPlacements = localPlacements;
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
   for (const placement of shiftedPlacements) {
-    // Match the default rounded keycap footprint. Keep the socket corners
-    // rounded as well, so the cap seats inside the base without square cuts.
-    const pocketProfile = ctx.track(roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4))
-      .translate([placement.x, placement.y]));
+    // Match the selected keycap footprint: rounded caps get rounded sockets,
+    // while square caps receive a real square cutout instead of a rounded one.
+    const pocketProfile = ctx.track(blockParams.keycapShape === 'square'
+      ? wasm.CrossSection.square([pocketSize, pocketSize], true)
+      : roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4)))
+      .translate([placement.x, placement.y]);
     const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + baseWallHeight + 0.4)
       .translate([0, 0, -pocketDepth]));
     carrier = ctx.track(carrier.subtract(pocket));

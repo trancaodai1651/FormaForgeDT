@@ -723,7 +723,7 @@ void makeStraightModuleBase;
  * - no artificial floor or side rails;
  * - the supplied keycap shell/stem remains the source shape;
  * - connector sockets and keycap stems remain aligned to the source assets;
- * - the legend is engraved by default and becomes a raised colour part when
+ * - the legend is flush by default and becomes a raised colour part when
  *   legend extrusion is positive.
  */
 export function buildBlocks(
@@ -882,25 +882,22 @@ export function buildBlocks(
           const expanded = ctx.track(glyph.offset(bold, 'Round', 2, 24));
           if (!expanded.isEmpty()) glyph = expanded;
         }
-        // Zero means an engraved legend: subtract the glyph from the cap and
-        // leave a thin coloured floor at the bottom of the recess. A positive
-        // value keeps the cap intact and raises the text above its top face.
+        // Zero means a flush legend: keep the glyph on the cap's top plane. A
+        // positive value keeps the cap intact and raises the text above it.
         const legendPartName = entry.glyph.partName ?? `top-color-${index}-0`;
         const extrusionLevel = params.componentHeights?.[legendPartName] ?? 0;
         const requestedExtrude = Math.max(
           0,
-          Math.min(5, (params.legendExtrudeMm ?? 0.45) + extrusionLevel * (params.stepHeight ?? 0.6)),
+          Math.min(5, (params.legendExtrudeMm ?? 0) + extrusionLevel * (params.stepHeight ?? 0.6)),
         );
         if (requestedExtrude > 0.001) {
           legend = ctx.track(wasm.Manifold.extrude(glyph, requestedExtrude)
             .translate([0, 0, capTopZ + 0.04]));
         } else {
-          const recessDepth = Math.min(1.2, Math.max(0.45, desiredCapHeight * 0.12));
-          const recessTool = ctx.track(wasm.Manifold.extrude(glyph, recessDepth + 0.12)
-            .translate([0, 0, capTopZ - recessDepth - 0.02]));
-          capPart = ctx.track(capPart.subtract(recessTool));
-          legend = ctx.track(wasm.Manifold.extrude(glyph, 0.06)
-            .translate([0, 0, capTopZ - recessDepth]));
+          // A microscopic printable skin is centred on the cap top so the
+          // text is coplanar instead of recessed or visibly raised.
+          legend = ctx.track(wasm.Manifold.extrude(glyph, 0.04)
+            .translate([0, 0, capTopZ - 0.02]));
         }
         if (legend.isEmpty()) {
           warnings.push(`Letter ${index + 1} did not produce a printable legend.`);

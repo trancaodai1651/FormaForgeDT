@@ -232,7 +232,7 @@ export interface BlocksBuildParams {
   cornerRadiusMm: number;
   fontSize: number;
   legendBold: number;
-  /** Positive height raises text; zero uses the default recessed engraving. */
+  /** Positive height raises text; zero keeps the legend flush with the cap. */
   legendExtrudeMm?: number;
   /** Per-part extrusion levels controlled by the viewport Extrude tool. */
   componentHeights?: Record<string, number>;

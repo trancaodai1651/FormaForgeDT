@@ -16,15 +16,15 @@ export const store = createStore<UiState>({
   topThickness: 1.5,
   imageDepth: 0.8,
   flatKeychainThicknessMm: 3.2,
-  hybridImageSizeMm: 45,
+  hybridImageSizeMm: 50,
   hybridImageThicknessMm: 15,
   hybridImagePaddingMm: 1.2,
   hybridKeychainHeightMm: 3.2,
   // Keep the imported image flush with the image head by default. A positive
   // value is still available when a raised image relief is needed.
   hybridImageExtrudeMm: 0,
-  // Letters are engraved into the keycaps by default. Positive values raise
-  // the text above the cap surface.
+  // Letters sit flush with the keycap by default. Positive values raise the
+  // text above the cap surface.
   hybridTextExtrudeMm: 0,
   hybridBaseWidthMm: 30,
   hybridBaseEndPaddingMm: 15,
@@ -67,7 +67,7 @@ export const store = createStore<UiState>({
   extrudeChamfer: false,
   separateLetters: false,
   blockSlots: [{ kind: 'char', ch: 'N' }, { kind: 'char', ch: 'a' }, { kind: 'char', ch: 'm' }, { kind: 'char', ch: 'e' }],
-  blockOrientation: 'horizontal',
+  blockOrientation: 'vertical',
   legendScale: 1,
   legendBold: 0,
   // The reference generator seats the cap without an extra custom gap.
