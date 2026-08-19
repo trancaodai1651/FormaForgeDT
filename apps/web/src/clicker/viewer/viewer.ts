@@ -166,6 +166,34 @@ export function createViewer(container: HTMLElement): Viewer {
     mesh.renderOrder = -2;
     group.add(mesh);
 
+    // The reference plate is not a blank translucent square: its usable area
+    // has a visible 10 mm texture grid. Keep it as a separate render layer so
+    // the model still occludes the plate cleanly while orbiting.
+    const plateGridPositions: number[] = [];
+    const pushPlateGridLine = (x1: number, y1: number, x2: number, y2: number) => {
+      plateGridPositions.push(x1, y1, z + 0.66, x2, y2, z + 0.66);
+    };
+    const gridStep = 10;
+    for (let x = -width / 2 + gridStep; x < width / 2 - 0.01; x += gridStep) {
+      pushPlateGridLine(x, -depth / 2, x, depth / 2);
+    }
+    for (let y = -depth / 2 + gridStep; y < depth / 2 - 0.01; y += gridStep) {
+      pushPlateGridLine(-width / 2, y, width / 2, y);
+    }
+    const plateGridGeometry = new THREE.BufferGeometry();
+    plateGridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(plateGridPositions, 3));
+    const plateGrid = new THREE.LineSegments(
+      plateGridGeometry,
+      new THREE.LineBasicMaterial({
+        color: theme === 'dark' ? 0x687282 : 0x9aa3b2,
+        transparent: true,
+        opacity: theme === 'dark' ? 0.3 : 0.42,
+        depthTest: false,
+      }),
+    );
+    plateGrid.renderOrder = -1.25;
+    group.add(plateGrid);
+
     const edge = new THREE.LineSegments(
       new THREE.EdgesGeometry(geometry),
       new THREE.LineBasicMaterial({

@@ -1659,6 +1659,69 @@ button.fil-chip:active {
   box-shadow: 0 1px 6px rgba(91, 157, 255, 0.35);
 }
 
+/* Reference-style build plate picker. It stays attached to the viewport so
+   the selected printer plate is discoverable even when the settings sidebar
+   is scrolled down to Image + Blocks controls. */
+.plate-picker {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 20;
+  width: min(260px, calc(100% - 32px));
+  pointer-events: auto;
+}
+.plate-picker-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  color: var(--text);
+  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 12px;
+  text-align: left;
+}
+.plate-picker-icon { color: var(--muted); font-size: 14px; }
+.plate-picker-button #platePickerLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plate-picker-caret { color: var(--muted); font-size: 14px; line-height: 1; }
+.plate-picker-menu {
+  display: grid;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  box-shadow: 0 14px 32px rgba(0,0,0,.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.plate-picker-menu[hidden] { display: none; }
+.plate-picker-option {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.plate-picker-option:hover,
+.plate-picker-option.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.plate-picker-option-name { font-size: 12px; font-weight: 600; }
+.plate-picker-option-details { color: var(--muted); font-size: 10px; line-height: 1.35; }
+
 /* ===== Separate-letters toggle (text mode, floating under the mode bar) ===== */
 .letters-toggle {
   position: absolute;

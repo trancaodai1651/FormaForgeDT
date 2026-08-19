@@ -224,16 +224,15 @@ export function buildHybridClicker(
     y: vertical ? -badgeDepth / 2 - headPadding - index * pitch : 0,
   }));
   const shiftedPlacements = localPlacements;
-  // Match the deep switch well used by the Image builder.  The old 1.8 mm
-  // limit only skimmed the carrier's top and left the keycap pocket looking
-  // like a shallow tray around the MX housing.  Keep a printable floor while
-  // allowing the pocket to descend through the full carrier wall.
-  const pocketFloorMargin = Math.max(1.2, Math.min(2.0, baseThickness * 0.2));
-  const pocketTotalDepth = Math.max(
-    4,
-    Math.min(10, baseThickness + baseWallHeight - pocketFloorMargin),
+  // Match the reference/Image construction: the keycap recess is a broad,
+  // shallow top pocket, while the smaller MX socket continues down through
+  // its floor. The previous implementation made the broad pocket itself
+  // deep, which turned each block into a large open cavity.
+  const keycapPocketDepth = Math.min(
+    1.6,
+    Math.max(0.8, baseThickness + baseWallHeight - 0.8),
   );
-  const pocketDepth = Math.max(0.8, pocketTotalDepth - baseWallHeight);
+  const keycapPocketFloorZ = baseWallHeight - keycapPocketDepth;
   for (const placement of shiftedPlacements) {
     // Match the selected keycap footprint: rounded caps get rounded sockets,
     // while square caps receive a real square cutout instead of a rounded one.
@@ -241,14 +240,21 @@ export function buildHybridClicker(
       ? wasm.CrossSection.square([pocketSize, pocketSize], true)
       : roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4)))
       .translate([placement.x, placement.y]);
-    const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + baseWallHeight + 0.4)
-      .translate([0, 0, -pocketDepth]));
+    const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, keycapPocketDepth + 0.4)
+      .translate([0, 0, keycapPocketFloorZ]));
     carrier = ctx.track(carrier.subtract(pocket));
     try {
       const rotatedSocket = placement.rotation
         ? ctx.track(socket.rotate([0, 0, placement.rotation]))
         : socket;
-      carrier = ctx.track(carrier.subtract(ctx.track(rotatedSocket.translate([placement.x, placement.y, 0]))));
+      // The normalized socket has its top at Z=0. Align that top with the
+      // floor of the broad keycap pocket so the smaller cutout opens cleanly
+      // into the shallow recess and remains deep enough for the switch.
+      carrier = ctx.track(carrier.subtract(ctx.track(rotatedSocket.translate([
+        placement.x,
+        placement.y,
+        keycapPocketFloorZ,
+      ]))));
     } catch {
       warnings.push('A socket used the simplified pocket because its source cutout could not be applied.');
     }
