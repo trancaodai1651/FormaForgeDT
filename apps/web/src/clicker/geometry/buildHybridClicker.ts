@@ -235,12 +235,15 @@ export function buildHybridClicker(
     Math.max(1.2, (blockParams.moduleThicknessMm ?? 18) * 0.12),
   );
   const keycapPocketFloorZ = baseWallHeight - keycapPocketDepth;
+  const switchTopClearance = 0.8;
   const shiftedPlacements = localPlacements.map((placement) => ({
     ...placement,
     // The switch asset is normalized by its seating plane, not by its top.
     // Pass the desired visible top separately so the viewer can subtract the
-    // real switch height instead of placing the whole switch above the base.
-    topZ: keycapPocketFloorZ - 0.8,
+    // real switch height. The top follows the carrier surface, while the
+    // lower housing remains seated in the smaller MX socket below the broad
+    // keycap pocket. This prevents a taller cover from burying the switch.
+    topZ: baseWallHeight - switchTopClearance,
   }));
   for (const placement of shiftedPlacements) {
     // Match the selected keycap footprint: rounded caps get rounded sockets,
