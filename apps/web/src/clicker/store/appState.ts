@@ -79,7 +79,7 @@ export const store = createStore<UiState>({
   blockBaseCornerRadiusMm: 3,
   blockKeycapHeightMm: 7,
   blockKeycapCornerRadiusMm: 2.8,
-  blockKeycapShape: 'square',
+  blockKeycapShape: 'rounded',
   blockKeycapMount: 'above',
   blockKeycapProfile: 'standard',
   blockKeycapUnit: 1,

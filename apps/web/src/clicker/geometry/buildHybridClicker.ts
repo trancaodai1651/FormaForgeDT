@@ -226,9 +226,9 @@ export function buildHybridClicker(
   const shiftedPlacements = localPlacements;
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
   for (const placement of shiftedPlacements) {
-    // Match the square keycap footprint. The socket is intentionally square
-    // too, so the cap does not sit on an extra rounded perimeter or lip.
-    const pocketProfile = ctx.track(wasm.CrossSection.square([pocketSize, pocketSize], true)
+    // Match the default rounded keycap footprint. Keep the socket corners
+    // rounded as well, so the cap seats inside the base without square cuts.
+    const pocketProfile = ctx.track(roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4))
       .translate([placement.x, placement.y]));
     const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + baseWallHeight + 0.4)
       .translate([0, 0, -pocketDepth]));
