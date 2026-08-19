@@ -109,6 +109,8 @@ export interface SwitchPlacement {
   x: number;
   y: number;
   rotation: number;
+  /** Optional local Z seat used by composite builders with a separate carrier. */
+  seatZ?: number;
 }
 
 /** Keychain attachment settings. */

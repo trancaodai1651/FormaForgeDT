@@ -223,16 +223,22 @@ export function buildHybridClicker(
     x: vertical ? 0 : badgeWidth / 2 + headPadding + index * pitch,
     y: vertical ? -badgeDepth / 2 - headPadding - index * pitch : 0,
   }));
-  const shiftedPlacements = localPlacements;
   // Match the reference/Image construction: the keycap recess is a broad,
-  // shallow top pocket, while the smaller MX socket continues down through
-  // its floor. The previous implementation made the broad pocket itself
-  // deep, which turned each block into a large open cavity.
+  // rounded top pocket, while the smaller MX socket continues down through
+  // its floor. Keep the broad pocket slightly deeper than the old Image +
+  // Blocks cut so the switch housing can actually nest into the opening.
   const keycapPocketDepth = Math.min(
-    1.6,
-    Math.max(0.8, baseThickness + baseWallHeight - 0.8),
+    2.4,
+    Math.max(1.2, (blockParams.moduleThicknessMm ?? 18) * 0.12),
   );
   const keycapPocketFloorZ = baseWallHeight - keycapPocketDepth;
+  const shiftedPlacements = localPlacements.map((placement) => ({
+    ...placement,
+    // The asset is normalized with its top at Z=0. Leave a small seating
+    // recess under the pocket floor so the preview switch is inside the
+    // smaller socket instead of hovering above the carrier.
+    seatZ: keycapPocketFloorZ - 0.8,
+  }));
   for (const placement of shiftedPlacements) {
     // Match the selected keycap footprint: rounded caps get rounded sockets,
     // while square caps receive a real square cutout instead of a rounded one.

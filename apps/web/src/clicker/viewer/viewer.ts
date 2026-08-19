@@ -311,7 +311,17 @@ export function createViewer(container: HTMLElement): Viewer {
       switchSeatZ = 0;
       return;
     }
-    const bodyBounds = new THREE.Box3().setFromObject(bodyGroup);
+    // Measure the body in the root's local coordinates. setFromObject() also
+    // includes root.position, which is the camera-centering offset and caused
+    // the preview switch to receive that offset a second time.
+    const bodyBounds = new THREE.Box3();
+    for (const child of bodyGroup.children) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      child.geometry.computeBoundingBox();
+      if (!child.geometry.boundingBox) continue;
+      const childBounds = child.geometry.boundingBox.clone().applyMatrix4(child.matrix);
+      bodyBounds.union(childBounds);
+    }
     switchSeatZ = bodyBounds.isEmpty()
       ? 0
       : bodyBounds.max.z - switchBounds.max.z - switchRecessMm;
@@ -421,7 +431,9 @@ export function createViewer(container: HTMLElement): Viewer {
     }
     // Keep switches seated under the caps in assembled mode. In exploded
     // mode lift the full-height MX mesh clear of the base underside as well.
-    switchGroup.position.z = switchSeatZ + (viewMode === 'exploded' ? switchExplodedLift : 0);
+    const hasExplicitSeat = switchPlacements.some((placement) => Number.isFinite(placement.seatZ));
+    switchGroup.position.z = switchSeatZ
+      + (viewMode === 'exploded' && !hasExplicitSeat ? switchExplodedLift : 0);
     const section = viewMode === 'section';
     if (section) updateClipPlane();
     for (const m of materials) (m as THREE.MeshStandardMaterial).clippingPlanes = section ? [clipPlane] : [];
@@ -488,7 +500,10 @@ export function createViewer(container: HTMLElement): Viewer {
 
   function setSwitchPlacements(placements: SwitchPlacement[]) {
     switchPlacements = placements.length ? placements : [{ x: 0, y: 0, rotation: 0 }];
+    const explicitSeat = switchPlacements.find((placement) => Number.isFinite(placement.seatZ))?.seatZ;
+    if (Number.isFinite(explicitSeat)) switchSeatZ = explicitSeat as number;
     rebuildSwitchMeshes();
+    applyView();
   }
 
   function setPlate(id: PlateId) {
