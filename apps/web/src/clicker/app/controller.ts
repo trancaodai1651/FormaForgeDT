@@ -65,6 +65,15 @@ export function bootstrapApp() {
   }
 
   async function loadDefaultClicker() {
+    // Wait for the first bundled sample before using the serialized preview.
+    // This prevents the old preview from flashing as the default product.
+    const sampleLoaded = await defaultSamplePromise;
+    if (sampleLoaded && model.appData.originalImage) {
+      model.appData.defaultClickerLoaded = true;
+      model.appData.isInitialLoad = false;
+      reprocess();
+      return;
+    }
     try {
       model.store.set({ status: 'Loading default...' });
       const response = await fetch(base + 'default-clicker.json');
@@ -84,6 +93,11 @@ export function bootstrapApp() {
     }
   }
 
+  const defaultSamplePromise = SAMPLES[0].load().then((img) => {
+    model.appData.originalImage = img;
+    return true;
+  }).catch(() => false);
+
   setupEngine(viewer, initAssets, loadDefaultClicker);
   const history = setupHistoryShortcuts(rebuild);
 
@@ -95,10 +109,6 @@ export function bootstrapApp() {
     history
   );
 
-  SAMPLES[0].load().then((img) => {
-    model.appData.originalImage = img;
-    if (model.appData.assetsReady && !model.appData.defaultClickerLoaded) reprocess();
-  });
 }
 
 

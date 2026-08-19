@@ -19,8 +19,8 @@ function imageSample(file: string, name: string): SampleInfo {
 }
 
 export const SAMPLES: SampleInfo[] = [
+  imageSample('paw.png', 'PAW'),
   imageSample('heart.png', 'Heart'),
-  imageSample('paw.png', 'Paw'),
   imageSample('dog.png', 'Dog'),
   imageSample('cheese.png', 'Cheese'),
   imageSample('radiation.png', 'Radiation'),

@@ -61,6 +61,21 @@ export function bounds(rings: Ring[]) {
   return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY };
 }
 
+function keycapFootprint(keycap: KeycapAsset): number {
+  const topExtent = Math.max(...(keycap.meta.topExtent ?? []));
+  if (Number.isFinite(topExtent) && topExtent > 1) return topExtent;
+  const positions = keycap.shell.positions;
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+  for (let index = 0; index + 2 < positions.length; index += 3) {
+    minX = Math.min(minX, positions[index]);
+    minY = Math.min(minY, positions[index + 1]);
+    maxX = Math.max(maxX, positions[index]);
+    maxY = Math.max(maxY, positions[index + 1]);
+  }
+  const size = Math.max(maxX - minX, maxY - minY);
+  return Number.isFinite(size) && size > 1 ? size : 15.2;
+}
+
 function rotateMask(mask: number, quarterTurns: number): number {
   let result = mask;
   for (let i = 0; i < ((quarterTurns % 4) + 4) % 4; i++) {
@@ -797,6 +812,9 @@ export function buildBlocks(
   const commonFloor = params.flatBottom === false
     ? Math.min(...selectedForBuild.map(({ selected }) => selected.solid.boundingBox().min[2]))
     : Math.max(...selectedForBuild.map(({ selected }) => selected.solid.boundingBox().min[2]));
+  const pocketSize = Math.max(16, keycapFootprint(keycap) + 4);
+  const pocketRadius = Math.min(3, pocketSize / 4);
+  const pocketDepth = Math.min(2.4, Math.max(1.2, (params.moduleThicknessMm ?? 18) * 0.12));
   const blockSolids: any[] = [];
   for (const { selected, position } of selectedForBuild) {
     // Use the web's prepared connector module directly. Its underside and MX
@@ -812,7 +830,14 @@ export function buildBlocks(
       params.vertical,
     );
     blockSolids.push(block);
-    parts.push(toPart(block, position, 'body', 'base', bodyColor, `block-${blockSolids.length - 1}`));
+    const blockTop = block.boundingBox().max[2];
+    const pocketProfile = ctx.track(params.keycapShape === 'square'
+      ? wasm.CrossSection.square([pocketSize, pocketSize], true)
+      : roundedRect(ctx, pocketSize, pocketSize, pocketRadius));
+    const pocket = ctx.track(wasm.Manifold.extrude(pocketProfile, pocketDepth + 0.4)
+      .translate([0, 0, blockTop - pocketDepth]));
+    const blockWithPocket = ctx.track(block.subtract(pocket));
+    parts.push(toPart(blockWithPocket, position, 'body', 'base', bodyColor, `block-${blockSolids.length - 1}`));
     switchPlacements.push({ x: position[0], y: position[1], rotation: selected.rot });
   }
 
