@@ -104,6 +104,7 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
   // islands along every palette boundary. Those islands become separate solids in
   // the 3MF and are exactly what slicers render as acne/white rays. The contours
   // below already provide the controlled geometric smoothing.
+  const K = palette.length;
   const label = new Int16Array(indices);
 
   // Minimum-feature absorption: instead of tracing (and later dropping) tiny color
