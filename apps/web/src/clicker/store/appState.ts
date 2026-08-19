@@ -76,7 +76,6 @@ export const store = createStore<UiState>({
   blockModuleSideThicknessMm: 0,
   blockBaseCornerRadiusMm: 3,
   blockKeycapHeightMm: 7,
-  blockKeycapThicknessMm: 2,
   blockKeycapCornerRadiusMm: 2.8,
   blockKeycapShape: 'rounded',
   blockKeycapMount: 'above',

@@ -24,7 +24,7 @@ export interface UiState {
   blockBaseHeightMm: number; blockBaseCornerRadiusMm: number;
   blockModuleThicknessMm: number;
   blockModuleSideThicknessMm: number;
-  blockKeycapHeightMm: number; blockKeycapThicknessMm: number; blockKeycapCornerRadiusMm: number;
+  blockKeycapHeightMm: number; blockKeycapCornerRadiusMm: number;
   blockKeycapShape: 'rounded' | 'square';
   blockKeycapMount: 'above' | 'recessed';
   blockKeycapProfile: 'standard' | 'low' | 'thocky' | 'choc-v1';
@@ -61,7 +61,7 @@ export interface UiCallbacks {
   onLegendScale(scale: number): void; onLegendBold(bold: number): void;
   onBlockKeycapGap(value: number): void; onBlockFlatBottom(value: boolean): void;
   onBlockBaseHeight(value: number): void; onBlockBaseCornerRadius(value: number): void;
-  onBlockKeycapHeight(value: number): void; onBlockKeycapThickness(value: number): void; onBlockKeycapCornerRadius(value: number): void;
+  onBlockKeycapHeight(value: number): void; onBlockKeycapCornerRadius(value: number): void;
   onBlockKeycapShape(shape: 'rounded' | 'square'): void;
   onBlockKeycapMount(mount: 'above' | 'recessed'): void;
   onBlockKeycapProfile(profile: 'standard' | 'low' | 'thocky' | 'choc-v1'): void;

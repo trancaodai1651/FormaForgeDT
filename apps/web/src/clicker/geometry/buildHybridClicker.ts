@@ -273,11 +273,9 @@ export function buildHybridClicker(
   const mergedBody = ctx.track(badgeBody.add(carrier));
   const imageHeadTop = imageTopZ;
   // The imported image is the flat-keychain plate in Image + Blocks mode.
-  // Keep the plate itself flat and switch-free. Image colour layers are
-  // installed as flush inlays: their top face stays on the badge plane while
-  // the extrusion value controls their printable depth into the plate. This
-  // keeps the image in the same layer as the head instead of making it look
-  // like a second raised keycap.
+  // Keep the plate itself flat and switch-free. Image colour layers start at
+  // the badge top plane; the image Extrude control grows them upward from
+  // that plane, so the setting produces a visible printable relief.
   const imageTopScale = 1;
   const imageTop = imageHeadTop;
 
@@ -325,9 +323,8 @@ export function buildHybridClicker(
         6,
         0.9,
       );
-      const imageFaceOffset = 0.04;
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageExtrude)
-        .translate([0, 0, imageTop + imageFaceOffset - imageExtrude]));
+        .translate([0, 0, imageTop - 0.02]));
       if (!layer.isEmpty()) {
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
         placedImage2D = placedImage2D

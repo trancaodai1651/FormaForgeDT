@@ -133,7 +133,6 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockModuleSideThickness: (value) => { store.set({ blockModuleSideThicknessMm: Math.max(0, Math.min(33, value)) }); debouncedRebuild(); },
     onBlockBaseCornerRadius: (value) => { store.set({ blockBaseCornerRadiusMm: Math.max(0.5, Math.min(8, value)) }); debouncedRebuild(); },
     onBlockKeycapHeight: (value) => { store.set({ blockKeycapHeightMm: Math.max(6, Math.min(18, value)) }); debouncedRebuild(); },
-    onBlockKeycapThickness: (value) => { store.set({ blockKeycapThicknessMm: Math.max(0.8, Math.min(4, value)) }); debouncedRebuild(); },
     onBlockKeycapCornerRadius: (value) => { store.set({ blockKeycapCornerRadiusMm: Math.max(0.8, Math.min(7, value)) }); debouncedRebuild(); },
     onBlockKeycapShape: (shape) => { store.set({ blockKeycapShape: shape }); debouncedRebuild(); },
     onBlockKeycapMount: (mount) => { store.set({ blockKeycapMount: mount }); debouncedRebuild(); },

@@ -27,7 +27,6 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('blockModuleSideThickness')?.addEventListener('input', (e: Event) => cb.onBlockModuleSideThickness(+(e.target as HTMLInputElement).value));
   $('blockBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onBlockBaseCornerRadius(+(e.target as HTMLInputElement).value));
   $('blockKeycapHeight')?.addEventListener('input', (e: Event) => cb.onBlockKeycapHeight(+(e.target as HTMLInputElement).value));
-  $('blockKeycapThickness')?.addEventListener('input', (e: Event) => cb.onBlockKeycapThickness(+(e.target as HTMLInputElement).value));
   $('blockKeycapCornerRadius')?.addEventListener('input', (e: Event) => cb.onBlockKeycapCornerRadius(+(e.target as HTMLInputElement).value));
   $('blockKeycapShape')?.addEventListener('click', (e: MouseEvent) => {
     const target = (e.target as HTMLElement).closest('[data-keycap-shape]') as HTMLElement | null;

@@ -114,8 +114,6 @@ export function createUi(
     setVal('blockBaseCornerRadiusVal', `${state.blockBaseCornerRadiusMm.toFixed(2)} mm`);
     if ($('blockKeycapHeight')) $<HTMLInputElement>('blockKeycapHeight').value = String(state.blockKeycapHeightMm);
     setVal('blockKeycapHeightVal', `${state.blockKeycapHeightMm.toFixed(1)} mm`);
-    if ($('blockKeycapThickness')) $<HTMLInputElement>('blockKeycapThickness').value = String(state.blockKeycapThicknessMm);
-    setVal('blockKeycapThicknessVal', `${state.blockKeycapThicknessMm.toFixed(1)} mm`);
     if ($('blockKeycapCornerRadius')) $<HTMLInputElement>('blockKeycapCornerRadius').value = String(state.blockKeycapCornerRadiusMm);
     setVal('blockKeycapCornerRadiusVal', `${state.blockKeycapCornerRadiusMm.toFixed(1)} mm`);
     if ($('hybridImageSize')) $<HTMLInputElement>('hybridImageSize').value = String(state.hybridImageSizeMm);

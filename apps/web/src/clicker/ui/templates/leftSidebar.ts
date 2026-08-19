@@ -194,10 +194,6 @@ export const renderLeftSidebar = () => `
       <input type="range" id="blockKeycapHeight" min="6" max="18" step="0.2" />
     </div>
     <div class="prow-stacked">
-      <div class="prow-header"><label for="blockKeycapThickness">${tx('Keycap lip thickness', 'Độ dày viền keycap')}</label><input type="text" class="val" id="blockKeycapThicknessVal" /></div>
-      <input type="range" id="blockKeycapThickness" min="0.8" max="4" step="0.1" />
-    </div>
-    <div class="prow-stacked">
       <div class="prow-header"><label for="blockKeycapCornerRadius">${tx('Keycap corner radius', 'Bán kính bo góc keycap')}</label><input type="text" class="val" id="blockKeycapCornerRadiusVal" /></div>
       <input type="range" id="blockKeycapCornerRadius" min="0.8" max="7" step="0.2" />
     </div>
