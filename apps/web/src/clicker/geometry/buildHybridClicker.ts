@@ -55,7 +55,6 @@ function partSlotIndex(name: string): number | null {
 
 function keycapFootprint(keycap: KeycapAsset): number {
   const visibleTop = Math.max(...(keycap.meta.topExtent ?? []));
-  if (Number.isFinite(visibleTop) && visibleTop > 1) return visibleTop;
   const positions = keycap.shell.positions;
   let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
   for (let index = 0; index + 2 < positions.length; index += 3) {
@@ -65,7 +64,11 @@ function keycapFootprint(keycap: KeycapAsset): number {
     maxY = Math.max(maxY, positions[index + 1]);
   }
   const size = Math.max(maxX - minX, maxY - minY);
-  return Number.isFinite(size) && size > 1 ? size : 18;
+  // topExtent describes only the printable top surface. Spacing must use the
+  // complete shell footprint, otherwise a 0 mm setting still leaves the
+  // lower shell edges visibly separated from their neighbours.
+  const shellSize = Number.isFinite(size) && size > 1 ? size : 18;
+  return Math.max(Number.isFinite(visibleTop) && visibleTop > 1 ? visibleTop : 0, shellSize);
 }
 
 function buildImageProfile(
