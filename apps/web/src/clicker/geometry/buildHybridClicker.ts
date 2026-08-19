@@ -254,7 +254,9 @@ export function buildHybridClicker(
       ? [0, badgeDepth / 2 + tabLength / 2 - tabOverlap]
       : [-badgeWidth / 2 - tabLength / 2 + tabOverlap, 0];
     const keychainHeight = Math.min(imageThickness, clamp(params.hybridKeychainHeightMm, 1, 15, 3.2));
-    const keychainBottomZ = imageTopZ - keychainHeight;
+    // The loop is a separate, shorter part. Seat it on the bottom plane so it
+    // stays below the image plate instead of rising flush with the image top.
+    const keychainBottomZ = -baseThickness;
     const tabProfile = ctx.track(roundedRect(ctx, tabWidth, tabLength, Math.min(tabWidth, tabLength) / 2)
       .translate(tabCenter));
     const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, keychainHeight)
@@ -303,10 +305,20 @@ export function buildHybridClicker(
       const topLayer = imageTopScale === 1
         ? section
         : ctx.track(section.scale([imageTopScale, imageTopScale]));
-      const imageExtrude = clamp(params.hybridImageExtrudeMm, 0.2, 6, 0.9);
+      const imagePartName = `hybrid-image-${index}`;
+      const extrusionLevel = params.componentHeights?.[imagePartName]
+        ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
+        ?? 0;
+      const imageExtrude = clamp(
+        clamp(params.hybridImageExtrudeMm, 0.2, 6, 0.9)
+          + extrusionLevel * (params.stepHeight ?? 0.6),
+        0.15,
+        6,
+        0.9,
+      );
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageExtrude).translate([0, 0, imageTop - 0.05]));
       if (!sectionIsEmpty(section) && !layer.isEmpty()) {
-        parts.push(toPart(layer, 'body', 'base', region.filamentRgb, `hybrid-image-${index}`));
+        parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
       }
     } catch {
       warnings.push(`Image region ${index + 1} could not be printed.`);

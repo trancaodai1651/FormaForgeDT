@@ -252,6 +252,8 @@ export function rebuild(quiet = false) {
           fontSize: 15 * s.legendScale,
           legendBold: s.legendBold,
           legendExtrudeMm: s.hybridTextExtrudeMm,
+          componentHeights: s.componentHeights,
+          stepHeight: 0.6,
           vertical: s.blockOrientation === 'vertical',
           glyphs: appData.regionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),
@@ -298,6 +300,8 @@ export function rebuild(quiet = false) {
           fontSize: 15 * s.legendScale,
           legendBold: s.legendBold,
           legendExtrudeMm: s.hybridTextExtrudeMm,
+          componentHeights: s.componentHeights,
+          stepHeight: 0.6,
           vertical: s.blockOrientation === 'vertical',
           glyphs: blockRegionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),

@@ -903,7 +903,12 @@ export function buildBlocks(
         // Legends are separate printable solids. Keep the cap intact and put
         // the letter above its top face; intersecting it with the cap created
         // an engraving, so the old "extrude" option could never look raised.
-        const raisedHeight = Math.max(0.15, Math.min(5, params.legendExtrudeMm ?? 0.45));
+        const legendPartName = entry.glyph.partName ?? `top-color-${index}-0`;
+        const extrusionLevel = params.componentHeights?.[legendPartName] ?? 0;
+        const raisedHeight = Math.max(
+          0.15,
+          Math.min(5, (params.legendExtrudeMm ?? 0.45) + extrusionLevel * (params.stepHeight ?? 0.6)),
+        );
         legend = ctx.track(wasm.Manifold.extrude(glyph, raisedHeight)
           .translate([0, 0, capTopZ + 0.04]));
         if (legend.isEmpty()) {

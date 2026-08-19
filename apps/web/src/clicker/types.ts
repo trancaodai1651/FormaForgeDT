@@ -234,6 +234,10 @@ export interface BlocksBuildParams {
   legendBold: number;
   /** Raised height of the printable text legend. */
   legendExtrudeMm?: number;
+  /** Per-part extrusion levels controlled by the viewport Extrude tool. */
+  componentHeights?: Record<string, number>;
+  /** Millimetres added for each extrusion level. */
+  stepHeight?: number;
   vertical: boolean;
   glyphs: BlockGlyph[];
   bodyColorRgb?: RGB;
