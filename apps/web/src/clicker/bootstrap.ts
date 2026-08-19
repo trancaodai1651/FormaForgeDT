@@ -2,6 +2,7 @@
 import { bootstrapFlexKeychain } from './features/flexKeychain/controller';
 import { bootstrapFlexOrganizer } from './features/flexOrganizer/controller';
 import { getClickerDocument, resetClickerRoot, setClickerRoot } from './runtime';
+import { setClickerLanguage, type ClickerLanguage } from './i18n';
 
 export type ClickerMode = 'clicker' | 'flex-keychain' | 'flex-organizer';
 
@@ -15,7 +16,8 @@ function renderClickerShell() {
   </section>`;
 }
 
-export function bootstrapClickerWorkspace(root: HTMLElement, mode: ClickerMode = 'clicker') {
+export function bootstrapClickerWorkspace(root: HTMLElement, mode: ClickerMode = 'clicker', language: ClickerLanguage = 'en') {
+  setClickerLanguage(language);
   setClickerRoot(root);
   root.innerHTML = '';
   getClickerDocument().documentElement.dataset.embed = 'formaforge';

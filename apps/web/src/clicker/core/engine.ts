@@ -210,6 +210,7 @@ export function rebuild(quiet = false) {
     hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
     hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,
     hybridNeckLengthMm: s.hybridNeckLengthMm, hybridNeckWidthMm: s.hybridNeckWidthMm,
+    hybridKeycapSpacingMm: s.hybridKeycapSpacingMm,
     imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,

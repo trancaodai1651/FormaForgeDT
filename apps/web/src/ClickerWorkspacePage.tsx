@@ -4,6 +4,7 @@ import { bootstrapClickerWorkspace, unmountClickerWorkspace } from './clicker/bo
 import clickerStyle from './clicker/style.css?inline';
 import flexKeychainStyle from './clicker/features/flexKeychain/styles.css?inline';
 import flexOrganizerStyle from './clicker/features/flexOrganizer/styles.css?inline';
+import type { ClickerLanguage } from './clicker/i18n';
 
 type ClickerWorkspaceLabels = {
   clicker: string;
@@ -44,7 +45,7 @@ const runtimeOverrides = `
 .only-light { display: none !important; }
 `;
 
-function ClickerRuntime({ mode }: { mode: ClickerMode }) {
+function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: ClickerLanguage }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,7 +60,7 @@ function ClickerRuntime({ mode }: { mode: ClickerMode }) {
     shadow.append(style, surface);
     let controller: { destroy?: () => void } | void;
     try {
-      controller = bootstrapClickerWorkspace(surface, mode) as { destroy?: () => void } | void;
+      controller = bootstrapClickerWorkspace(surface, mode, language) as { destroy?: () => void } | void;
     } catch (error) {
       surface.textContent = error instanceof Error ? error.message : String(error);
     }
@@ -68,13 +69,13 @@ function ClickerRuntime({ mode }: { mode: ClickerMode }) {
       unmountClickerWorkspace(surface);
       shadow.replaceChildren();
     };
-  }, [mode]);
+  }, [mode, language]);
 
   return <div className="clicker-runtime" ref={hostRef} />;
 }
 
-export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean }) {
+export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true, language = 'en' }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean; language?: ClickerLanguage }) {
   const [mode, setMode] = useState<ClickerMode>(initialMode);
   const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer]];
-  return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={mode} mode={mode} /></div>;
+  return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={`${mode}-${language}`} mode={mode} language={language} /></div>;
 }

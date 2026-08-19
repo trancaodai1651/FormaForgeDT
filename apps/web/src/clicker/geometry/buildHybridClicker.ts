@@ -48,6 +48,11 @@ function shiftPart(part: ClickerPart, dx: number, dy: number) {
   }
 }
 
+function partSlotIndex(name: string): number | null {
+  const match = /^(?:cap-|block-color-)(\d+)$/.exec(name);
+  return match ? Number(match[1]) : null;
+}
+
 function buildImageProfile(
   ctx: BuildContext,
   section: any,
@@ -126,9 +131,12 @@ export function buildHybridClicker(
   const bodyColor = blockParams.bodyColorRgb ?? params.bodyColorRgb ?? DEFAULT_BODY;
   const vertical = blockParams.vertical;
   const count = placements.length;
-  const pitch = Math.max(16, assets.pitch || assets.pitchMax || 19.05);
+  const sourcePitch = Math.max(16, assets.pitch || assets.pitchMax || 19.05);
   const imageSize = clamp(params.hybridImageSizeMm, 30, 140, 60);
   const baseWidth = clamp(params.hybridBaseWidthMm, 22, 60, 27);
+  const pocketSize = Math.max(18, Math.min(22, baseWidth - 3));
+  const keycapSpacing = clamp(params.hybridKeycapSpacingMm, 0, 15, 3);
+  const pitch = Math.max(sourcePitch, pocketSize) + keycapSpacing;
   const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 13);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 8);
   const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 4);
@@ -175,38 +183,34 @@ export function buildHybridClicker(
   let carrier = ctx.track(wasm.Manifold.extrude(carrierProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
 
-  // A long tapered rectangle bridges the image and the carrier. It overlaps
-  // both bodies, so the export remains one watertight printable component.
-  const imageHalf = Math.max(3, neckWidth * 0.36);
-  const baseHalf = neckWidth / 2;
-  const neckPoints: Ring = vertical
-    ? [
-      [-imageHalf, -badgeDepth / 2 + overlap],
-      [imageHalf, -badgeDepth / 2 + overlap],
-      [baseHalf, shiftY + carrierDepth / 2 - overlap],
-      [-baseHalf, shiftY + carrierDepth / 2 - overlap],
-    ]
-    : [
-      [badgeWidth / 2 - overlap, -imageHalf],
-      [shiftX - carrierWidth / 2 + overlap, -baseHalf],
-      [shiftX - carrierWidth / 2 + overlap, baseHalf],
-      [badgeWidth / 2 - overlap, imageHalf],
-    ];
-  let neckProfile = ctx.track(new wasm.CrossSection([neckPoints], 'NonZero'));
-  try {
-    const rounded = ctx.track(neckProfile.offset(Math.min(1.4, neckWidth * 0.07), 'Round', 2, 36));
-    if (!rounded.isEmpty()) neckProfile = rounded;
-  } catch {
-    // The raw tapered rectangle remains valid at the smallest neck size.
-  }
+  // The image base extends as one straight rounded rectangle into the socket
+  // carrier. Constant width removes the pointed corners created by the old
+  // trapezoid while the overlap at both ends keeps the union watertight.
+  const imageJoin = vertical ? -badgeDepth / 2 + overlap : badgeWidth / 2 - overlap;
+  const carrierJoin = vertical
+    ? shiftY + carrierDepth / 2 - overlap
+    : shiftX - carrierWidth / 2 + overlap;
+  const neckSpan = Math.max(2, Math.abs(carrierJoin - imageJoin));
+  const neckCenter = (carrierJoin + imageJoin) / 2;
+  const neckProfile = ctx.track(roundedRect(
+    ctx,
+    vertical ? neckWidth : neckSpan,
+    vertical ? neckSpan : neckWidth,
+    Math.min(2, neckWidth * 0.12),
+  ).translate(vertical ? [0, neckCenter] : [neckCenter, 0]));
   const neck = ctx.track(wasm.Manifold.extrude(neckProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
-  const shiftedPlacements = placements.map((placement) => ({
+  const middle = (count - 1) / 2;
+  const localPlacements = placements.map((placement, index) => ({
+    ...placement,
+    x: vertical ? 0 : (index - middle) * pitch,
+    y: vertical ? (middle - index) * pitch : 0,
+  }));
+  const shiftedPlacements = localPlacements.map((placement) => ({
     ...placement,
     x: placement.x + shiftX,
     y: placement.y + shiftY,
   }));
-  const pocketSize = Math.max(18, Math.min(22, baseWidth - 3));
   const pocketDepth = Math.min(1.8, Math.max(0.8, baseThickness - 1));
   for (const placement of shiftedPlacements) {
     const pocketProfile = ctx.track(roundedRect(ctx, pocketSize, pocketSize, Math.min(3, pocketSize / 4))
@@ -235,7 +239,12 @@ export function buildHybridClicker(
   const imageTop = imageHeadTop + deckHeight + profileHeight;
 
   const movableParts = blockResult.parts.filter((part) => !(part.kind === 'body' && part.group === 'base'));
-  for (const part of movableParts) shiftPart(part, shiftX, shiftY);
+  for (const part of movableParts) {
+    const slotIndex = partSlotIndex(part.name);
+    const original = slotIndex === null ? null : placements[slotIndex];
+    const target = slotIndex === null ? null : shiftedPlacements[slotIndex];
+    shiftPart(part, target && original ? target.x - original.x : shiftX, target && original ? target.y - original.y : shiftY);
+  }
   const parts: ClickerPart[] = [
     ...movableParts,
     toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'),

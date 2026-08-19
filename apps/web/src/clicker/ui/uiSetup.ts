@@ -141,6 +141,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base + 0.8, Math.min(24, value)) }); debouncedRebuild(); },
     onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(22, Math.min(60, value)) }); debouncedRebuild(); },
     onHybridBaseEndPadding: (value) => { store.set({ hybridBaseEndPaddingMm: Math.max(10, Math.min(35, value)) }); debouncedRebuild(); },
+    onHybridKeycapSpacing: (value) => { store.set({ hybridKeycapSpacingMm: Math.max(0, Math.min(15, value)) }); debouncedRebuild(); },
     onHybridBaseThickness: (value) => { const thickness = Math.max(5, Math.min(20, value)); store.set({ hybridBaseThicknessMm: thickness, hybridImageThicknessMm: Math.max(thickness + 0.8, store.get().hybridImageThicknessMm) }); debouncedRebuild(); },
     onHybridBaseCornerRadius: (value) => { store.set({ hybridBaseCornerRadiusMm: Math.max(1, Math.min(14, value)) }); debouncedRebuild(); },
     onHybridBaseWallHeight: (value) => { store.set({ hybridBaseWallHeightMm: Math.max(0, Math.min(8, value)) }); debouncedRebuild(); },

@@ -25,6 +25,7 @@ export const store = createStore<UiState>({
   hybridBaseWallHeightMm: 4,
   hybridNeckLengthMm: 18,
   hybridNeckWidthMm: 18,
+  hybridKeycapSpacingMm: 3,
   imageMargin: 1.2,
   borderWidth: 2.6,
   baseHeight: 12,

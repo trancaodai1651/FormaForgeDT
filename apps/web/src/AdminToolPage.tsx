@@ -4,9 +4,9 @@ import { ClickerWorkspacePage } from './ClickerWorkspacePage';
 import { useI18n } from './lib/i18n';
 
 function AdminToolContent({ mode }: { mode: ClickerMode }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   return <main className={`admin-native-workspace admin-native-workspace-${mode}`}>
-    <ClickerWorkspacePage initialMode={mode} showModeTabs={false} labels={{ clicker: t('admin.clicker'), flexKeychain: t('admin.clickerFlexKeychain'), flexOrganizer: t('admin.clickerFlexOrganizer') }} />
+    <ClickerWorkspacePage initialMode={mode} showModeTabs={false} language={language} labels={{ clicker: t('admin.clicker'), flexKeychain: t('admin.clickerFlexKeychain'), flexOrganizer: t('admin.clickerFlexOrganizer') }} />
   </main>;
 }
 
