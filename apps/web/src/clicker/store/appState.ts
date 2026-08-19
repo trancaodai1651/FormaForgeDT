@@ -18,6 +18,8 @@ export const store = createStore<UiState>({
   flatKeychainThicknessMm: 3.2,
   hybridImageSizeMm: 45,
   hybridImageThicknessMm: 15,
+  hybridImagePaddingMm: 1.2,
+  hybridKeychainHeightMm: 3.2,
   hybridImageExtrudeMm: 0.9,
   hybridTextExtrudeMm: 0.8,
   hybridBaseWidthMm: 30,

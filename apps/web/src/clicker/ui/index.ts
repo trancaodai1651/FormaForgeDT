@@ -122,6 +122,10 @@ export function createUi(
     setVal('hybridImageSizeVal', `${state.hybridImageSizeMm.toFixed(0)} mm`);
     if ($('hybridImageThickness')) $<HTMLInputElement>('hybridImageThickness').value = String(state.hybridImageThicknessMm);
     setVal('hybridImageThicknessVal', `${state.hybridImageThicknessMm.toFixed(1)} mm`);
+    if ($('hybridImagePadding')) $<HTMLInputElement>('hybridImagePadding').value = String(state.hybridImagePaddingMm);
+    setVal('hybridImagePaddingVal', `${state.hybridImagePaddingMm.toFixed(1)} mm`);
+    if ($('hybridKeychainHeight')) $<HTMLInputElement>('hybridKeychainHeight').value = String(state.hybridKeychainHeightMm);
+    setVal('hybridKeychainHeightVal', `${state.hybridKeychainHeightMm.toFixed(1)} mm`);
     if ($('hybridImageExtrude')) $<HTMLInputElement>('hybridImageExtrude').value = String(state.hybridImageExtrudeMm);
     setVal('hybridImageExtrudeVal', `${state.hybridImageExtrudeMm.toFixed(2)} mm`);
     if ($('hybridTextExtrude')) $<HTMLInputElement>('hybridTextExtrude').value = String(state.hybridTextExtrudeMm);

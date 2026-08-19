@@ -206,7 +206,8 @@ export function rebuild(quiet = false) {
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
     imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
-    hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm,
+    hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
+    hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm,
     hybridBaseWidthMm: s.hybridBaseWidthMm,
     hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
     hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,

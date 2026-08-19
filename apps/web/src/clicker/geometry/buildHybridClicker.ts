@@ -159,6 +159,8 @@ export function buildHybridClicker(
   const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
   const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 15));
+  const imagePadding = clamp(params.hybridImagePaddingMm, 0, 20, 1.2);
+  const imageTopZ = imageThickness - baseThickness;
   const headPadding = pocketSize / 2 + headLength;
   const tailPadding = Math.max(endPadding, pocketSize / 2 + 1.5);
   const carrierLength = Math.max(baseWidth, overlap + headPadding + (count - 1) * pitch + tailPadding);
@@ -185,8 +187,12 @@ export function buildHybridClicker(
   }
 
   const imageSection = ctx.track(new wasm.CrossSection(scaledOutline, 'NonZero'));
-  const imageMargin = Math.max(1.4, Math.min(4.5, params.borderWidth || 2.6));
-  const badgeSection = ctx.track(imageSection.offset(imageMargin, 'Round', 2, 48));
+  // Match Image mode's Flat keychain construction: the imported silhouette is
+  // inset from a separately adjustable outer plate instead of using the
+  // generic border-width setting from the regular clicker.
+  const badgeSection = imagePadding > 0.001
+    ? ctx.track(imageSection.offset(imagePadding, 'Round', 2, 48))
+    : imageSection;
   const badgeBounds = badgeSection.bounds();
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
@@ -247,21 +253,23 @@ export function buildHybridClicker(
     const tabCenter: [number, number] = vertical
       ? [0, badgeDepth / 2 + tabLength / 2 - tabOverlap]
       : [-badgeWidth / 2 - tabLength / 2 + tabOverlap, 0];
+    const keychainHeight = Math.min(imageThickness, clamp(params.hybridKeychainHeightMm, 1, 15, 3.2));
+    const keychainBottomZ = imageTopZ - keychainHeight;
     const tabProfile = ctx.track(roundedRect(ctx, tabWidth, tabLength, Math.min(tabWidth, tabLength) / 2)
       .translate(tabCenter));
-    const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, imageThickness)
-      .translate([0, 0, -baseThickness]));
+    const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, keychainHeight)
+      .translate([0, 0, keychainBottomZ]));
     const holeCenter: [number, number] = vertical
       ? [tabCenter[0], tabCenter[1] + tabLength / 2 - holeDiameter / 2 - 1.4]
       : [tabCenter[0] - tabLength / 2 + holeDiameter / 2 + 1.4, tabCenter[1]];
     const holeProfile = ctx.track(wasm.CrossSection.circle(holeDiameter / 2, 48)
       .translate(holeCenter));
-    const hole = ctx.track(wasm.Manifold.extrude(holeProfile, imageThickness + 2)
-      .translate([0, 0, -baseThickness - 1]));
+    const hole = ctx.track(wasm.Manifold.extrude(holeProfile, keychainHeight + 2)
+      .translate([0, 0, keychainBottomZ - 1]));
     badgeBody = ctx.track(badgeBody.add(tabSolid).subtract(hole));
   }
   const mergedBody = ctx.track(badgeBody.add(carrier));
-  const imageHeadTop = imageThickness - baseThickness;
+  const imageHeadTop = imageTopZ;
   // The imported image is the flat-keychain plate in Image + Blocks mode.
   // Keep the plate itself flat and switch-free; only its colour layers receive
   // the separate image relief setting below. The top-profile controls belong

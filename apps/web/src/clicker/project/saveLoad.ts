@@ -33,7 +33,8 @@ export function saveProject() {
     settings: {
       colorCount: s.colorCount, baseShape: s.baseShape, capWidthMm: s.capWidthMm,
       topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
-      hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm, hybridTextExtrudeMm: s.hybridTextExtrudeMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
+      hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
+      hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm, hybridTextExtrudeMm: s.hybridTextExtrudeMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
       hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
       hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,
       hybridNeckLengthMm: s.hybridNeckLengthMm, hybridBaseImageOverlapMm: s.hybridBaseImageOverlapMm, hybridNeckWidthMm: s.hybridNeckWidthMm,
@@ -91,6 +92,8 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       flatKeychainThicknessMm: set.flatKeychainThicknessMm ?? store.get().flatKeychainThicknessMm,
       hybridImageSizeMm: set.hybridImageSizeMm ?? store.get().hybridImageSizeMm,
       hybridImageThicknessMm: set.hybridImageThicknessMm ?? store.get().hybridImageThicknessMm,
+      hybridImagePaddingMm: set.hybridImagePaddingMm ?? store.get().hybridImagePaddingMm,
+      hybridKeychainHeightMm: set.hybridKeychainHeightMm ?? store.get().hybridKeychainHeightMm,
       hybridImageExtrudeMm: set.hybridImageExtrudeMm ?? store.get().hybridImageExtrudeMm,
       hybridTextExtrudeMm: set.hybridTextExtrudeMm ?? store.get().hybridTextExtrudeMm,
       hybridBaseWidthMm: set.hybridBaseWidthMm ?? store.get().hybridBaseWidthMm,

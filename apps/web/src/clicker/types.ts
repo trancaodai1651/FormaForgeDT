@@ -127,6 +127,10 @@ export interface BuildParams {
   hybridImageSizeMm?: number;
   /** Total thickness of the imported-image head. It may match the carrier base. */
   hybridImageThicknessMm?: number;
+  /** Padding from the imported image silhouette to its flat keychain plate. */
+  hybridImagePaddingMm?: number;
+  /** Printable height of the optional keychain tab, independent of the image head. */
+  hybridKeychainHeightMm?: number;
   /** Raised height of imported image colour layers. */
   hybridImageExtrudeMm?: number;
   /** Cross-axis width of the continuous rounded carrier in Image + Blocks mode. */

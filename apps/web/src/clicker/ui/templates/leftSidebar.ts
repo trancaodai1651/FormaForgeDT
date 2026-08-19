@@ -134,6 +134,14 @@ export const renderLeftSidebar = () => `
         <input type="range" id="hybridImageThickness" min="4" max="24" step="0.5" />
       </div>
       <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridImagePadding">${tx('Image padding', 'Khoảng đệm hình ảnh')}</label><input type="text" class="val" id="hybridImagePaddingVal" /></div>
+        <input type="range" id="hybridImagePadding" min="0" max="20" step="0.1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridKeychainHeight">${tx('Keychain height', 'Chiều cao móc khóa')}</label><input type="text" class="val" id="hybridKeychainHeightVal" /></div>
+        <input type="range" id="hybridKeychainHeight" min="1" max="15" step="0.1" />
+      </div>
+      <div class="prow-stacked">
         <div class="prow-header"><label for="hybridImageExtrude">${tx('Image relief / extrude', 'Đùn nổi hình ảnh')}</label><input type="text" class="val" id="hybridImageExtrudeVal" /></div>
         <input type="range" id="hybridImageExtrude" min="0.2" max="6" step="0.1" />
       </div>
