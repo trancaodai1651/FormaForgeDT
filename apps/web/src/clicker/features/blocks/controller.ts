@@ -117,6 +117,17 @@ function makePartMesh(part: ClickerPart): THREE.Mesh {
   return mesh;
 }
 
+function maxBodyZ(parts: ClickerPart[]): number {
+  let maxZ = -Infinity;
+  for (const part of parts) {
+    if (part.kind !== 'body') continue;
+    for (let i = 2; i < part.vertProperties.length; i += part.numProp) {
+      maxZ = Math.max(maxZ, part.vertProperties[i]);
+    }
+  }
+  return Number.isFinite(maxZ) ? maxZ : 0;
+}
+
 export function createBlocksController(): BlocksController {
   const cfg: BlocksConfig = { ...DEFAULT_BLOCKS };
   let renderer: THREE.WebGLRenderer | null = null;
@@ -277,7 +288,12 @@ export function createBlocksController(): BlocksController {
       if (showSwitch) {
         placements.forEach((placement) => {
           const switchPreview = realSwitch ? makeRealSwitchPreview(realSwitch) : makeFallbackSwitchPreview();
-          switchPreview.position.set(placement.x, placement.y, exploded ? 13 : 0);
+          // Both the real and fallback previews have their seating face at
+          // local z=0. Sink their top just below the base's top plane so the
+          // switch is actually inside the socket instead of floating above it.
+          const switchBounds = new THREE.Box3().setFromObject(switchPreview);
+          const seatZ = maxBodyZ(builtParts) - switchBounds.max.z - 0.8;
+          switchPreview.position.set(placement.x, placement.y, seatZ);
           switchPreview.rotation.z = (placement.rotation * Math.PI) / 180;
           root.add(switchPreview);
         });

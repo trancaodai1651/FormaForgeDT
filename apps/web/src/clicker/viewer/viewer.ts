@@ -150,6 +150,11 @@ export function createViewer(container: HTMLElement): Viewer {
   // The switch mesh (shared across placements) and where to seat copies of it.
   let switchGeometry: THREE.BufferGeometry | null = null;
   let switchPlacements: SwitchPlacement[] = [{ x: 0, y: 0, rotation: 0 }];
+  // The imported MX asset is normalized with its seating face at z=0, but the
+  // printed base can have any height. Keep the switch inside that base instead
+  // of assuming z=0 is the socket plane.
+  let switchSeatZ = 0;
+  const switchRecessMm = 0.8;
   const switchExplodedLift = 6;
   let modularSplit = false;
   let modularVertical = false;
@@ -187,6 +192,23 @@ export function createViewer(container: HTMLElement): Viewer {
       }
     }
     placeholder = null;
+  }
+
+  function updateSwitchSeat() {
+    if (!switchGeometry || bodyGroup.children.length === 0) {
+      switchSeatZ = 0;
+      return;
+    }
+    switchGeometry.computeBoundingBox();
+    const switchBounds = switchGeometry.boundingBox;
+    if (!switchBounds) {
+      switchSeatZ = 0;
+      return;
+    }
+    const bodyBounds = new THREE.Box3().setFromObject(bodyGroup);
+    switchSeatZ = bodyBounds.isEmpty()
+      ? 0
+      : bodyBounds.max.z - switchBounds.max.z - switchRecessMm;
   }
 
   function clearGroup(g: THREE.Group) {
@@ -242,6 +264,7 @@ export function createViewer(container: HTMLElement): Viewer {
     const size = box.getSize(new THREE.Vector3());
     bounds.copy(size);
     explodeOffset = size.z * 0.8 + 10;
+    updateSwitchSeat();
     applyView();
 
     // Drop the grid just under the model's bottom (which lands at z = 0) so the
@@ -291,7 +314,7 @@ export function createViewer(container: HTMLElement): Viewer {
     }
     // Keep switches seated under the caps in assembled mode. In exploded
     // mode lift the full-height MX mesh clear of the base underside as well.
-    switchGroup.position.z = viewMode === 'exploded' ? switchExplodedLift : 0;
+    switchGroup.position.z = switchSeatZ + (viewMode === 'exploded' ? switchExplodedLift : 0);
     const section = viewMode === 'section';
     if (section) updateClipPlane();
     for (const m of materials) (m as THREE.MeshStandardMaterial).clippingPlanes = section ? [clipPlane] : [];
@@ -339,6 +362,7 @@ export function createViewer(container: HTMLElement): Viewer {
     geo.setAttribute('position', new THREE.BufferAttribute(mesh.vertProperties, 3)); // numProp = 3
     geo.setIndex(new THREE.BufferAttribute(mesh.triVerts, 1));
     geo.computeVertexNormals();
+    geo.computeBoundingBox();
     switchGeometry = geo;
     switchMaterial = new THREE.MeshStandardMaterial({
       // Match the reference site's neutral printed/MX preview color.
@@ -347,6 +371,7 @@ export function createViewer(container: HTMLElement): Viewer {
       roughness: 0.5,
       side: THREE.DoubleSide,
     });
+    updateSwitchSeat();
     rebuildSwitchMeshes();
   }
 

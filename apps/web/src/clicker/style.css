@@ -1423,31 +1423,60 @@ button.fil-chip:active {
 /* "Custom color" cell: a rainbow swatch wrapping the native OS color input. */
 .color-popover .cp-custom {
   position: relative;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  grid-column: 1 / -1;
+  width: auto;
+  min-height: 76px;
+  padding: 8px;
+  border-radius: 10px;
   border: 1px solid rgba(0,0,0,0.15);
   overflow: hidden;
-  cursor: pointer;
-  display: inline-flex;
+  cursor: default;
+  display: grid;
+  grid-template-columns: 1fr 38px;
+  gap: 6px;
   background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: box-shadow 0.1s ease;
 }
 .color-popover .cp-custom:hover {
-  transform: scale(1.15);
   box-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }
+.color-popover .cp-custom-title,
+.color-popover .cp-rgb-readout {
+  color: #f5f7fa;
+  font: 600 10px/1.2 'DM Mono', monospace;
+}
+.color-popover .cp-custom-title { align-self: end; }
+.color-popover .cp-rgb-editor {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.color-popover .cp-rgb-field {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 4px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 6px;
+  color: #f5f7fa;
+  background: rgba(15,17,21,.82);
+  font: 600 11px/1 'DM Mono', monospace;
+}
+.color-popover .cp-rgb-readout { grid-column: 1 / -1; opacity: .8; }
 .color-popover .cp-custom input[type="color"] {
   position: absolute;
-  inset: -4px;
-  width: calc(100% + 8px);
-  height: calc(100% + 8px);
+  top: 7px;
+  right: 7px;
+  width: 31px;
+  height: 31px;
   padding: 0;
-  border: none;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  opacity: 0;
+  opacity: 1;
 }
+.rgb-code { margin-left: auto; color: var(--muted); font: 10px/1.2 'DM Mono', monospace; white-space: nowrap; }
 
 /* Hint under the palette that the model itself is clickable. */
 .model-recolor-tip {
