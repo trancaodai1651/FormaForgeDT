@@ -723,7 +723,8 @@ void makeStraightModuleBase;
  * - no artificial floor or side rails;
  * - the supplied keycap shell/stem remains the source shape;
  * - connector sockets and keycap stems remain aligned to the source assets;
- * - the legend is a separate raised, printable colour part.
+ * - the legend is engraved by default and becomes a raised colour part when
+ *   legend extrusion is positive.
  */
 export function buildBlocks(
   wasm: any,
@@ -881,19 +882,28 @@ export function buildBlocks(
           const expanded = ctx.track(glyph.offset(bold, 'Round', 2, 24));
           if (!expanded.isEmpty()) glyph = expanded;
         }
-        // Legends are separate printable solids. Keep the cap intact and put
-        // the letter above its top face; intersecting it with the cap created
-        // an engraving, so the old "extrude" option could never look raised.
+        // Zero means an engraved legend: subtract the glyph from the cap and
+        // leave a thin coloured floor at the bottom of the recess. A positive
+        // value keeps the cap intact and raises the text above its top face.
         const legendPartName = entry.glyph.partName ?? `top-color-${index}-0`;
         const extrusionLevel = params.componentHeights?.[legendPartName] ?? 0;
-        const raisedHeight = Math.max(
-          0.15,
+        const requestedExtrude = Math.max(
+          0,
           Math.min(5, (params.legendExtrudeMm ?? 0.45) + extrusionLevel * (params.stepHeight ?? 0.6)),
         );
-        legend = ctx.track(wasm.Manifold.extrude(glyph, raisedHeight)
-          .translate([0, 0, capTopZ + 0.04]));
+        if (requestedExtrude > 0.001) {
+          legend = ctx.track(wasm.Manifold.extrude(glyph, requestedExtrude)
+            .translate([0, 0, capTopZ + 0.04]));
+        } else {
+          const recessDepth = Math.min(1.2, Math.max(0.45, desiredCapHeight * 0.12));
+          const recessTool = ctx.track(wasm.Manifold.extrude(glyph, recessDepth + 0.12)
+            .translate([0, 0, capTopZ - recessDepth - 0.02]));
+          capPart = ctx.track(capPart.subtract(recessTool));
+          legend = ctx.track(wasm.Manifold.extrude(glyph, 0.06)
+            .translate([0, 0, capTopZ - recessDepth]));
+        }
         if (legend.isEmpty()) {
-          warnings.push(`Letter ${index + 1} did not produce a raised mesh.`);
+          warnings.push(`Letter ${index + 1} did not produce a printable legend.`);
           legend = null;
         }
       } catch {

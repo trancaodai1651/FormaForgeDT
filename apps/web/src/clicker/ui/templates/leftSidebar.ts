@@ -147,7 +147,7 @@ export const renderLeftSidebar = () => `
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridTextExtrude">${tx('Text relief / extrude', 'Đùn nổi chữ')}</label><input type="text" class="val" id="hybridTextExtrudeVal" /></div>
-        <input type="range" id="hybridTextExtrude" min="0.15" max="5" step="0.05" />
+        <input type="range" id="hybridTextExtrude" min="0" max="5" step="0.05" />
       </div>
       <div class="label" style="margin-top: 16px;">${tx('Continuous rounded base', 'Base liền khối bo góc')}</div>
       <div class="prow-stacked">

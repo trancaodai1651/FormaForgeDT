@@ -23,7 +23,9 @@ export const store = createStore<UiState>({
   // Keep the imported image flush with the image head by default. A positive
   // value is still available when a raised image relief is needed.
   hybridImageExtrudeMm: 0,
-  hybridTextExtrudeMm: 0.8,
+  // Letters are engraved into the keycaps by default. Positive values raise
+  // the text above the cap surface.
+  hybridTextExtrudeMm: 0,
   hybridBaseWidthMm: 30,
   hybridBaseEndPaddingMm: 15,
   hybridBaseThicknessMm: 9,

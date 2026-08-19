@@ -143,7 +143,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridImagePadding: (value) => { store.set({ hybridImagePaddingMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridKeychainHeight: (value) => { store.set({ hybridKeychainHeightMm: Math.max(1, Math.min(15, value)) }); debouncedRebuild(); },
     onHybridImageExtrude: (value) => { store.set({ hybridImageExtrudeMm: Math.max(0, Math.min(6, value)) }); debouncedRebuild(); },
-    onHybridTextExtrude: (value) => { store.set({ hybridTextExtrudeMm: Math.max(0.15, Math.min(5, value)) }); debouncedRebuild(); },
+    onHybridTextExtrude: (value) => { store.set({ hybridTextExtrudeMm: Math.max(0, Math.min(5, value)) }); debouncedRebuild(); },
     onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(20, Math.min(60, value)) }); debouncedRebuild(); },
     onHybridBaseEndPadding: (value) => { store.set({ hybridBaseEndPaddingMm: Math.max(10, Math.min(35, value)) }); debouncedRebuild(); },
     onHybridKeycapSpacing: (value) => { store.set({ hybridKeycapSpacingMm: Math.max(0, Math.min(15, value)) }); debouncedRebuild(); },
