@@ -240,13 +240,25 @@ export function makeKeycap(
     shell = ctx.track(shellSource.translate([-cx, -cy, 0]));
     shell = scaleFromBottom(shell, unit, unit, profileScale);
   }
-  if (keycapShape === 'square') {
-    // Keep the user-facing lip control meaningful for the generated square
-    // profile while leaving the official rounded shell untouched.
-    const lip = Math.max(0.8, Math.min(4, lipThicknessMm));
-    const lipScale = 1 + Math.max(0, lip - 2) * 0.012;
-    shell = scaleFromBottom(shell, lipScale, lipScale, profileScale);
-  }
+  // Add a small adjustable lower rim to both the imported rounded shell and
+  // the procedural square shell. Previously these controls only affected the
+  // square branch (and lip thickness was almost imperceptible), so Image +
+  // Blocks appeared to ignore them. The rim keeps the real shell geometry,
+  // while making lip thickness and corner radius printable parameters.
+  const shellBox = shell.boundingBox();
+  const lip = Math.max(0.8, Math.min(4, lipThicknessMm));
+  const rimExpansion = Math.max(0.2, Math.min(1.6, lip * 0.35));
+  const rimHeight = Math.max(0.4, Math.min(2.2, 0.35 + lip * 0.42));
+  const rimOuterWidth = shellBox.max[0] - shellBox.min[0] + rimExpansion * 2;
+  const rimOuterDepth = shellBox.max[1] - shellBox.min[1] + rimExpansion * 2;
+  const rimOuterRadius = Math.min(rimOuterWidth / 2, rimOuterDepth / 2, Math.max(0.2, cornerRadiusMm) + rimExpansion);
+  const rimInnerRadius = Math.min((shellBox.max[0] - shellBox.min[0]) / 2, (shellBox.max[1] - shellBox.min[1]) / 2, Math.max(0.15, cornerRadiusMm));
+  const rimOuter = ctx.track(roundedRect(ctx, rimOuterWidth, rimOuterDepth, rimOuterRadius));
+  const rimInner = ctx.track(roundedRect(ctx, shellBox.max[0] - shellBox.min[0], shellBox.max[1] - shellBox.min[1], rimInnerRadius));
+  const rim = ctx.track(ctx.wasm.Manifold.extrude(rimOuter, rimHeight)
+    .subtract(ctx.track(ctx.wasm.Manifold.extrude(rimInner, rimHeight + 0.2).translate([0, 0, -0.1])))
+    .translate([0, 0, shellBox.min[2]]));
+  shell = ctx.track(shell.add(rim));
   if (!asset.stem) return shell;
   const stemSource = ctx.track(meshSolid(ctx.wasm, asset.stem.positions, asset.stem.indices));
   let stem = ctx.track(stemSource.translate([-cx, -cy, 0]));

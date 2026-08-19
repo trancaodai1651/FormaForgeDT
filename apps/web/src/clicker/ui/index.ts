@@ -253,8 +253,9 @@ export function createUi(
     }
     if ($('blocksSection')) $('blocksSection')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     const isBlocksMode = state.importMode === 'blocks';
-    if ($('baseStyleSection')) $('baseStyleSection')!.hidden = isBlocksMode;
-    if ($('sectionSwitch')) $('sectionSwitch')!.hidden = isBlocksMode;
+    const isHybridMode = state.importMode === 'hybrid';
+    if ($('baseStyleSection')) $('baseStyleSection')!.hidden = isBlocksMode || isHybridMode;
+    if ($('sectionSwitch')) $('sectionSwitch')!.hidden = isBlocksMode || isHybridMode;
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {
       const el = getClickerDocument().getElementById(id);
       const field = el?.closest('.prow-stacked') ?? el?.parentElement;
