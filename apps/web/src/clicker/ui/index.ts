@@ -122,6 +122,10 @@ export function createUi(
     setVal('hybridImageSizeVal', `${state.hybridImageSizeMm.toFixed(0)} mm`);
     if ($('hybridImageThickness')) $<HTMLInputElement>('hybridImageThickness').value = String(state.hybridImageThicknessMm);
     setVal('hybridImageThicknessVal', `${state.hybridImageThicknessMm.toFixed(1)} mm`);
+    if ($('hybridImageExtrude')) $<HTMLInputElement>('hybridImageExtrude').value = String(state.hybridImageExtrudeMm);
+    setVal('hybridImageExtrudeVal', `${state.hybridImageExtrudeMm.toFixed(2)} mm`);
+    if ($('hybridTextExtrude')) $<HTMLInputElement>('hybridTextExtrude').value = String(state.hybridTextExtrudeMm);
+    setVal('hybridTextExtrudeVal', `${state.hybridTextExtrudeMm.toFixed(2)} mm`);
     if ($('hybridBaseWidth')) $<HTMLInputElement>('hybridBaseWidth').value = String(state.hybridBaseWidthMm);
     setVal('hybridBaseWidthVal', `${state.hybridBaseWidthMm.toFixed(1)} mm`);
     if ($('hybridBaseEndPadding')) $<HTMLInputElement>('hybridBaseEndPadding').value = String(state.hybridBaseEndPaddingMm);
@@ -254,6 +258,7 @@ export function createUi(
     if ($('blocksSection')) $('blocksSection')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     const isBlocksMode = state.importMode === 'blocks';
     const isHybridMode = state.importMode === 'hybrid';
+    getClickerDocument().body.classList.toggle('clicker-hybrid-mode', isHybridMode);
     if ($('baseStyleSection')) $('baseStyleSection')!.hidden = isBlocksMode || isHybridMode;
     if ($('sectionSwitch')) $('sectionSwitch')!.hidden = isBlocksMode || isHybridMode;
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {

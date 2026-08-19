@@ -11,7 +11,7 @@ import type { SectionAxis } from '../viewer/viewer';
 export interface UiState {
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
   baseShape: BaseShapeKind; bottomBaseMode?: 'match' | 'custom';
-  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageThicknessMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
+  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageThicknessMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;
   smoothing: number; photoFlatten: boolean; keychain: KeychainParams; removeBg: boolean; view: ViewMode; showSwitch: boolean;
@@ -68,6 +68,8 @@ export interface UiCallbacks {
   onBlockKeySize(unit: number): void;
   onHybridImageSize(sizeMm: number): void;
   onHybridImageThickness(value: number): void;
+  onHybridImageExtrude(value: number): void;
+  onHybridTextExtrude(value: number): void;
   onHybridBaseWidth(value: number): void;
   onHybridBaseEndPadding(value: number): void;
   onHybridBaseThickness(value: number): void;

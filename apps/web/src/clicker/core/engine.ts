@@ -206,7 +206,8 @@ export function rebuild(quiet = false) {
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
     imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
-    hybridImageThicknessMm: s.hybridImageThicknessMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
+    hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm,
+    hybridBaseWidthMm: s.hybridBaseWidthMm,
     hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
     hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,
     hybridNeckLengthMm: s.hybridNeckLengthMm, hybridNeckWidthMm: s.hybridNeckWidthMm,
@@ -249,6 +250,7 @@ export function rebuild(quiet = false) {
           cornerRadiusMm: 4,
           fontSize: 15 * s.legendScale,
           legendBold: s.legendBold,
+          legendExtrudeMm: s.hybridTextExtrudeMm,
           vertical: s.blockOrientation === 'vertical',
           glyphs: appData.regionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),
@@ -294,6 +296,7 @@ export function rebuild(quiet = false) {
           cornerRadiusMm: 4,
           fontSize: 15 * s.legendScale,
           legendBold: s.legendBold,
+          legendExtrudeMm: s.hybridTextExtrudeMm,
           vertical: s.blockOrientation === 'vertical',
           glyphs: blockRegionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),

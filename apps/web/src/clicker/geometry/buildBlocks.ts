@@ -903,7 +903,7 @@ export function buildBlocks(
         // Legends are separate printable solids. Keep the cap intact and put
         // the letter above its top face; intersecting it with the cap created
         // an engraving, so the old "extrude" option could never look raised.
-        const raisedHeight = 0.45;
+        const raisedHeight = Math.max(0.15, Math.min(5, params.legendExtrudeMm ?? 0.45));
         legend = ctx.track(wasm.Manifold.extrude(glyph, raisedHeight)
           .translate([0, 0, capTopZ + 0.04]));
         if (legend.isEmpty()) {
@@ -924,10 +924,10 @@ export function buildBlocks(
       `cap-${index}`,
     ));
     if (legend) {
-      const orientedLegend = capRotation
-        ? ctx.track(legend.rotate([0, 0, capRotation]))
-        : legend;
-      parts.push(toPart(orientedLegend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`));
+      // Connector assets may rotate the physical cap to close a side seam.
+      // Keep the printed character readable instead of rotating it with that
+      // connector orientation (the end character was previously mirrored).
+      parts.push(toPart(legend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`));
     }
   }
 

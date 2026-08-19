@@ -158,7 +158,7 @@ export function buildHybridClicker(
   const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 8, 5);
   const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 6);
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
-  const imageThickness = Math.max(baseThickness + 0.8, clamp(params.hybridImageThicknessMm, 4, 24, 11));
+  const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, baseThickness));
   const headPadding = pocketSize / 2 + headLength;
   const tailPadding = Math.max(endPadding, pocketSize / 2 + 1.5);
   const carrierLength = Math.max(baseWidth, overlap + headPadding + (count - 1) * pitch + tailPadding);
@@ -235,8 +235,31 @@ export function buildHybridClicker(
     }
   }
 
-  const badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
+  let badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
+  if (params.keychain?.enabled) {
+    // Image + Blocks has a fixed product orientation: the ring is attached to
+    // the outside/top of the image head, never to the last text block.
+    const holeDiameter = clamp(params.keychain.holeDiameterMm, 3, 16, 5.2);
+    const tabWidth = Math.max(10, holeDiameter + 5);
+    const tabLength = Math.max(9, holeDiameter + 4);
+    const tabOverlap = Math.min(3, Math.max(1.2, overlap * 0.35));
+    const tabCenter: [number, number] = vertical
+      ? [0, badgeDepth / 2 + tabLength / 2 - tabOverlap]
+      : [-badgeWidth / 2 - tabLength / 2 + tabOverlap, 0];
+    const tabProfile = ctx.track(roundedRect(ctx, tabWidth, tabLength, Math.min(tabWidth, tabLength) / 2)
+      .translate(tabCenter));
+    const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, imageThickness)
+      .translate([0, 0, -baseThickness]));
+    const holeCenter: [number, number] = vertical
+      ? [tabCenter[0], tabCenter[1] + tabLength / 2 - holeDiameter / 2 - 1.4]
+      : [tabCenter[0] - tabLength / 2 + holeDiameter / 2 + 1.4, tabCenter[1]];
+    const holeProfile = ctx.track(wasm.CrossSection.circle(holeDiameter / 2, 48)
+      .translate(holeCenter));
+    const hole = ctx.track(wasm.Manifold.extrude(holeProfile, imageThickness + 2)
+      .translate([0, 0, -baseThickness - 1]));
+    badgeBody = ctx.track(badgeBody.add(tabSolid).subtract(hole));
+  }
   const mergedBody = ctx.track(badgeBody.add(carrier));
   const imageHeadTop = imageThickness - baseThickness;
   const deckHeight = Math.max(0.8, Math.min(1.8, params.imageDepth + 0.35));
@@ -272,7 +295,8 @@ export function buildHybridClicker(
       const topLayer = imageProfile.topScale === 1
         ? section
         : ctx.track(section.scale([imageProfile.topScale, imageProfile.topScale]));
-      const layer = ctx.track(wasm.Manifold.extrude(topLayer, 0.9).translate([0, 0, imageTop - 0.05]));
+      const imageExtrude = clamp(params.hybridImageExtrudeMm, 0.2, 6, 0.9);
+      const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageExtrude).translate([0, 0, imageTop - 0.05]));
       if (!sectionIsEmpty(section) && !layer.isEmpty()) {
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, `hybrid-image-${index}`));
       }

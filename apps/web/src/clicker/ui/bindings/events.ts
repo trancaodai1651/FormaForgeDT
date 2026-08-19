@@ -41,6 +41,8 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('blockKeySize')?.addEventListener('change', (e: Event) => cb.onBlockKeySize(+(e.target as HTMLSelectElement).value));
   $('hybridImageSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
   $('hybridImageThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
+  $('hybridImageExtrude')?.addEventListener('input', (e: Event) => cb.onHybridImageExtrude(+(e.target as HTMLInputElement).value));
+  $('hybridTextExtrude')?.addEventListener('input', (e: Event) => cb.onHybridTextExtrude(+(e.target as HTMLInputElement).value));
   $('hybridBaseWidth')?.addEventListener('input', (e: Event) => cb.onHybridBaseWidth(+(e.target as HTMLInputElement).value));
   $('hybridBaseEndPadding')?.addEventListener('input', (e: Event) => cb.onHybridBaseEndPadding(+(e.target as HTMLInputElement).value));
   $('hybridKeycapSpacing')?.addEventListener('input', (e: Event) => cb.onHybridKeycapSpacing(+(e.target as HTMLInputElement).value));

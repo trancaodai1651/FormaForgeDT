@@ -125,8 +125,10 @@ export interface BuildParams {
   imageDepth: number;
   /** Absolute image badge size in Image + Blocks mode (largest dimension, mm). */
   hybridImageSizeMm?: number;
-  /** Total thickness of the imported-image head. It must remain thicker than the carrier base. */
+  /** Total thickness of the imported-image head. It may match the carrier base. */
   hybridImageThicknessMm?: number;
+  /** Raised height of imported image colour layers. */
+  hybridImageExtrudeMm?: number;
   /** Cross-axis width of the continuous rounded carrier in Image + Blocks mode. */
   hybridBaseWidthMm?: number;
   /** Material beyond the first and last socket along the carrier. */
@@ -226,6 +228,8 @@ export interface BlocksBuildParams {
   cornerRadiusMm: number;
   fontSize: number;
   legendBold: number;
+  /** Raised height of the printable text legend. */
+  legendExtrudeMm?: number;
   vertical: boolean;
   glyphs: BlockGlyph[];
   bodyColorRgb?: RGB;

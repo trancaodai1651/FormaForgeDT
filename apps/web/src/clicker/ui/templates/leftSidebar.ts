@@ -133,6 +133,14 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridImageThickness">${tx('Image thickness', 'Độ dày hình ảnh')}</label><input type="text" class="val" id="hybridImageThicknessVal" /></div>
         <input type="range" id="hybridImageThickness" min="4" max="24" step="0.5" />
       </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridImageExtrude">${tx('Image relief / extrude', 'Đùn nổi hình ảnh')}</label><input type="text" class="val" id="hybridImageExtrudeVal" /></div>
+        <input type="range" id="hybridImageExtrude" min="0.2" max="6" step="0.1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridTextExtrude">${tx('Text relief / extrude', 'Đùn nổi chữ')}</label><input type="text" class="val" id="hybridTextExtrudeVal" /></div>
+        <input type="range" id="hybridTextExtrude" min="0.15" max="5" step="0.05" />
+      </div>
       <div class="label" style="margin-top: 16px;">${tx('Continuous rounded base', 'Base liền khối bo góc')}</div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseWidth">${tx('Base width', 'Chiều rộng base')}</label><input type="text" class="val" id="hybridBaseWidthVal" /></div>
@@ -171,7 +179,7 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridBaseImageOverlap">${tx('Base insertion depth', 'Độ sâu base đâm vào hình')}</label><input type="text" class="val" id="hybridBaseImageOverlapVal" /></div>
         <input type="range" id="hybridBaseImageOverlap" min="0" max="20" step="0.5" />
       </div>
-      <p class="field-help">${tx('The image head is always kept thicker than the socket base.', 'Phần đầu hình ảnh luôn dày hơn phần base chứa switch.')}</p>
+      <p class="field-help">${tx('Image and base thickness can match. Relief heights are controlled separately.', 'Độ dày hình ảnh có thể bằng base. Chiều cao đùn nổi được chỉnh riêng.')}</p>
     </div>
     <div class="prow-stacked">
       <div class="prow-header"><label for="blockKeycapHeight">${tx('Keycap height', 'Chiều cao keycap')}</label><input type="text" class="val" id="blockKeycapHeightVal" /></div>

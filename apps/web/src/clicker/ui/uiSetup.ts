@@ -119,7 +119,9 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockText: (text) => {
       const chars = Array.from(text.replace(/\s+/g, '')).slice(0, 12);
       store.set({ blockSlots: (chars.length ? chars : ['N', 'a', 'm', 'e']).map(ch => ({ kind: 'char' as const, ch })) });
-      reprocess();
+      // Font parsing and worker builds are expensive. Do not block the input
+      // event for every character; build once after typing pauses.
+      debouncedReprocess();
     },
     onBlockOrientation: (orientation) => { store.set({ blockOrientation: orientation }); debouncedRebuild(); },
     onLegendScale: (scale) => { store.set({ legendScale: Math.max(0.5, Math.min(1.4, scale)) }); debouncedRebuild(); },
@@ -138,12 +140,14 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockKeycapProfile: (profile) => { store.set({ blockKeycapProfile: profile }); debouncedRebuild(); },
     onBlockKeySize: (unit) => { store.set({ blockKeycapUnit: Math.max(1, Math.min(6.5, unit)) }); debouncedRebuild(); },
     onHybridImageSize: (sizeMm) => { store.set({ hybridImageSizeMm: Math.max(30, Math.min(140, sizeMm)) }); debouncedRebuild(); },
-    onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base + 0.8, Math.min(24, value)) }); debouncedRebuild(); },
+    onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base, Math.min(24, value)) }); debouncedRebuild(); },
+    onHybridImageExtrude: (value) => { store.set({ hybridImageExtrudeMm: Math.max(0.2, Math.min(6, value)) }); debouncedRebuild(); },
+    onHybridTextExtrude: (value) => { store.set({ hybridTextExtrudeMm: Math.max(0.15, Math.min(5, value)) }); debouncedRebuild(); },
     onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(20, Math.min(60, value)) }); debouncedRebuild(); },
     onHybridBaseEndPadding: (value) => { store.set({ hybridBaseEndPaddingMm: Math.max(10, Math.min(35, value)) }); debouncedRebuild(); },
     onHybridKeycapSpacing: (value) => { store.set({ hybridKeycapSpacingMm: Math.max(0, Math.min(15, value)) }); debouncedRebuild(); },
     onHybridKeycapClearance: (value) => { store.set({ hybridKeycapClearanceMm: Math.max(0.2, Math.min(4, value)) }); debouncedRebuild(); },
-    onHybridBaseThickness: (value) => { const thickness = Math.max(5, Math.min(20, value)); store.set({ hybridBaseThicknessMm: thickness, hybridImageThicknessMm: Math.max(thickness + 0.8, store.get().hybridImageThicknessMm) }); debouncedRebuild(); },
+    onHybridBaseThickness: (value) => { const thickness = Math.max(5, Math.min(20, value)); store.set({ hybridBaseThicknessMm: thickness, hybridImageThicknessMm: Math.max(thickness, store.get().hybridImageThicknessMm) }); debouncedRebuild(); },
     onHybridBaseCornerRadius: (value) => { store.set({ hybridBaseCornerRadiusMm: Math.max(1, Math.min(14, value)) }); debouncedRebuild(); },
     onHybridBaseWallHeight: (value) => { store.set({ hybridBaseWallHeightMm: Math.max(0, Math.min(8, value)) }); debouncedRebuild(); },
     onHybridNeckLength: (value) => { store.set({ hybridNeckLengthMm: Math.max(0, Math.min(30, value)) }); debouncedRebuild(); },

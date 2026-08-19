@@ -200,6 +200,10 @@ export function createViewer(container: HTMLElement): Viewer {
   }
 
   function setParts(parts: ClickerPart[], preserveCamera = false) {
+    const previousTarget = controls.target.clone();
+    const previousCamera = camera.position.clone();
+    const previousOffset = previousCamera.sub(previousTarget);
+    const previousRadius = Math.max(bounds.x, bounds.y, bounds.z, 1);
     clearPlaceholder();
     clearGroup(capGroup);
     clearGroup(bodyGroup);
@@ -249,6 +253,15 @@ export function createViewer(container: HTMLElement): Viewer {
       const radius = Math.max(size.x, size.y, size.z) * 2.2 + 15;
       camera.position.set(radius, -radius, radius * 0.75);
       controls.target.set(0, 0, size.z / 2);
+      controls.update();
+    } else {
+      // The root group is recentered for every new mesh. Move the orbit target
+      // to the new model center as well, otherwise changing a dimension makes
+      // the product appear to jump across the viewport.
+      const target = new THREE.Vector3(0, 0, size.z / 2);
+      const scale = Math.max(1, Math.max(size.x, size.y, size.z) / previousRadius);
+      controls.target.copy(target);
+      camera.position.copy(target).add(previousOffset.multiplyScalar(scale));
       controls.update();
     }
 
