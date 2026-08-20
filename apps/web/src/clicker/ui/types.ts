@@ -30,6 +30,7 @@ export interface UiState {
   blockKeycapProfile: 'standard' | 'low' | 'thocky' | 'choc-v1';
   blockKeycapUnit: number;
   keycapImageName: string; keycapImageSlotIndices: number[];
+  keycapLogoNames: string[]; keycapLogoAssignments: Array<number | null>; keycapLogoSizeMm: number;
   plateId: PlateId;
   selectedParts: string[]; canUndo: boolean; canRedo: boolean; canRefresh: boolean;
 }
@@ -54,8 +55,9 @@ export interface UiCallbacks {
   onRenderPng(): void; onAiPrompt(): void; onSaveProject(): void; onLoadProject(file: File): void;
   onBodyColor(hex: string): void; onImportMode(mode: 'image' | 'svg' | 'icon' | 'text' | 'blocks' | 'hybrid'): void;
   onSvgUpload(file: File): void; onSelectSvg(svgText: string, name: string): void;
-  onKeycapImageUpload(file: File): void; onClearKeycapImage(): void;
-  onKeycapImageSlotToggle(index: number): void; onKeycapImageSlotsAll(): void; onKeycapImageSlotsNone(): void;
+  onKeycapImageUpload(files: File[]): void; onClearKeycapImage(): void;
+  onKeycapLogoAssign(slotIndex: number, logoIndex: number | null): void;
+  onKeycapLogoRemove(logoIndex: number): void; onKeycapLogoSize(value: number): void;
   onSelectIcon(svgText: string, name: string): void; onTextChange(text: string): void;
   onFontSelect(fontId: string): void; onImportFont(file: File): void; onThemeChange(theme: string): void;
   onEditMode(mode: EditMode): void; onEdgeStyle(target: string, style: EdgeStyle): void;

@@ -1,4 +1,4 @@
-import type { RGB, RegionSet } from '../../types';
+import type { KeycapLogoAsset, RGB, RegionSet } from '../../types';
 
 export interface BlocksConfig {
   name: string;
@@ -13,6 +13,9 @@ export interface BlocksConfig {
   keycapImageRegionSet?: RegionSet | null;
   keycapImageName?: string;
   keycapImageSlotIndices?: number[];
+  keycapLogoAssets?: KeycapLogoAsset[];
+  keycapLogoAssignments?: Array<number | null>;
+  keycapImageSizeMm?: number;
 }
 
 export const DEFAULT_BLOCKS: BlocksConfig = {
@@ -42,6 +45,9 @@ export function clampBlocksConfig(cfg: BlocksConfig): BlocksConfig {
     keycapImageRegionSet: cfg.keycapImageRegionSet ?? null,
     keycapImageName: cfg.keycapImageName ?? '',
     keycapImageSlotIndices: [...new Set((cfg.keycapImageSlotIndices ?? [0]).filter((index) => Number.isInteger(index) && index >= 0))].sort((a, b) => a - b),
+    keycapLogoAssets: cfg.keycapLogoAssets ?? [],
+    keycapLogoAssignments: cfg.keycapLogoAssignments ?? [null],
+    keycapImageSizeMm: Math.max(4, Math.min(13, cfg.keycapImageSizeMm ?? 10)),
   };
 }
 

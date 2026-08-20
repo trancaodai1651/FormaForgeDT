@@ -1066,6 +1066,34 @@ body.tutorial-active.focus-center #viewport {
   background: var(--accent);
   color: var(--accent-contrast, #111);
 }
+.keycap-logo-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px;
+  margin-top: 8px;
+  background: var(--panel-2);
+}
+.keycap-logo-card-head,
+.keycap-logo-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.keycap-logo-card-head .hint-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keycap-logo-assign-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.keycap-logo-assign-list .block-chip { cursor: pointer; font-size: 12px; min-width: 48px; }
+.blocks-keycap-slot.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #111);
+}
+.keycap-logo-slot-row {
+  min-height: 34px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.keycap-logo-slot-row > span:nth-child(2) { min-width: 22px; font-weight: 600; }
+.keycap-logo-slot-row .hint-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .hint-text {
   font-size: 13.5px;

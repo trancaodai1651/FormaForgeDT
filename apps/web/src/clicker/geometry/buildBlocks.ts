@@ -832,9 +832,12 @@ export function buildBlocks(
   const commonFloor = params.flatBottom === false
     ? Math.min(...selectedForBuild.map(({ selected }) => selected.solid.boundingBox().min[2]))
     : Math.max(...selectedForBuild.map(({ selected }) => selected.solid.boundingBox().min[2]));
-  const pocketSize = Math.max(16, keycapFootprint(keycap) + 4);
-  const pocketRadius = Math.min(3, pocketSize / 4);
-  const pocketDepth = Math.min(2.4, Math.max(1.2, (params.moduleThicknessMm ?? 18) * 0.12));
+  // Keep the decorative keycap recess close to the cap footprint. The real
+  // MX socket below remains the deep functional cutout; making this upper
+  // pocket wide/deep only makes the keycap look buried in the module wall.
+  const pocketSize = Math.max(15.6, keycapFootprint(keycap) + 1.6);
+  const pocketRadius = Math.min(2.4, pocketSize / 4);
+  const pocketDepth = Math.min(1.1, Math.max(0.55, (params.moduleThicknessMm ?? 18) * 0.06));
   const blockSolids: any[] = [];
   for (const { selected, position } of selectedForBuild) {
     // Use the web's prepared connector module directly. Its underside and MX
@@ -931,7 +934,6 @@ export function buildBlocks(
     (params.keycapImageSlotIndices ?? [0])
       .filter((slot) => Number.isInteger(slot) && slot >= 0),
   );
-  const hasKeycapImage = keycapImageRegions.length > 0 && selectedKeycapSlots.size > 0;
   // Artwork is flush with the cap by default. The Extrude tool contributes to
   // the selected `keycap-image-*` part and is the only way it rises above it.
   const keycapImageHeight = Math.max(0, Math.min(3, params.keycapImageExtrudeMm ?? 0));
@@ -942,7 +944,10 @@ export function buildBlocks(
     const capRotation = rotations[index];
     let capPart = capForRotation(capRotation);
     let legend: any = null;
-    const useKeycapImage = hasKeycapImage && selectedKeycapSlots.has(entry.index);
+    const slotImageRegions = params.keycapImageRegionsBySlot?.[entry.index]
+      ? fitKeycapImageRegions(params.keycapImageRegionsBySlot[entry.index], params.keycapImageSizeMm ?? Math.min(10, Math.max(4, topExtent - 4.2)))
+      : (selectedKeycapSlots.has(entry.index) ? keycapImageRegions : []);
+    const useKeycapImage = slotImageRegions.length > 0;
     const glyphBounds = bounds(entry.glyph.rings);
     const centerX = (glyphBounds.minX + glyphBounds.maxX) / 2;
     const centerY = (glyphBounds.minY + glyphBounds.maxY) / 2;
@@ -1001,7 +1006,7 @@ export function buildBlocks(
       parts.push(toPart(legend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`));
     }
     if (useKeycapImage) {
-      keycapImageRegions.forEach((region, regionIndex) => {
+      slotImageRegions.forEach((region, regionIndex) => {
         try {
           const imageRings = region.rings.filter((ring) => area(ring) > 0.00005);
           if (!imageRings.length) return;

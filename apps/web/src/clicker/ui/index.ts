@@ -306,14 +306,31 @@ export function createUi(
     if ($('blocksTextField')) $('blocksTextField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     if ($('blocksChainField')) $('blocksChainField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     if ($('keycapImagePanel')) $('keycapImagePanel')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
-    if ($('keycapImageName')) $('keycapImageName')!.textContent = state.keycapImageName || 'No keycap image';
-    if ($('keycapImageSlots')) {
-      const selected = new Set(state.keycapImageSlotIndices);
-      $('keycapImageSlots')!.innerHTML = state.blockSlots.map((slot, index) => {
-        const label = slot.ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const active = selected.has(index);
-        return `<button class="block-chip ${active ? 'active' : ''}" data-keycap-slot="${index}" type="button" aria-pressed="${active}" title="${active ? 'Logo selected' : 'Logo not selected'}">${index + 1}: ${label}</button>`;
-      }).join('');
+    if ($('keycapImageName')) $('keycapImageName')!.textContent = state.keycapLogoNames.length
+      ? `${state.keycapLogoNames.length} logo${state.keycapLogoNames.length === 1 ? '' : 's'} imported`
+      : 'No keycap logos';
+    if ($('keycapLogoSize')) $<HTMLInputElement>('keycapLogoSize').value = String(state.keycapLogoSizeMm);
+    setVal('keycapLogoSizeVal', `${state.keycapLogoSizeMm.toFixed(1)} mm`);
+    const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    if ($('keycapLogoLibrary')) {
+      const assignments = state.keycapLogoAssignments;
+      $('keycapLogoLibrary')!.innerHTML = state.keycapLogoNames.length
+        ? state.keycapLogoNames.map((name, logoIndex) => `
+          <div class="keycap-logo-card">
+            <div class="keycap-logo-card-head"><span class="hint-text" title="${escapeHtml(name)}">${escapeHtml(name)}</span><button class="btn" data-logo-remove="${logoIndex}" type="button">×</button></div>
+            <div class="keycap-logo-assign-list">${state.blockSlots.map((slot, slotIndex) => {
+              const active = assignments[slotIndex] === logoIndex;
+              return `<button class="block-chip ${active ? 'active' : ''}" data-logo-assign-slot="${slotIndex}" data-logo-index="${logoIndex}" type="button" aria-pressed="${active}">${slotIndex + 1}: ${escapeHtml(slot.ch)}</button>`;
+            }).join('')}</div>
+          </div>`).join('')
+        : '<p class="hint-text">Import logos, then click a keycap button under each logo to assign it.</p>';
+    }
+    if ($('keycapLogoSlots')) {
+      $('keycapLogoSlots')!.innerHTML = `<div class="label">Logo assigned to each keycap</div>${state.blockSlots.map((slot, slotIndex) => {
+        const logoIndex = state.keycapLogoAssignments[slotIndex];
+        const name = logoIndex === null || logoIndex === undefined ? 'No logo' : state.keycapLogoNames[logoIndex] ?? 'No logo';
+        return `<div class="keycap-logo-slot-row"><span class="slot-pill">${slotIndex + 1}</span><span>${escapeHtml(slot.ch)}</span><span class="hint-text" title="${escapeHtml(name)}">${escapeHtml(name)}</span><button class="btn" data-keycap-logo-clear-slot="${slotIndex}" type="button">Clear</button></div>`;
+      }).join('')}`;
     }
     if ($('blocksText')) {
       const blockText = state.blockSlots.map(slot => slot.ch).join('');

@@ -242,14 +242,27 @@ export function rebuild(quiet = false) {
   };
 
   const bottomOutline = appData.bottomRegionSet ? appData.bottomRegionSet.outline : undefined;
-  const keycapImageRegions: BuildRegion[] = appData.keycapImageRegionSet?.regions.flatMap((region, regionIndex) =>
-    region.components.map((component, componentIndex) => ({
-      filamentRgb: region.quantRgb,
-      coverage: region.coverage,
-      rings: component.rings,
-      partName: `keycap-image-source-${regionIndex}-${componentIndex}`,
-    })),
-  ) ?? [];
+  const regionSetToBuildRegions = (regionSet: typeof appData.keycapImageRegionSet, sourceIndex: number): BuildRegion[] =>
+    regionSet?.regions.flatMap((region, regionIndex) =>
+      region.components.map((component, componentIndex) => ({
+        filamentRgb: region.quantRgb,
+        coverage: region.coverage,
+        rings: component.rings,
+        partName: `keycap-image-source-${sourceIndex}-${regionIndex}-${componentIndex}`,
+      })),
+    ) ?? [];
+  const keycapImageRegions = regionSetToBuildRegions(appData.keycapImageRegionSet, 0);
+  const keycapImageRegionsBySlot: Record<number, BuildRegion[]> = {};
+  for (const [slotIndex, logoIndex] of s.keycapLogoAssignments.entries()) {
+    if (logoIndex === null || logoIndex === undefined) continue;
+    const asset = appData.keycapLogoAssets[logoIndex];
+    if (asset) keycapImageRegionsBySlot[slotIndex] = regionSetToBuildRegions(asset.regionSet, logoIndex);
+  }
+  // Projects created before the logo library existed keep their single logo
+  // and slot list; migrate that data into the new per-slot build map.
+  if (!appData.keycapLogoAssets.length && keycapImageRegions.length) {
+    for (const slotIndex of s.keycapImageSlotIndices) keycapImageRegionsBySlot[slotIndex] = keycapImageRegions;
+  }
 
   if (!quiet) store.set({ building: !appData.isInitialLoad, status: 'Building clickerâ€¦' });
   const isBlocks = s.importMode === 'blocks';
@@ -297,9 +310,10 @@ export function rebuild(quiet = false) {
           squareModuleBase: true,
           keychainEnd: 'left',
           keycapImageRegions,
-          keycapImageSizeMm: 10,
+          keycapImageSizeMm: s.keycapLogoSizeMm,
           keycapImageExtrudeMm: 0,
           keycapImageSlotIndices: s.keycapImageSlotIndices,
+          keycapImageRegionsBySlot,
         },
       });
     } else if (isHybrid) {
@@ -346,9 +360,10 @@ export function rebuild(quiet = false) {
           squareModuleBase: true,
           keychainEnd: 'left',
           keycapImageRegions,
-          keycapImageSizeMm: 10,
+          keycapImageSizeMm: s.keycapLogoSizeMm,
           keycapImageExtrudeMm: 0,
           keycapImageSlotIndices: s.keycapImageSlotIndices,
+          keycapImageRegionsBySlot,
         },
       });
     } else {

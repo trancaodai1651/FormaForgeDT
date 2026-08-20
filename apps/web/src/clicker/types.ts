@@ -34,6 +34,13 @@ export interface RegionSet {
   aspect: number;
 }
 
+/** A reusable imported logo that can be assigned to one or more keycap slots. */
+export interface KeycapLogoAsset {
+  id: string;
+  name: string;
+  regionSet: RegionSet;
+}
+
 /** A color slot for the image/svg/text. */
 export interface PaletteEntry {
   quantRgb: RGB; // The original color grouped from the image/svg
@@ -307,7 +314,7 @@ export interface BlocksBuildParams {
   keychainEnd?: 'left' | 'right' | 'top' | 'bottom';
   /** Optional per-slot colors used by the Flex Keychain page. */
   capColorByIndex?: RGB[];
-  /** Optional traced artwork placed on every keycap. Artwork replaces the text legend. */
+  /** Optional traced artwork used by the selected keycap slots. */
   keycapImageRegions?: BuildRegion[];
   /** Longest side of the keycap artwork in millimetres. */
   keycapImageSizeMm?: number;
@@ -315,6 +322,8 @@ export interface BlocksBuildParams {
   keycapImageExtrudeMm?: number;
   /** Original glyph/slot indices that receive the imported keycap artwork. */
   keycapImageSlotIndices?: number[];
+  /** Per-slot artwork. The map key is the original glyph index. */
+  keycapImageRegionsBySlot?: Record<number, BuildRegion[]>;
 }
 
 export interface FlexKeychainSlot {

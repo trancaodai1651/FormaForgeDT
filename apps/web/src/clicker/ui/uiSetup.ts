@@ -159,27 +159,36 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       store.set({ status: `Selected SVG: ${name}` });
       if (store.get().importMode === 'hybrid') reprocess();
     },
-    onKeycapImageUpload: async (file) => {
+    onKeycapImageUpload: async (files) => {
       try {
-        store.set({ building: true, status: 'Reading keycap image...' });
-        const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
-        if (isSvg) {
-          const svgText = await file.text();
-          appData.keycapImage = null;
-          appData.keycapImageSvgText = svgText;
-          appData.keycapImageRegionSet = parseSvg(svgText, { removeBg: true });
-        } else {
-          const image = await loadFileToImage(file);
-          appData.keycapImage = image;
-          appData.keycapImageSvgText = '';
-          appData.keycapImageRegionSet = processImage(
-            { data: new Uint8ClampedArray(image.data), width: image.width, height: image.height },
-            Math.max(2, Math.min(store.get().colorCount, 6)),
-            { removeBg: true, smoothing: store.get().smoothing, photoFlatten: false },
-          );
+        if (!files.length) return;
+        store.set({ building: true, status: `Reading ${files.length} keycap logo${files.length === 1 ? '' : 's'}...` });
+        const assets = [...appData.keycapLogoAssets];
+        const assignments = [...store.get().keycapLogoAssignments];
+        while (assignments.length < store.get().blockSlots.length) assignments.push(null);
+        for (const file of files) {
+          const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+          let resolvedRegionSet;
+          if (isSvg) {
+            resolvedRegionSet = parseSvg(await file.text(), { removeBg: true });
+          } else {
+            const image = await loadFileToImage(file);
+            resolvedRegionSet = processImage(
+              { data: new Uint8ClampedArray(image.data), width: image.width, height: image.height },
+              Math.max(2, Math.min(store.get().colorCount, 6)),
+              { removeBg: true, smoothing: store.get().smoothing, photoFlatten: false },
+            );
+          }
+          const logoIndex = assets.length;
+          assets.push({ id: `keycap-logo-${Date.now()}-${logoIndex}`, name: file.name, regionSet: resolvedRegionSet });
+          const emptySlot = assignments.findIndex((value, index) => value === null && index < store.get().blockSlots.length);
+          if (emptySlot >= 0) assignments[emptySlot] = logoIndex;
         }
-        appData.keycapImageName = file.name;
-        store.set({ keycapImageName: file.name, building: false, status: 'Keycap image ready.' });
+        appData.keycapLogoAssets = assets;
+        appData.keycapImageRegionSet = assets[0]?.regionSet ?? null;
+        appData.keycapImageName = assets.map((asset) => asset.name).join(', ');
+        const assignedSlots = assignments.map((value, index) => value === null ? null : index).filter((value): value is number => value !== null);
+        store.set({ keycapLogoNames: assets.map((asset) => asset.name), keycapLogoAssignments: assignments, keycapImageSlotIndices: assignedSlots, keycapImageName: appData.keycapImageName, building: false, status: `${files.length} keycap logo${files.length === 1 ? '' : 's'} ready.` });
         if (store.get().importMode === 'blocks' || store.get().importMode === 'hybrid') rebuild();
       } catch (err) { store.set({ building: false, status: 'Could not read keycap image: ' + err }); }
     },
@@ -188,22 +197,30 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       appData.keycapImageSvgText = '';
       appData.keycapImageRegionSet = null;
       appData.keycapImageName = '';
-      store.set({ keycapImageName: '' });
+      appData.keycapLogoAssets = [];
+      store.set({ keycapImageName: '', keycapLogoNames: [], keycapLogoAssignments: store.get().blockSlots.map(() => null), keycapImageSlotIndices: [] });
       rebuild();
     },
-    onKeycapImageSlotToggle: (index) => {
-      if (!Number.isInteger(index) || index < 0 || index >= store.get().blockSlots.length) return;
-      const selected = new Set(store.get().keycapImageSlotIndices);
-      if (selected.has(index)) selected.delete(index); else selected.add(index);
-      store.set({ keycapImageSlotIndices: [...selected].sort((a, b) => a - b) });
+    onKeycapLogoAssign: (slotIndex, logoIndex) => {
+      if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= store.get().blockSlots.length) return;
+      if (logoIndex !== null && (!Number.isInteger(logoIndex) || !appData.keycapLogoAssets[logoIndex])) return;
+      const assignments = [...store.get().keycapLogoAssignments];
+      while (assignments.length < store.get().blockSlots.length) assignments.push(null);
+      assignments[slotIndex] = logoIndex;
+      store.set({ keycapLogoAssignments: assignments, keycapImageSlotIndices: assignments.map((value, index) => value === null ? null : index).filter((value): value is number => value !== null) });
       debouncedRebuild();
     },
-    onKeycapImageSlotsAll: () => {
-      store.set({ keycapImageSlotIndices: store.get().blockSlots.map((_, index) => index) });
+    onKeycapLogoRemove: (logoIndex) => {
+      if (!Number.isInteger(logoIndex) || !appData.keycapLogoAssets[logoIndex]) return;
+      appData.keycapLogoAssets = appData.keycapLogoAssets.filter((_, index) => index !== logoIndex);
+      appData.keycapImageRegionSet = appData.keycapLogoAssets[0]?.regionSet ?? null;
+      appData.keycapImageName = appData.keycapLogoAssets.map((asset) => asset.name).join(', ');
+      const assignments = store.get().keycapLogoAssignments.map((value) => value === logoIndex ? null : value !== null && value > logoIndex ? value - 1 : value);
+      store.set({ keycapLogoNames: appData.keycapLogoAssets.map((asset) => asset.name), keycapLogoAssignments: assignments, keycapImageSlotIndices: assignments.map((value, index) => value === null ? null : index).filter((value): value is number => value !== null), keycapImageName: appData.keycapImageName });
       debouncedRebuild();
     },
-    onKeycapImageSlotsNone: () => {
-      store.set({ keycapImageSlotIndices: [] });
+    onKeycapLogoSize: (value) => {
+      store.set({ keycapLogoSizeMm: Math.max(4, Math.min(13, value)) });
       debouncedRebuild();
     },
     onSelectIcon: (svgText, name) => { appData.currentIconText = svgText; appData.currentIconName = name; store.set({ currentIconName: name, status: `Selected icon: ${name}` }); },
@@ -211,10 +228,9 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockText: (text) => {
       const chars = Array.from(text.replace(/\s+/g, '')).slice(0, 12);
       const nextSlots = (chars.length ? chars : ['N', 'a', 'm', 'e']).map(ch => ({ kind: 'char' as const, ch }));
-      store.set({
-        blockSlots: nextSlots,
-        keycapImageSlotIndices: store.get().keycapImageSlotIndices.filter((index) => index < nextSlots.length),
-      });
+      const assignments = store.get().keycapLogoAssignments.slice(0, nextSlots.length);
+      while (assignments.length < nextSlots.length) assignments.push(null);
+      store.set({ blockSlots: nextSlots, keycapLogoAssignments: assignments, keycapImageSlotIndices: assignments.map((value, index) => value === null ? null : index).filter((value): value is number => value !== null) });
       // Font parsing and worker builds are expensive. Do not block the input
       // event for every character; build once after typing pauses.
       debouncedReprocess();

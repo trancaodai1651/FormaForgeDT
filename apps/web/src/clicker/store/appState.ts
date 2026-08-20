@@ -91,6 +91,9 @@ export const store = createStore<UiState>({
   // Only the first keycap receives a newly imported logo until the user
   // explicitly selects additional slots in the keycap artwork panel.
   keycapImageSlotIndices: [0],
+  keycapLogoNames: [],
+  keycapLogoAssignments: [null, null, null, null],
+  keycapLogoSizeMm: 10,
   plateId: 'a1',
   extrudeHeight: null,
   componentHeights: {},
@@ -107,6 +110,7 @@ export const appData = {
   keycapImageRegionSet: null as RegionSet | null,
   keycapImageSvgText: '',
   keycapImageName: '',
+  keycapLogoAssets: [] as import('../types').KeycapLogoAsset[],
   /** Raster or SVG source currently selected for the Image + Blocks head. */
   imageSource: 'raster' as 'raster' | 'svg',
   bottomImage: null as RgbaImage | null, // 👈 Thêm biến lưu ảnh đế

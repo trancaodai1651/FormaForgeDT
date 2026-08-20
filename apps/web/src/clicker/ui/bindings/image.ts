@@ -17,17 +17,22 @@ export function bindImageEvents(cb: UiCallbacks) {
   const keycapFile = $<HTMLInputElement>('keycapImageFile');
   if (keycapDrop && keycapFile) {
     keycapDrop.addEventListener('click', () => keycapFile.click());
-    keycapFile.addEventListener('change', () => { if (keycapFile.files?.[0]) cb.onKeycapImageUpload(keycapFile.files[0]); keycapFile.value = ''; });
+    keycapFile.addEventListener('change', () => { if (keycapFile.files?.length) cb.onKeycapImageUpload(Array.from(keycapFile.files)); keycapFile.value = ''; });
     keycapDrop.addEventListener('dragover', (e: DragEvent) => { e.preventDefault(); keycapDrop.classList.add('over'); });
     keycapDrop.addEventListener('dragleave', () => keycapDrop.classList.remove('over'));
-    keycapDrop.addEventListener('drop', (e: DragEvent) => { e.preventDefault(); keycapDrop.classList.remove('over'); if (e.dataTransfer?.files?.[0]) cb.onKeycapImageUpload(e.dataTransfer.files[0]); });
+    keycapDrop.addEventListener('drop', (e: DragEvent) => { e.preventDefault(); keycapDrop.classList.remove('over'); if (e.dataTransfer?.files?.length) cb.onKeycapImageUpload(Array.from(e.dataTransfer.files)); });
   }
   $('clearKeycapImage')?.addEventListener('click', () => cb.onClearKeycapImage());
-  $('keycapImageSlotsAll')?.addEventListener('click', () => cb.onKeycapImageSlotsAll());
-  $('keycapImageSlotsNone')?.addEventListener('click', () => cb.onKeycapImageSlotsNone());
-  $('keycapImageSlots')?.addEventListener('click', (event: MouseEvent) => {
-    const button = (event.target as HTMLElement).closest<HTMLElement>('[data-keycap-slot]');
-    if (button) cb.onKeycapImageSlotToggle(Number(button.dataset.keycapSlot));
+  $('keycapLogoSize')?.addEventListener('input', (event: Event) => cb.onKeycapLogoSize(Number((event.target as HTMLInputElement).value)));
+  $('keycapLogoLibrary')?.addEventListener('click', (event: MouseEvent) => {
+    const target = (event.target as HTMLElement).closest<HTMLElement>('[data-logo-assign-slot], [data-logo-remove]');
+    if (!target) return;
+    if (target.dataset.logoRemove !== undefined) cb.onKeycapLogoRemove(Number(target.dataset.logoRemove));
+    else cb.onKeycapLogoAssign(Number(target.dataset.logoAssignSlot), Number(target.dataset.logoIndex));
+  });
+  $('keycapLogoSlots')?.addEventListener('click', (event: MouseEvent) => {
+    const target = (event.target as HTMLElement).closest<HTMLElement>('[data-keycap-logo-clear-slot]');
+    if (target) cb.onKeycapLogoAssign(Number(target.dataset.keycapLogoClearSlot), null);
   });
 
   // Custom Bottom Base 

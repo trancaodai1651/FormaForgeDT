@@ -29,7 +29,7 @@ export function dataUrlToImage(url: string): Promise<RgbaImage> {
 export function saveProject() {
   const s = store.get();
   const proj = {
-    version: 3,
+    version: 4,
     settings: {
       colorCount: s.colorCount, baseShape: s.baseShape, capWidthMm: s.capWidthMm,
       topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
@@ -64,11 +64,14 @@ export function saveProject() {
       blockKeycapProfile: s.blockKeycapProfile,
       blockKeycapUnit: s.blockKeycapUnit,
       keycapImageSlotIndices: s.keycapImageSlotIndices,
+      keycapLogoAssignments: s.keycapLogoAssignments,
+      keycapLogoSizeMm: s.keycapLogoSizeMm,
       plateId: s.plateId,
     },
     palette: s.palette,
     image: appData.originalImage ? imageToDataUrl(appData.originalImage) : null,
     keycapImageRegionSet: appData.keycapImageRegionSet,
+    keycapLogoAssets: appData.keycapLogoAssets,
   };
   downloadBlob(new Blob([JSON.stringify(proj)], { type: 'application/json' }), 'FormaForgeDT_Project.json');
   store.set({ status: 'Project saved âœ“' });
@@ -88,6 +91,12 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
     appData.keycapImageName = set.keycapImageName ?? '';
     appData.keycapImageSvgText = set.keycapImageSvgText ?? '';
     appData.keycapImageRegionSet = proj.keycapImageRegionSet ?? null;
+    appData.keycapLogoAssets = Array.isArray(proj.keycapLogoAssets)
+      ? proj.keycapLogoAssets.filter((asset: any) => asset && typeof asset.name === 'string' && asset.regionSet)
+      : [];
+    if (!appData.keycapLogoAssets.length && appData.keycapImageRegionSet) {
+      appData.keycapLogoAssets = [{ id: 'legacy-keycap-logo', name: appData.keycapImageName || 'Imported logo', regionSet: appData.keycapImageRegionSet }];
+    }
     appData.currentIconText = set.currentIconText ?? '';
     appData.currentIconName = set.currentIconName ?? '';
 
@@ -148,6 +157,13 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       keycapImageSlotIndices: Array.isArray(set.keycapImageSlotIndices)
         ? set.keycapImageSlotIndices.filter((index: unknown) => Number.isInteger(index) && (index as number) >= 0)
         : store.get().keycapImageSlotIndices,
+      keycapLogoNames: appData.keycapLogoAssets.map((asset) => asset.name),
+      keycapLogoAssignments: Array.isArray(set.keycapLogoAssignments)
+        ? set.keycapLogoAssignments.map((index: unknown) => Number.isInteger(index) && (index as number) >= 0 ? index as number : null)
+        : (Array.isArray(set.keycapImageSlotIndices)
+            ? store.get().blockSlots.map((_, slotIndex) => set.keycapImageSlotIndices.includes(slotIndex) ? 0 : null)
+            : store.get().keycapLogoAssignments),
+      keycapLogoSizeMm: Math.max(4, Math.min(13, set.keycapLogoSizeMm ?? store.get().keycapLogoSizeMm)),
       plateId: ['a1', 'a1mini', 'h2d', 'grid'].includes(set.plateId) ? set.plateId : store.get().plateId,
       keycapImageName: appData.keycapImageName,
     });

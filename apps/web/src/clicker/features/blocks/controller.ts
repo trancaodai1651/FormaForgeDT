@@ -143,9 +143,9 @@ export function createBlocksController(): BlocksController {
   let builtPlacements: SwitchPlacement[] = [];
   let previewRebuild: (() => void) | null = null;
   let buildId = 0;
-  let keycapImageRegionSet: import('../../types').RegionSet | null = null;
-  let keycapImageName = '';
-  let keycapImageSlotIndices: number[] = [0];
+  let keycapLogoAssets: import('../../types').KeycapLogoAsset[] = [];
+  let keycapLogoAssignments: Array<number | null> = [null, null, null, null];
+  let keycapImageSizeMm = 10;
 
   const syncExportButtons = () => {
     const disabled = builtParts.length === 0;
@@ -195,14 +195,19 @@ export function createBlocksController(): BlocksController {
       return;
     }
     const id = ++buildId;
-    const keycapImageRegions = keycapImageRegionSet?.regions.flatMap((region, regionIndex) =>
-      region.components.map((component, componentIndex) => ({
-        filamentRgb: region.quantRgb,
-        coverage: region.coverage,
-        rings: component.rings,
-        partName: `keycap-image-source-${regionIndex}-${componentIndex}`,
-      })),
-    ) ?? [];
+    const keycapImageRegionsBySlot: Record<number, import('../../types').BuildRegion[]> = {};
+    for (const [slotIndex, logoIndex] of keycapLogoAssignments.entries()) {
+      const asset = logoIndex === null || logoIndex === undefined ? undefined : keycapLogoAssets[logoIndex];
+      if (!asset) continue;
+      keycapImageRegionsBySlot[slotIndex] = asset.regionSet.regions.flatMap((region, regionIndex) =>
+        region.components.map((component, componentIndex) => ({
+          filamentRgb: region.quantRgb,
+          coverage: region.coverage,
+          rings: component.rings,
+          partName: `keycap-image-source-${logoIndex}-${regionIndex}-${componentIndex}`,
+        })),
+      );
+    }
     worker.postMessage({
       type: 'buildBlocks',
       params: {
@@ -216,10 +221,9 @@ export function createBlocksController(): BlocksController {
         legendBold: 0,
         vertical: safe.vertical,
         glyphs: parsed.regions.map((region) => ({ rings: region.components[0]?.rings ?? [] })),
-        keycapImageRegions,
-        keycapImageSizeMm: 10,
+        keycapImageRegionsBySlot,
+        keycapImageSizeMm,
         keycapImageExtrudeMm: 0,
-        keycapImageSlotIndices,
       },
     });
   };
@@ -360,7 +364,7 @@ export function createBlocksController(): BlocksController {
   }
 
   const mount = (root: HTMLElement, onBack: () => void) => {
-    root.innerHTML = renderBlocksScreen({ config: { ...cfg, keycapImageRegionSet, keycapImageName, keycapImageSlotIndices }, exploded, showSwitch, hasParts: builtParts.length > 0 });
+    root.innerHTML = renderBlocksScreen({ config: { ...cfg, keycapLogoAssets, keycapLogoAssignments, keycapImageSizeMm }, exploded, showSwitch, hasParts: builtParts.length > 0 });
     const viewport = $('blocksViewport');
     if (viewport && viewport.childElementCount === 0) mountPreview(viewport);
 
@@ -396,13 +400,18 @@ export function createBlocksController(): BlocksController {
     const depth = $<HTMLInputElement>('blocksDepth');
     const keycapDrop = $('blocksKeycapImageDrop');
     const keycapFile = $<HTMLInputElement>('blocksKeycapImageFile');
-    const readKeycapImage = async (file: File) => {
+    const readKeycapImages = async (files: File[]) => {
       try {
-        const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
-        keycapImageRegionSet = isSvg
-          ? parseSvg(await file.text(), { removeBg: true })
-          : processImage(await loadFileToImage(file), 4, { removeBg: true, smoothing: 0.25, photoFlatten: false });
-        keycapImageName = file.name;
+        for (const file of files) {
+          const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+          const regionSet = isSvg
+            ? parseSvg(await file.text(), { removeBg: true })
+            : processImage(await loadFileToImage(file), 4, { removeBg: true, smoothing: 0.25, photoFlatten: false });
+          const logoIndex = keycapLogoAssets.length;
+          keycapLogoAssets.push({ id: `blocks-keycap-logo-${Date.now()}-${logoIndex}`, name: file.name, regionSet });
+          const emptySlot = keycapLogoAssignments.findIndex((value, index) => value === null && index < splitBlocksText(cfg.name).length);
+          if (emptySlot >= 0) keycapLogoAssignments[emptySlot] = logoIndex;
+        }
         rerender();
       } catch (error) {
         console.warn('[blocks] Could not import keycap image', error);
@@ -410,26 +419,32 @@ export function createBlocksController(): BlocksController {
     };
     if (keycapDrop && keycapFile) {
       keycapDrop.addEventListener('click', () => keycapFile.click());
-      keycapFile.addEventListener('change', () => { if (keycapFile.files?.[0]) void readKeycapImage(keycapFile.files[0]); keycapFile.value = ''; });
+      keycapFile.addEventListener('change', () => { if (keycapFile.files?.length) void readKeycapImages(Array.from(keycapFile.files)); keycapFile.value = ''; });
       keycapDrop.addEventListener('dragover', (event) => { event.preventDefault(); keycapDrop.classList.add('over'); });
       keycapDrop.addEventListener('dragleave', () => keycapDrop.classList.remove('over'));
-      keycapDrop.addEventListener('drop', (event) => { event.preventDefault(); keycapDrop.classList.remove('over'); if (event.dataTransfer?.files?.[0]) void readKeycapImage(event.dataTransfer.files[0]); });
+      keycapDrop.addEventListener('drop', (event) => { event.preventDefault(); keycapDrop.classList.remove('over'); if (event.dataTransfer?.files?.length) void readKeycapImages(Array.from(event.dataTransfer.files)); });
     }
-    $('blocksClearKeycapImage')?.addEventListener('click', () => { keycapImageRegionSet = null; keycapImageName = ''; rerender(); });
-    $('blocksKeycapSlotsAll')?.addEventListener('click', () => {
-      keycapImageSlotIndices = splitBlocksText(cfg.name).map((_, index) => index);
+    $('blocksClearKeycapImage')?.addEventListener('click', () => { keycapLogoAssets = []; keycapLogoAssignments = splitBlocksText(cfg.name).map(() => null); rerender(); });
+    $('blocksKeycapLogoSize')?.addEventListener('input', (event) => { keycapImageSizeMm = Math.max(4, Math.min(13, Number((event.target as HTMLInputElement).value))); rerender(); });
+    root.querySelector('#blocksKeycapLogoLibrary')?.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLElement>('[data-logo-assign-slot], [data-logo-remove]');
+      if (!button) return;
+      if (button.dataset.logoRemove !== undefined) {
+        const logoIndex = Number(button.dataset.logoRemove);
+        keycapLogoAssets = keycapLogoAssets.filter((_, index) => index !== logoIndex);
+        keycapLogoAssignments = keycapLogoAssignments.map((value) => value === logoIndex ? null : value !== null && value > logoIndex ? value - 1 : value);
+        rerender();
+        return;
+      }
+      const slotIndex = Number(button.dataset.logoAssignSlot);
+      const logoIndex = Number(button.dataset.logoIndex);
+      keycapLogoAssignments[slotIndex] = logoIndex;
       rerender();
     });
-    $('blocksKeycapSlotsNone')?.addEventListener('click', () => { keycapImageSlotIndices = []; rerender(); });
-    root.querySelector('.blocks-keycap-slot-picker')?.addEventListener('click', (event) => {
-      const button = (event.target as HTMLElement).closest<HTMLElement>('[data-keycap-slot]');
+    root.querySelector('#blocksKeycapLogoSlots')?.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLElement>('[data-keycap-logo-clear-slot]');
       if (!button) return;
-      const index = Number(button.dataset.keycapSlot);
-      if (keycapImageSlotIndices.includes(index)) {
-        keycapImageSlotIndices = keycapImageSlotIndices.filter((slot) => slot !== index);
-      } else {
-        keycapImageSlotIndices = [...keycapImageSlotIndices, index].sort((a, b) => a - b);
-      }
+      keycapLogoAssignments[Number(button.dataset.keycapLogoClearSlot)] = null;
       rerender();
     });
 
@@ -445,7 +460,8 @@ export function createBlocksController(): BlocksController {
     name?.addEventListener('input', () => {
       Object.assign(cfg, clampBlocksConfig({ ...cfg, name: name.value }));
       const count = splitBlocksText(cfg.name).length;
-      keycapImageSlotIndices = keycapImageSlotIndices.filter((index) => index < count);
+      keycapLogoAssignments = keycapLogoAssignments.slice(0, count);
+      while (keycapLogoAssignments.length < count) keycapLogoAssignments.push(null);
       rerender();
     });
     vertical?.addEventListener('change', () => { Object.assign(cfg, clampBlocksConfig({ ...cfg, vertical: vertical.value === 'vertical' })); rerender(); });

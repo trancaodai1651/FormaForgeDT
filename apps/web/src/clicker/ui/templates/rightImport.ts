@@ -128,22 +128,23 @@ Text</textarea>
         <div id="blockChips" class="block-chips"></div>
       </div>
       <div class="section keycap-image-section" id="keycapImagePanel" hidden style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-        <span class="label">${tx('Logo on selected keycaps', 'Logo trên keycap đã chọn')}</span>
+        <span class="label">${tx('Keycap logo library', 'Kho logo keycap')}</span>
         <div class="drop keycap-image-drop" id="keycapImageDrop" style="min-height: 86px; padding: 14px;">
-          <div class="drop-title" style="font-size: 13px;">Import JPG, PNG or SVG</div>
-          <div class="drop-text">Drop a file here, or <u>click to browse</u></div>
-          <span style="font-size:10px; opacity:0.8; display:block; margin-top:4px;">${tx('Choose which keycaps receive the current logo. Artwork is flush by default; Extrude raises the selected part.', 'Chọn keycap nhận logo. Logo mặc định cùng mặt keycap; Extrude sẽ đẩy phần đã chọn nổi lên.')}</span>
+          <div class="drop-title" style="font-size: 13px;">${tx('Import multiple JPG, PNG or SVG logos', 'Nhập nhiều logo JPG, PNG hoặc SVG')}</div>
+          <div class="drop-text">${tx('Drop files here, or <u>click to browse</u>', 'Thả nhiều file vào đây, hoặc <u>bấm để chọn</u>')}</div>
+          <span style="font-size:10px; opacity:0.8; display:block; margin-top:4px;">${tx('Assign one logo to each keycap. Logo is flush by default; Extrude raises it.', 'Gán từng logo cho từng keycap. Logo mặc định cùng mặt; Extrude sẽ đẩy logo nổi lên.')}</span>
         </div>
-        <input type="file" id="keycapImageFile" accept="image/jpeg,image/png,image/svg+xml,.jpg,.jpeg,.png,.svg" hidden />
+        <input type="file" id="keycapImageFile" accept="image/jpeg,image/png,image/svg+xml,.jpg,.jpeg,.png,.svg" multiple hidden />
         <div class="keycap-image-file-row" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-          <span id="keycapImageName" class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">No keycap image</span>
-          <button class="btn" id="clearKeycapImage" type="button">Clear</button>
+          <span id="keycapImageName" class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">No keycap logos</span>
+          <button class="btn" id="clearKeycapImage" type="button">${tx('Clear all', 'Xóa tất cả')}</button>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-          <span class="hint-text">${tx('Print logo on', 'In logo trên')}</span>
-          <span style="display:flex; gap:6px;"><button class="btn" id="keycapImageSlotsAll" type="button">${tx('All', 'Tất cả')}</button><button class="btn" id="keycapImageSlotsNone" type="button">${tx('None', 'Bỏ chọn')}</button></span>
+        <div class="prow-stacked" style="margin-top:12px;">
+          <div class="prow-header"><label for="keycapLogoSize">${tx('Logo size', 'Kích thước logo')}</label><input type="text" class="val" id="keycapLogoSizeVal" /></div>
+          <input type="range" id="keycapLogoSize" min="4" max="13" step="0.5" />
         </div>
-        <div id="keycapImageSlots" class="block-chips" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+        <div class="keycap-logo-library" id="keycapLogoLibrary" style="margin-top:12px;"></div>
+        <div class="keycap-logo-slots" id="keycapLogoSlots" style="margin-top:12px;"></div>
       </div>
       <div class="field">
         <label>${tx('Font', 'Phông chữ')}</label>

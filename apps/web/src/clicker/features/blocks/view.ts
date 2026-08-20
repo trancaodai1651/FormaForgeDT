@@ -55,26 +55,25 @@ export function renderBlocksScreen(vm: BlocksViewModel) {
               <input id="blocksName" type="text" value="${config.name}" placeholder="NAME" />
             </div>
             <div class="field blocks-keycap-image-field">
-              <label>Image on keycaps</label>
+              <label>Keycap logo library</label>
               <div class="drop" id="blocksKeycapImageDrop" style="min-height: 76px; padding: 12px;">
-                <div class="drop-title" style="font-size: 13px;">Import JPG, PNG or SVG</div>
-                <div class="drop-text">Drop a file here, or <u>click to browse</u></div>
+                <div class="drop-title" style="font-size: 13px;">Import multiple JPG, PNG or SVG logos</div>
+                <div class="drop-text">Drop files here, or <u>click to browse</u></div>
               </div>
-              <input id="blocksKeycapImageFile" type="file" accept="image/jpeg,image/png,image/svg+xml,.jpg,.jpeg,.png,.svg" hidden />
+              <input id="blocksKeycapImageFile" type="file" accept="image/jpeg,image/png,image/svg+xml,.jpg,.jpeg,.png,.svg" multiple hidden />
               <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-                <span class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${config.keycapImageName || 'No keycap image'}</span>
-                <button class="secondary" id="blocksClearKeycapImage" type="button">Clear</button>
+                <span class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(config.keycapLogoAssets ?? []).length || 0} logo(s) imported</span>
+                <button class="secondary" id="blocksClearKeycapImage" type="button">Clear all</button>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
                 <span class="hint-text">Print logo on</span>
-                <span style="display:flex; gap:6px;"><button class="secondary" id="blocksKeycapSlotsAll" type="button">All</button><button class="secondary" id="blocksKeycapSlotsNone" type="button">None</button></span>
+                <span class="hint-text">Click a logo, then a keycap</span>
               </div>
-              <div class="blocks-keycap-slot-picker" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                ${chars.map((ch, index) => {
-                  const active = (config.keycapImageSlotIndices ?? [0]).includes(index);
-                  return `<button class="secondary blocks-keycap-slot ${active ? 'active' : ''}" data-keycap-slot="${index}" aria-pressed="${active}" type="button">${index + 1}: ${ch}</button>`;
-                }).join('')}
+              <div class="field" style="margin-top:10px;"><label for="blocksKeycapLogoSize">Logo size <span id="blocksKeycapLogoSizeVal">${(config.keycapImageSizeMm ?? 10).toFixed(1)} mm</span></label><input id="blocksKeycapLogoSize" type="range" min="4" max="13" step="0.5" value="${config.keycapImageSizeMm ?? 10}" /></div>
+              <div class="keycap-logo-library" id="blocksKeycapLogoLibrary" style="margin-top:10px;">
+                ${(config.keycapLogoAssets ?? []).map((asset, logoIndex) => `<div class="keycap-logo-card"><div class="keycap-logo-card-head"><span class="hint-text">${asset.name}</span><button class="secondary" data-logo-remove="${logoIndex}" type="button">×</button></div><div class="keycap-logo-assign-list">${chars.map((ch, slotIndex) => `<button class="secondary blocks-keycap-slot ${config.keycapLogoAssignments?.[slotIndex] === logoIndex ? 'active' : ''}" data-logo-assign-slot="${slotIndex}" data-logo-index="${logoIndex}" type="button">${slotIndex + 1}: ${ch}</button>`).join('')}</div></div>`).join('') || '<p class="hint-text">Import logos to assign them to individual keycaps.</p>'}
               </div>
+              <div class="keycap-logo-slots" id="blocksKeycapLogoSlots" style="margin-top:10px;"><div class="hint-text">Assigned logos</div>${chars.map((ch, slotIndex) => { const logoIndex = config.keycapLogoAssignments?.[slotIndex]; const name = logoIndex === null || logoIndex === undefined ? 'No logo' : config.keycapLogoAssets?.[logoIndex]?.name ?? 'No logo'; return `<div class="keycap-logo-slot-row"><span class="slot-pill">${slotIndex + 1}</span><span>${ch}</span><span class="hint-text">${name}</span><button class="secondary" data-keycap-logo-clear-slot="${slotIndex}" type="button">Clear</button></div>`; }).join('')}</div>
             </div>
             <div class="field">
               <label for="blocksVertical">Layout</label>
