@@ -12,6 +12,7 @@ export interface BlocksConfig {
   cornerRadiusMm: number;
   keycapImageRegionSet?: RegionSet | null;
   keycapImageName?: string;
+  keycapImageSlotIndices?: number[];
 }
 
 export const DEFAULT_BLOCKS: BlocksConfig = {
@@ -40,6 +41,7 @@ export function clampBlocksConfig(cfg: BlocksConfig): BlocksConfig {
     cornerRadiusMm: Math.max(0, Math.min(12, cfg.cornerRadiusMm)),
     keycapImageRegionSet: cfg.keycapImageRegionSet ?? null,
     keycapImageName: cfg.keycapImageName ?? '',
+    keycapImageSlotIndices: [...new Set((cfg.keycapImageSlotIndices ?? [0]).filter((index) => Number.isInteger(index) && index >= 0))].sort((a, b) => a - b),
   };
 }
 

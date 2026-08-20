@@ -313,6 +313,8 @@ export interface BlocksBuildParams {
   keycapImageSizeMm?: number;
   /** Raised height of the keycap artwork; a small positive default makes it printable. */
   keycapImageExtrudeMm?: number;
+  /** Original glyph/slot indices that receive the imported keycap artwork. */
+  keycapImageSlotIndices?: number[];
 }
 
 export interface FlexKeychainSlot {

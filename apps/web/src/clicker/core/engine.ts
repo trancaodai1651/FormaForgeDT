@@ -298,7 +298,8 @@ export function rebuild(quiet = false) {
           keychainEnd: 'left',
           keycapImageRegions,
           keycapImageSizeMm: 10,
-          keycapImageExtrudeMm: 0.35,
+          keycapImageExtrudeMm: 0,
+          keycapImageSlotIndices: s.keycapImageSlotIndices,
         },
       });
     } else if (isHybrid) {
@@ -346,7 +347,8 @@ export function rebuild(quiet = false) {
           keychainEnd: 'left',
           keycapImageRegions,
           keycapImageSizeMm: 10,
-          keycapImageExtrudeMm: 0.35,
+          keycapImageExtrudeMm: 0,
+          keycapImageSlotIndices: s.keycapImageSlotIndices,
         },
       });
     } else {

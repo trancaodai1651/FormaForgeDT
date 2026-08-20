@@ -1056,6 +1056,16 @@ body.tutorial-active.focus-center #viewport {
   font-family: var(--font-display);
   font-size: 16px;
 }
+.block-chip[data-keycap-slot] {
+  cursor: pointer;
+  font-size: 12px;
+  min-width: 48px;
+}
+.block-chip[data-keycap-slot].active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #111);
+}
 
 .hint-text {
   font-size: 13.5px;

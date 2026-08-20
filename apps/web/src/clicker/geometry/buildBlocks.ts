@@ -927,8 +927,14 @@ export function buildBlocks(
     params.keycapImageRegions ?? [],
     params.keycapImageSizeMm ?? Math.min(10, Math.max(4, topExtent - 4.2)),
   );
-  const hasKeycapImage = keycapImageRegions.length > 0;
-  const keycapImageHeight = Math.max(0.08, Math.min(3, params.keycapImageExtrudeMm ?? 0.35));
+  const selectedKeycapSlots = new Set(
+    (params.keycapImageSlotIndices ?? [0])
+      .filter((slot) => Number.isInteger(slot) && slot >= 0),
+  );
+  const hasKeycapImage = keycapImageRegions.length > 0 && selectedKeycapSlots.size > 0;
+  // Artwork is flush with the cap by default. The Extrude tool contributes to
+  // the selected `keycap-image-*` part and is the only way it rises above it.
+  const keycapImageHeight = Math.max(0, Math.min(3, params.keycapImageExtrudeMm ?? 0));
 
   for (let index = 0; index < filled.length; index++) {
     const entry = filled[index];
@@ -936,6 +942,7 @@ export function buildBlocks(
     const capRotation = rotations[index];
     let capPart = capForRotation(capRotation);
     let legend: any = null;
+    const useKeycapImage = hasKeycapImage && selectedKeycapSlots.has(entry.index);
     const glyphBounds = bounds(entry.glyph.rings);
     const centerX = (glyphBounds.minX + glyphBounds.maxX) / 2;
     const centerY = (glyphBounds.minY + glyphBounds.maxY) / 2;
@@ -946,7 +953,7 @@ export function buildBlocks(
 
     if (!rings.length) {
       warnings.push(`Letter ${index + 1} has no printable outline. Its cap is blank.`);
-    } else if (!hasKeycapImage) {
+    } else if (!useKeycapImage) {
       try {
         let glyph = ctx.track(new wasm.CrossSection(rings, 'NonZero'));
         if (Math.abs(bold) > 0.005) {
@@ -993,7 +1000,7 @@ export function buildBlocks(
       // connector orientation (the end character was previously mirrored).
       parts.push(toPart(legend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`));
     }
-    if (hasKeycapImage) {
+    if (useKeycapImage) {
       keycapImageRegions.forEach((region, regionIndex) => {
         try {
           const imageRings = region.rings.filter((ring) => area(ring) > 0.00005);
@@ -1003,9 +1010,12 @@ export function buildBlocks(
           const extrusionLevel = params.componentHeights?.[regionPartName]
             ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
             ?? 0;
-          const height = Math.max(0.08, Math.min(6, keycapImageHeight + extrusionLevel * (params.stepHeight ?? 0.6)));
-          const image = ctx.track(wasm.Manifold.extrude(imageSection, height)
-            .translate([0, 0, capTopZ + 0.02]));
+          const height = Math.max(0, Math.min(6, keycapImageHeight + extrusionLevel * (params.stepHeight ?? 0.6)));
+          const image = height > 0.001
+            ? ctx.track(wasm.Manifold.extrude(imageSection, height).translate([0, 0, capTopZ + 0.04]))
+            // Keep a thin printable skin at the exact cap plane when no
+            // extrusion is selected; this avoids a visible raised outline.
+            : ctx.track(wasm.Manifold.extrude(imageSection, 0.04).translate([0, 0, capTopZ - 0.02]));
           if (!image.isEmpty()) {
             parts.push(toPart(image, position, 'cap', 'top', region.filamentRgb, regionPartName));
           }

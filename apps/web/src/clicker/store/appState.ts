@@ -88,6 +88,9 @@ export const store = createStore<UiState>({
   blockKeycapProfile: 'standard',
   blockKeycapUnit: 1,
   keycapImageName: '',
+  // Only the first keycap receives a newly imported logo until the user
+  // explicitly selects additional slots in the keycap artwork panel.
+  keycapImageSlotIndices: [0],
   plateId: 'a1',
   extrudeHeight: null,
   componentHeights: {},

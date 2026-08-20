@@ -65,6 +65,16 @@ export function renderBlocksScreen(vm: BlocksViewModel) {
                 <span class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${config.keycapImageName || 'No keycap image'}</span>
                 <button class="secondary" id="blocksClearKeycapImage" type="button">Clear</button>
               </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+                <span class="hint-text">Print logo on</span>
+                <span style="display:flex; gap:6px;"><button class="secondary" id="blocksKeycapSlotsAll" type="button">All</button><button class="secondary" id="blocksKeycapSlotsNone" type="button">None</button></span>
+              </div>
+              <div class="blocks-keycap-slot-picker" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${chars.map((ch, index) => {
+                  const active = (config.keycapImageSlotIndices ?? [0]).includes(index);
+                  return `<button class="secondary blocks-keycap-slot ${active ? 'active' : ''}" data-keycap-slot="${index}" aria-pressed="${active}" type="button">${index + 1}: ${ch}</button>`;
+                }).join('')}
+              </div>
             </div>
             <div class="field">
               <label for="blocksVertical">Layout</label>

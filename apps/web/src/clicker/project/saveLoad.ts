@@ -63,6 +63,7 @@ export function saveProject() {
       blockKeycapMount: s.blockKeycapMount,
       blockKeycapProfile: s.blockKeycapProfile,
       blockKeycapUnit: s.blockKeycapUnit,
+      keycapImageSlotIndices: s.keycapImageSlotIndices,
       plateId: s.plateId,
     },
     palette: s.palette,
@@ -144,6 +145,9 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       blockKeycapMount: set.blockKeycapMount === 'above' ? 'above' : (set.blockKeycapMount ?? store.get().blockKeycapMount),
       blockKeycapProfile: ['standard', 'low', 'thocky', 'choc-v1'].includes(set.blockKeycapProfile) ? set.blockKeycapProfile : store.get().blockKeycapProfile,
       blockKeycapUnit: [1, 1.25, 1.5, 1.75, 2, 2.25, 2.75, 6, 6.25, 6.5].includes(set.blockKeycapUnit) ? set.blockKeycapUnit : store.get().blockKeycapUnit,
+      keycapImageSlotIndices: Array.isArray(set.keycapImageSlotIndices)
+        ? set.keycapImageSlotIndices.filter((index: unknown) => Number.isInteger(index) && (index as number) >= 0)
+        : store.get().keycapImageSlotIndices,
       plateId: ['a1', 'a1mini', 'h2d', 'grid'].includes(set.plateId) ? set.plateId : store.get().plateId,
       keycapImageName: appData.keycapImageName,
     });

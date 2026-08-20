@@ -23,6 +23,12 @@ export function bindImageEvents(cb: UiCallbacks) {
     keycapDrop.addEventListener('drop', (e: DragEvent) => { e.preventDefault(); keycapDrop.classList.remove('over'); if (e.dataTransfer?.files?.[0]) cb.onKeycapImageUpload(e.dataTransfer.files[0]); });
   }
   $('clearKeycapImage')?.addEventListener('click', () => cb.onClearKeycapImage());
+  $('keycapImageSlotsAll')?.addEventListener('click', () => cb.onKeycapImageSlotsAll());
+  $('keycapImageSlotsNone')?.addEventListener('click', () => cb.onKeycapImageSlotsNone());
+  $('keycapImageSlots')?.addEventListener('click', (event: MouseEvent) => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>('[data-keycap-slot]');
+    if (button) cb.onKeycapImageSlotToggle(Number(button.dataset.keycapSlot));
+  });
 
   // Custom Bottom Base 
   $('tab-base-match')?.addEventListener('click', () => cb.onBottomModeChange('match'));

@@ -191,11 +191,30 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       store.set({ keycapImageName: '' });
       rebuild();
     },
+    onKeycapImageSlotToggle: (index) => {
+      if (!Number.isInteger(index) || index < 0 || index >= store.get().blockSlots.length) return;
+      const selected = new Set(store.get().keycapImageSlotIndices);
+      if (selected.has(index)) selected.delete(index); else selected.add(index);
+      store.set({ keycapImageSlotIndices: [...selected].sort((a, b) => a - b) });
+      debouncedRebuild();
+    },
+    onKeycapImageSlotsAll: () => {
+      store.set({ keycapImageSlotIndices: store.get().blockSlots.map((_, index) => index) });
+      debouncedRebuild();
+    },
+    onKeycapImageSlotsNone: () => {
+      store.set({ keycapImageSlotIndices: [] });
+      debouncedRebuild();
+    },
     onSelectIcon: (svgText, name) => { appData.currentIconText = svgText; appData.currentIconName = name; store.set({ currentIconName: name, status: `Selected icon: ${name}` }); },
     onTextChange: (text) => { appData.currentText = text; store.set({ status: 'Text updated.' }); },
     onBlockText: (text) => {
       const chars = Array.from(text.replace(/\s+/g, '')).slice(0, 12);
-      store.set({ blockSlots: (chars.length ? chars : ['N', 'a', 'm', 'e']).map(ch => ({ kind: 'char' as const, ch })) });
+      const nextSlots = (chars.length ? chars : ['N', 'a', 'm', 'e']).map(ch => ({ kind: 'char' as const, ch }));
+      store.set({
+        blockSlots: nextSlots,
+        keycapImageSlotIndices: store.get().keycapImageSlotIndices.filter((index) => index < nextSlots.length),
+      });
       // Font parsing and worker builds are expensive. Do not block the input
       // event for every character; build once after typing pauses.
       debouncedReprocess();

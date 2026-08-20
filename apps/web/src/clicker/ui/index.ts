@@ -307,6 +307,14 @@ export function createUi(
     if ($('blocksChainField')) $('blocksChainField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     if ($('keycapImagePanel')) $('keycapImagePanel')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     if ($('keycapImageName')) $('keycapImageName')!.textContent = state.keycapImageName || 'No keycap image';
+    if ($('keycapImageSlots')) {
+      const selected = new Set(state.keycapImageSlotIndices);
+      $('keycapImageSlots')!.innerHTML = state.blockSlots.map((slot, index) => {
+        const label = slot.ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const active = selected.has(index);
+        return `<button class="block-chip ${active ? 'active' : ''}" data-keycap-slot="${index}" type="button" aria-pressed="${active}" title="${active ? 'Logo selected' : 'Logo not selected'}">${index + 1}: ${label}</button>`;
+      }).join('');
+    }
     if ($('blocksText')) {
       const blockText = state.blockSlots.map(slot => slot.ch).join('');
       if (getClickerDocument().activeElement !== $('blocksText')) $<HTMLTextAreaElement>('blocksText').value = blockText;

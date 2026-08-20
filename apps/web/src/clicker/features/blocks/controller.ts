@@ -145,6 +145,7 @@ export function createBlocksController(): BlocksController {
   let buildId = 0;
   let keycapImageRegionSet: import('../../types').RegionSet | null = null;
   let keycapImageName = '';
+  let keycapImageSlotIndices: number[] = [0];
 
   const syncExportButtons = () => {
     const disabled = builtParts.length === 0;
@@ -217,7 +218,8 @@ export function createBlocksController(): BlocksController {
         glyphs: parsed.regions.map((region) => ({ rings: region.components[0]?.rings ?? [] })),
         keycapImageRegions,
         keycapImageSizeMm: 10,
-        keycapImageExtrudeMm: 0.35,
+        keycapImageExtrudeMm: 0,
+        keycapImageSlotIndices,
       },
     });
   };
@@ -358,7 +360,7 @@ export function createBlocksController(): BlocksController {
   }
 
   const mount = (root: HTMLElement, onBack: () => void) => {
-    root.innerHTML = renderBlocksScreen({ config: { ...cfg, keycapImageRegionSet, keycapImageName }, exploded, showSwitch, hasParts: builtParts.length > 0 });
+    root.innerHTML = renderBlocksScreen({ config: { ...cfg, keycapImageRegionSet, keycapImageName, keycapImageSlotIndices }, exploded, showSwitch, hasParts: builtParts.length > 0 });
     const viewport = $('blocksViewport');
     if (viewport && viewport.childElementCount === 0) mountPreview(viewport);
 
@@ -414,6 +416,22 @@ export function createBlocksController(): BlocksController {
       keycapDrop.addEventListener('drop', (event) => { event.preventDefault(); keycapDrop.classList.remove('over'); if (event.dataTransfer?.files?.[0]) void readKeycapImage(event.dataTransfer.files[0]); });
     }
     $('blocksClearKeycapImage')?.addEventListener('click', () => { keycapImageRegionSet = null; keycapImageName = ''; rerender(); });
+    $('blocksKeycapSlotsAll')?.addEventListener('click', () => {
+      keycapImageSlotIndices = splitBlocksText(cfg.name).map((_, index) => index);
+      rerender();
+    });
+    $('blocksKeycapSlotsNone')?.addEventListener('click', () => { keycapImageSlotIndices = []; rerender(); });
+    root.querySelector('.blocks-keycap-slot-picker')?.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLElement>('[data-keycap-slot]');
+      if (!button) return;
+      const index = Number(button.dataset.keycapSlot);
+      if (keycapImageSlotIndices.includes(index)) {
+        keycapImageSlotIndices = keycapImageSlotIndices.filter((slot) => slot !== index);
+      } else {
+        keycapImageSlotIndices = [...keycapImageSlotIndices, index].sort((a, b) => a - b);
+      }
+      rerender();
+    });
 
     $('blocksExport')?.addEventListener('click', () => {
       if (builtParts.length === 0) return;
@@ -424,7 +442,12 @@ export function createBlocksController(): BlocksController {
       downloadSTL(builtParts, `blocks-${splitBlocksText(cfg.name).join('').toLowerCase() || 'model'}.stl`);
     });
 
-    name?.addEventListener('input', () => { Object.assign(cfg, clampBlocksConfig({ ...cfg, name: name.value })); rerender(); });
+    name?.addEventListener('input', () => {
+      Object.assign(cfg, clampBlocksConfig({ ...cfg, name: name.value }));
+      const count = splitBlocksText(cfg.name).length;
+      keycapImageSlotIndices = keycapImageSlotIndices.filter((index) => index < count);
+      rerender();
+    });
     vertical?.addEventListener('change', () => { Object.assign(cfg, clampBlocksConfig({ ...cfg, vertical: vertical.value === 'vertical' })); rerender(); });
     separate?.addEventListener('change', () => { Object.assign(cfg, clampBlocksConfig({ ...cfg, separateLetters: separate.value === 'true' })); rerender(); });
     fontSize?.addEventListener('input', () => { Object.assign(cfg, clampBlocksConfig({ ...cfg, fontSize: +fontSize.value })); rerender(); });
