@@ -54,6 +54,18 @@ export function renderBlocksScreen(vm: BlocksViewModel) {
               <label for="blocksName">Name</label>
               <input id="blocksName" type="text" value="${config.name}" placeholder="NAME" />
             </div>
+            <div class="field blocks-keycap-image-field">
+              <label>Image on keycaps</label>
+              <div class="drop" id="blocksKeycapImageDrop" style="min-height: 76px; padding: 12px;">
+                <div class="drop-title" style="font-size: 13px;">Import JPG, PNG or SVG</div>
+                <div class="drop-text">Drop a file here, or <u>click to browse</u></div>
+              </div>
+              <input id="blocksKeycapImageFile" type="file" accept="image/jpeg,image/png,image/svg+xml,.jpg,.jpeg,.png,.svg" hidden />
+              <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <span class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${config.keycapImageName || 'No keycap image'}</span>
+                <button class="secondary" id="blocksClearKeycapImage" type="button">Clear</button>
+              </div>
+            </div>
             <div class="field">
               <label for="blocksVertical">Layout</label>
               <select id="blocksVertical">

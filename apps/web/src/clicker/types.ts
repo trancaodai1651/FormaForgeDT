@@ -307,6 +307,12 @@ export interface BlocksBuildParams {
   keychainEnd?: 'left' | 'right' | 'top' | 'bottom';
   /** Optional per-slot colors used by the Flex Keychain page. */
   capColorByIndex?: RGB[];
+  /** Optional traced artwork placed on every keycap. Artwork replaces the text legend. */
+  keycapImageRegions?: BuildRegion[];
+  /** Longest side of the keycap artwork in millimetres. */
+  keycapImageSizeMm?: number;
+  /** Raised height of the keycap artwork; a small positive default makes it printable. */
+  keycapImageExtrudeMm?: number;
 }
 
 export interface FlexKeychainSlot {

@@ -20,7 +20,12 @@ export const renderRightImport = () => `
         <div class="drop-text">${tx('Drop an image, or', 'Thả hình ảnh vào đây, hoặc')} <u>${tx('click to browse', 'bấm để chọn')}</u></div>
         <span style="font-size:10px; opacity:0.8; display:block; margin-top:4px;">${tx('PNG with transparency works best', 'Ảnh PNG nền trong suốt cho kết quả tốt nhất')}</span>
       </div>
-      <input type="file" id="file" accept="image/*" hidden />
+      <input type="file" id="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden />
+      <div id="hybridSvgImport" hidden style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+        <span class="label">SVG image for Image + Blocks</span>
+        <label class="upload-cta">Import SVG<input id="hybridSvgUpload" type="file" accept=".svg,image/svg+xml" /></label>
+        <span id="hybridSvgName" class="hint-text"></span>
+      </div>
       <div class="switch-row">
         <span class="switch-label">${tx('Remove background', 'Xóa nền')} ${tip(tx('Automatically removes a solid background.', 'Tự động xóa nền màu đồng nhất.'))}</span>
         <label class="toggle"><input id="removebg" type="checkbox" /><span class="slider"></span></label>
@@ -121,6 +126,19 @@ Text</textarea>
         <label>${tx('Add symbol or emoji', 'Thêm ký hiệu hoặc emoji')}</label>
         <p class="hint-text" style="margin: 0 0 6px;">${tx('Each character becomes one printed block. Edit the text above to change the chain.', 'Mỗi ký tự tạo thành một block có thể in. Sửa văn bản phía trên để thay đổi chuỗi.')}</p>
         <div id="blockChips" class="block-chips"></div>
+      </div>
+      <div class="section keycap-image-section" id="keycapImagePanel" hidden style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <span class="label">Image on keycaps</span>
+        <div class="drop keycap-image-drop" id="keycapImageDrop" style="min-height: 86px; padding: 14px;">
+          <div class="drop-title" style="font-size: 13px;">Import JPG, PNG or SVG</div>
+          <div class="drop-text">Drop a file here, or <u>click to browse</u></div>
+          <span style="font-size:10px; opacity:0.8; display:block; margin-top:4px;">The artwork replaces the text on every keycap.</span>
+        </div>
+        <input type="file" id="keycapImageFile" accept="image/jpeg,image/png,image/svg+xml,.jpg,.jpeg,.png,.svg" hidden />
+        <div class="keycap-image-file-row" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <span id="keycapImageName" class="hint-text" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">No keycap image</span>
+          <button class="btn" id="clearKeycapImage" type="button">Clear</button>
+        </div>
       </div>
       <div class="field">
         <label>${tx('Font', 'Phông chữ')}</label>

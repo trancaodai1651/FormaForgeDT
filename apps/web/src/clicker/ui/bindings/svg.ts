@@ -28,6 +28,12 @@ export function bindSvgEvents(cb: UiCallbacks) {
       svgUpload.value = '';
     });
   }
+  const hybridSvgUpload = $<HTMLInputElement>('hybridSvgUpload');
+  hybridSvgUpload?.addEventListener('change', () => {
+    const file = hybridSvgUpload.files?.[0];
+    if (file) cb.onSvgUpload(file);
+    hybridSvgUpload.value = '';
+  });
   $('generateSvg')?.addEventListener('click', () => cb.onGenerate());
   refreshUploadEmptyState();
 }

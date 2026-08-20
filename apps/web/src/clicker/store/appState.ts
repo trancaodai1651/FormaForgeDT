@@ -87,6 +87,7 @@ export const store = createStore<UiState>({
   blockKeycapMount: 'above',
   blockKeycapProfile: 'standard',
   blockKeycapUnit: 1,
+  keycapImageName: '',
   plateId: 'a1',
   extrudeHeight: null,
   componentHeights: {},
@@ -99,6 +100,12 @@ export const store = createStore<UiState>({
 // Các biến dữ liệu nặng (Data states)
 export const appData = {
   originalImage: null as RgbaImage | null,
+  keycapImage: null as RgbaImage | null,
+  keycapImageRegionSet: null as RegionSet | null,
+  keycapImageSvgText: '',
+  keycapImageName: '',
+  /** Raster or SVG source currently selected for the Image + Blocks head. */
+  imageSource: 'raster' as 'raster' | 'svg',
   bottomImage: null as RgbaImage | null, // 👈 Thêm biến lưu ảnh đế
   bottomRegionSet: null as RegionSet | null, // 👈 Thêm biến lưu viền của ảnh đế
   regionSet: null as RegionSet | null,

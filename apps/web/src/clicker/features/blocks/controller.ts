@@ -5,6 +5,9 @@ import { $ } from '../../ui/helpers';
 import { worker } from '../../core/engine';
 import { appData } from '../../store/appState';
 import { parseLetter } from '../../image/letter';
+import { loadFileToImage } from '../../image/decode';
+import { processImage } from '../../image/pipeline';
+import { parseSvg } from '../../image/logo';
 import { parse3MF, type RawMesh } from '../../geometry/threemfImport';
 import { downloadSTL, downloadThreeMF } from '../../export';
 import { clampBlocksConfig, DEFAULT_BLOCKS, splitBlocksText, type BlocksConfig } from './model';
@@ -140,6 +143,8 @@ export function createBlocksController(): BlocksController {
   let builtPlacements: SwitchPlacement[] = [];
   let previewRebuild: (() => void) | null = null;
   let buildId = 0;
+  let keycapImageRegionSet: import('../../types').RegionSet | null = null;
+  let keycapImageName = '';
 
   const syncExportButtons = () => {
     const disabled = builtParts.length === 0;
@@ -189,6 +194,14 @@ export function createBlocksController(): BlocksController {
       return;
     }
     const id = ++buildId;
+    const keycapImageRegions = keycapImageRegionSet?.regions.flatMap((region, regionIndex) =>
+      region.components.map((component, componentIndex) => ({
+        filamentRgb: region.quantRgb,
+        coverage: region.coverage,
+        rings: component.rings,
+        partName: `keycap-image-source-${regionIndex}-${componentIndex}`,
+      })),
+    ) ?? [];
     worker.postMessage({
       type: 'buildBlocks',
       params: {
@@ -202,6 +215,9 @@ export function createBlocksController(): BlocksController {
         legendBold: 0,
         vertical: safe.vertical,
         glyphs: parsed.regions.map((region) => ({ rings: region.components[0]?.rings ?? [] })),
+        keycapImageRegions,
+        keycapImageSizeMm: 10,
+        keycapImageExtrudeMm: 0.35,
       },
     });
   };
@@ -342,7 +358,7 @@ export function createBlocksController(): BlocksController {
   }
 
   const mount = (root: HTMLElement, onBack: () => void) => {
-    root.innerHTML = renderBlocksScreen({ config: cfg, exploded, showSwitch, hasParts: builtParts.length > 0 });
+    root.innerHTML = renderBlocksScreen({ config: { ...cfg, keycapImageRegionSet, keycapImageName }, exploded, showSwitch, hasParts: builtParts.length > 0 });
     const viewport = $('blocksViewport');
     if (viewport && viewport.childElementCount === 0) mountPreview(viewport);
 
@@ -376,6 +392,28 @@ export function createBlocksController(): BlocksController {
     const width = $<HTMLInputElement>('blocksWidth');
     const height = $<HTMLInputElement>('blocksHeight');
     const depth = $<HTMLInputElement>('blocksDepth');
+    const keycapDrop = $('blocksKeycapImageDrop');
+    const keycapFile = $<HTMLInputElement>('blocksKeycapImageFile');
+    const readKeycapImage = async (file: File) => {
+      try {
+        const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+        keycapImageRegionSet = isSvg
+          ? parseSvg(await file.text(), { removeBg: true })
+          : processImage(await loadFileToImage(file), 4, { removeBg: true, smoothing: 0.25, photoFlatten: false });
+        keycapImageName = file.name;
+        rerender();
+      } catch (error) {
+        console.warn('[blocks] Could not import keycap image', error);
+      }
+    };
+    if (keycapDrop && keycapFile) {
+      keycapDrop.addEventListener('click', () => keycapFile.click());
+      keycapFile.addEventListener('change', () => { if (keycapFile.files?.[0]) void readKeycapImage(keycapFile.files[0]); keycapFile.value = ''; });
+      keycapDrop.addEventListener('dragover', (event) => { event.preventDefault(); keycapDrop.classList.add('over'); });
+      keycapDrop.addEventListener('dragleave', () => keycapDrop.classList.remove('over'));
+      keycapDrop.addEventListener('drop', (event) => { event.preventDefault(); keycapDrop.classList.remove('over'); if (event.dataTransfer?.files?.[0]) void readKeycapImage(event.dataTransfer.files[0]); });
+    }
+    $('blocksClearKeycapImage')?.addEventListener('click', () => { keycapImageRegionSet = null; keycapImageName = ''; rerender(); });
 
     $('blocksExport')?.addEventListener('click', () => {
       if (builtParts.length === 0) return;

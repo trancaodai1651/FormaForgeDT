@@ -44,6 +44,9 @@ export function saveProject() {
       smoothing: s.smoothing, photoFlatten: s.photoFlatten, removeBg: s.removeBg, importMode: s.importMode, 
       currentText: appData.currentText, currentFontId: appData.currentFontId, 
       currentSvgText: appData.currentSvgText, currentSvgName: appData.currentSvgName, 
+      imageSource: appData.imageSource,
+      keycapImageName: appData.keycapImageName,
+      keycapImageSvgText: appData.keycapImageSvgText,
       currentIconText: appData.currentIconText, currentIconName: appData.currentIconName, 
       colorMode: s.colorMode, limitedColors: s.limitedColors, bodyColorRgb: s.bodyColorRgb, 
       paletteOverrides: s.paletteOverrides, baseColorOverride: s.baseColorOverride, 
@@ -64,6 +67,7 @@ export function saveProject() {
     },
     palette: s.palette,
     image: appData.originalImage ? imageToDataUrl(appData.originalImage) : null,
+    keycapImageRegionSet: appData.keycapImageRegionSet,
   };
   downloadBlob(new Blob([JSON.stringify(proj)], { type: 'application/json' }), 'FormaForgeDT_Project.json');
   store.set({ status: 'Project saved âœ“' });
@@ -79,6 +83,10 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
     appData.currentFontId = set.currentFontId ?? 'helvetiker-regular';
     appData.currentSvgText = set.currentSvgText ?? '';
     appData.currentSvgName = set.currentSvgName ?? '';
+    appData.imageSource = set.imageSource === 'svg' ? 'svg' : 'raster';
+    appData.keycapImageName = set.keycapImageName ?? '';
+    appData.keycapImageSvgText = set.keycapImageSvgText ?? '';
+    appData.keycapImageRegionSet = proj.keycapImageRegionSet ?? null;
     appData.currentIconText = set.currentIconText ?? '';
     appData.currentIconName = set.currentIconName ?? '';
 
@@ -137,6 +145,7 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       blockKeycapProfile: ['standard', 'low', 'thocky', 'choc-v1'].includes(set.blockKeycapProfile) ? set.blockKeycapProfile : store.get().blockKeycapProfile,
       blockKeycapUnit: [1, 1.25, 1.5, 1.75, 2, 2.25, 2.75, 6, 6.25, 6.5].includes(set.blockKeycapUnit) ? set.blockKeycapUnit : store.get().blockKeycapUnit,
       plateId: ['a1', 'a1mini', 'h2d', 'grid'].includes(set.plateId) ? set.plateId : store.get().plateId,
+      keycapImageName: appData.keycapImageName,
     });
 
     if ((set.importMode === 'image' || set.importMode === 'hybrid') && proj.image) appData.originalImage = await dataUrlToImage(proj.image);

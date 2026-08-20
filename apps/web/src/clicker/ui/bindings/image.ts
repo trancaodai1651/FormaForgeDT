@@ -13,6 +13,17 @@ export function bindImageEvents(cb: UiCallbacks) {
   drop?.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop?.addEventListener('drop', () => drop.classList.remove('over'));
 
+  const keycapDrop = $('keycapImageDrop');
+  const keycapFile = $<HTMLInputElement>('keycapImageFile');
+  if (keycapDrop && keycapFile) {
+    keycapDrop.addEventListener('click', () => keycapFile.click());
+    keycapFile.addEventListener('change', () => { if (keycapFile.files?.[0]) cb.onKeycapImageUpload(keycapFile.files[0]); keycapFile.value = ''; });
+    keycapDrop.addEventListener('dragover', (e: DragEvent) => { e.preventDefault(); keycapDrop.classList.add('over'); });
+    keycapDrop.addEventListener('dragleave', () => keycapDrop.classList.remove('over'));
+    keycapDrop.addEventListener('drop', (e: DragEvent) => { e.preventDefault(); keycapDrop.classList.remove('over'); if (e.dataTransfer?.files?.[0]) cb.onKeycapImageUpload(e.dataTransfer.files[0]); });
+  }
+  $('clearKeycapImage')?.addEventListener('click', () => cb.onClearKeycapImage());
+
   // Custom Bottom Base 
   $('tab-base-match')?.addEventListener('click', () => cb.onBottomModeChange('match'));
   $('tab-base-custom')?.addEventListener('click', () => cb.onBottomModeChange('custom'));

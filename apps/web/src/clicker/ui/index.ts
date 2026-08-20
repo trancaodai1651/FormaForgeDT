@@ -18,6 +18,7 @@ import { bindHistoryEvents } from './bindings/history';
 import { setupWelcomeModal, showTutorialPrompt } from './components/modals';
 import { showColorPopoverAt, renderPalette } from './components/colorPicker';
 import { PLATES } from '../types';
+import { appData } from '../store/appState';
 
 export function createUi(
   sidebarLeft: HTMLElement,
@@ -296,12 +297,16 @@ export function createUi(
     // Cáº­p nháº­t Tab Import Mode
     getClickerDocument().querySelectorAll('#importTabs [data-mode]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.mode === state.importMode));
     if ($('imagePanel')) $('imagePanel')!.hidden = state.importMode !== 'image' && state.importMode !== 'hybrid';
+    if ($('hybridSvgImport')) $('hybridSvgImport')!.hidden = state.importMode !== 'hybrid';
+    if ($('hybridSvgName')) $('hybridSvgName')!.textContent = state.importMode === 'hybrid' && appData.currentSvgName ? appData.currentSvgName : '';
     if ($('svgPanel')) $('svgPanel')!.hidden = state.importMode !== 'svg';
     if ($('iconPanel')) $('iconPanel')!.hidden = state.importMode !== 'icon';
     if ($('letterPanel')) $('letterPanel')!.hidden = state.importMode !== 'text' && state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     if ($('textOnlyField')) $('textOnlyField')!.hidden = state.importMode === 'blocks' || state.importMode === 'hybrid';
     if ($('blocksTextField')) $('blocksTextField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
     if ($('blocksChainField')) $('blocksChainField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
+    if ($('keycapImagePanel')) $('keycapImagePanel')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
+    if ($('keycapImageName')) $('keycapImageName')!.textContent = state.keycapImageName || 'No keycap image';
     if ($('blocksText')) {
       const blockText = state.blockSlots.map(slot => slot.ch).join('');
       if (getClickerDocument().activeElement !== $('blocksText')) $<HTMLTextAreaElement>('blocksText').value = blockText;

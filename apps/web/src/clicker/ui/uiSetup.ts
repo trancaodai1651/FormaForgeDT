@@ -4,6 +4,8 @@ import { rebuild, reprocess, debouncedRebuild, debouncedQuietRebuild, debouncedR
 import { createUi } from './index';
 import { runWizard } from './wizard';
 import { loadFileToImage } from '../image/decode';
+import { processImage } from '../image/pipeline';
+import { parseSvg } from '../image/logo';
 import { importFontFile } from '../image/letter';
 import { downloadThreeMF, downloadSTL } from '../export';
 import { hexToRgb, downloadBlob } from '../utils/helpers';
@@ -42,8 +44,26 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onIsFlatKeychain(isFlat) { store.set({ isFlatKeychain: isFlat }); rebuild(); },
     
     onUpload: (file) => {
+      const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+      if (isSvg) {
+        if (store.get().importMode !== 'hybrid') {
+          store.set({ status: 'SVG import is available in Image + Blocks.' });
+          return;
+        }
+        void (async () => {
+          try {
+            appData.currentSvgText = await file.text();
+            appData.currentSvgName = file.name;
+            appData.imageSource = 'svg';
+            appData.originalImage = null;
+            reprocess();
+          } catch (err) { store.set({ building: false, status: 'Could not read SVG: ' + err }); }
+        })();
+        return;
+      }
       store.set({ building: true, status: 'Reading imageâ€¦' });
       loadFileToImage(file).then(img => {
+        appData.imageSource = 'raster';
         store.set({ building: false, status: 'Preprocess your imageâ€¦' });
         runWizard({
           baseImage: img, initialColorCount: store.get().colorCount,
@@ -57,7 +77,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(img => { appData.originalImage = img; reprocess(); }),
+    onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; reprocess(); }),
     onColorCount: (n) => { store.set({ colorCount: n }); debouncedReprocess(); },
     onFilament: (i, hex) => { if (store.get().palette[i]) applyModelRecolor({ kind: 'region', index: i, compIndex: 0 }, hexToRgb(hex), -1, viewer); },
     onShape: (kind) => { store.set({ baseShape: kind }); debouncedRebuild(); },
@@ -95,7 +115,12 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onKeychainOffset: (deltaMm) => { const kc = store.get().keychain; store.set({ keychain: { ...kc, offsetMm: Math.round(Math.max(-15.0, Math.min(15.0, (kc.offsetMm ?? 0) + deltaMm)) * 10) / 10 } }); debouncedRebuild(); },
     
     onSmoothing: (v) => { store.set({ smoothing: v }); if ((store.get().importMode === 'image' || store.get().importMode === 'hybrid') && appData.originalImage) debouncedReprocess(); },
-    onRemoveBg: (on) => { store.set({ removeBg: on }); const mode = store.get().importMode; if (((mode === 'image' || mode === 'hybrid') && appData.originalImage) || (mode === 'svg' && appData.currentSvgText)) reprocess(); },
+    onRemoveBg: (on) => {
+      store.set({ removeBg: on });
+      const mode = store.get().importMode;
+      const hasHybridSvg = mode === 'hybrid' && appData.imageSource === 'svg' && !!appData.currentSvgText;
+      if (((mode === 'image' || mode === 'hybrid') && appData.originalImage) || hasHybridSvg || (mode === 'svg' && appData.currentSvgText)) reprocess();
+    },
     onPhotoFlatten: (on) => { store.set({ photoFlatten: on }); if ((store.get().importMode === 'image' || store.get().importMode === 'hybrid') && appData.originalImage) debouncedReprocess(); },
     onView: (mode) => { store.set({ view: mode }); viewer.setView(mode); },
     onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on); },
@@ -111,8 +136,61 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBodyColor: (hex) => { const idx = appData.latestParts.findIndex((p) => p.name === 'base-body'); if (idx >= 0) applyModelRecolor({ kind: 'body' }, hexToRgb(hex), idx, viewer); else store.set({ bodyColorRgb: hexToRgb(hex) }); },
     
     onImportMode: (mode) => { const s = store.get(); store.set({ importMode: mode, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'rounded' : s.blockKeycapShape }); reprocess(); },
-    onSvgUpload: async (file) => { try { store.set({ building: true, status: 'Reading SVGâ€¦' }); const svgText = await file.text(); ui.addUploadedSvg(svgText, file.name.replace(/\.svg$/i, '')); store.set({ building: false }); } catch (err) { store.set({ building: false, status: 'Error: ' + err }); } },
-    onSelectSvg: (svgText, name) => { appData.currentSvgText = svgText; appData.currentSvgName = name; store.set({ status: `Selected SVG: ${name}` }); },
+    onSvgUpload: async (file) => {
+      try {
+        store.set({ building: true, status: 'Reading SVG...' });
+        const svgText = await file.text();
+        if (store.get().importMode === 'hybrid') {
+          appData.currentSvgText = svgText;
+          appData.currentSvgName = file.name;
+          appData.imageSource = 'svg';
+          appData.originalImage = null;
+          reprocess();
+        } else {
+          ui.addUploadedSvg(svgText, file.name.replace(/\.svg$/i, ''));
+          store.set({ building: false });
+        }
+      } catch (err) { store.set({ building: false, status: 'Error: ' + err }); }
+    },
+    onSelectSvg: (svgText, name) => {
+      appData.currentSvgText = svgText;
+      appData.currentSvgName = name;
+      appData.imageSource = store.get().importMode === 'hybrid' ? 'svg' : appData.imageSource;
+      store.set({ status: `Selected SVG: ${name}` });
+      if (store.get().importMode === 'hybrid') reprocess();
+    },
+    onKeycapImageUpload: async (file) => {
+      try {
+        store.set({ building: true, status: 'Reading keycap image...' });
+        const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+        if (isSvg) {
+          const svgText = await file.text();
+          appData.keycapImage = null;
+          appData.keycapImageSvgText = svgText;
+          appData.keycapImageRegionSet = parseSvg(svgText, { removeBg: true });
+        } else {
+          const image = await loadFileToImage(file);
+          appData.keycapImage = image;
+          appData.keycapImageSvgText = '';
+          appData.keycapImageRegionSet = processImage(
+            { data: new Uint8ClampedArray(image.data), width: image.width, height: image.height },
+            Math.max(2, Math.min(store.get().colorCount, 6)),
+            { removeBg: true, smoothing: store.get().smoothing, photoFlatten: false },
+          );
+        }
+        appData.keycapImageName = file.name;
+        store.set({ keycapImageName: file.name, building: false, status: 'Keycap image ready.' });
+        if (store.get().importMode === 'blocks' || store.get().importMode === 'hybrid') rebuild();
+      } catch (err) { store.set({ building: false, status: 'Could not read keycap image: ' + err }); }
+    },
+    onClearKeycapImage: () => {
+      appData.keycapImage = null;
+      appData.keycapImageSvgText = '';
+      appData.keycapImageRegionSet = null;
+      appData.keycapImageName = '';
+      store.set({ keycapImageName: '' });
+      rebuild();
+    },
     onSelectIcon: (svgText, name) => { appData.currentIconText = svgText; appData.currentIconName = name; store.set({ currentIconName: name, status: `Selected icon: ${name}` }); },
     onTextChange: (text) => { appData.currentText = text; store.set({ status: 'Text updated.' }); },
     onBlockText: (text) => {

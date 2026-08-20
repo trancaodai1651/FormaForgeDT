@@ -49,7 +49,7 @@ function shiftPart(part: ClickerPart, dx: number, dy: number) {
 }
 
 function partSlotIndex(name: string): number | null {
-  const match = /^(?:cap-|block-color-)(\d+)$/.exec(name);
+  const match = /^(?:cap-|block-color-|keycap-image-)(\d+)/.exec(name);
   return match ? Number(match[1]) : null;
 }
 

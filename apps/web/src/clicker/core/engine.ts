@@ -125,15 +125,23 @@ export function reprocess() {
   const s = store.get();
 
   if (s.importMode === 'image' || s.importMode === 'hybrid') {
-    if (!appData.originalImage) return;
-    store.set({ building: true, status: 'Removing background & tracingâ€¦' });
-    const imgClone = { data: new Uint8ClampedArray(appData.originalImage.data), width: appData.originalImage.width, height: appData.originalImage.height };
-    appData.regionSet = processImage(imgClone, s.colorCount, {
-      removeBg: s.removeBg,
-      smoothing: s.smoothing,
-      customColors: s.colorMode === 'limited' ? s.limitedColors : undefined,
-      photoFlatten: s.photoFlatten,
-    });
+    const useSvgHead = s.importMode === 'hybrid' && appData.imageSource === 'svg' && !!appData.currentSvgText;
+    if (useSvgHead) {
+      try {
+        store.set({ building: true, status: 'Parsing SVG...' });
+        appData.regionSet = parseSvg(appData.currentSvgText, { removeBg: s.removeBg });
+      } catch (e: any) { store.set({ building: false, status: 'Error: ' + e.message }); return; }
+    } else {
+      if (!appData.originalImage) return;
+      store.set({ building: true, status: 'Removing background & tracing...' });
+      const imgClone = { data: new Uint8ClampedArray(appData.originalImage.data), width: appData.originalImage.width, height: appData.originalImage.height };
+      appData.regionSet = processImage(imgClone, s.colorCount, {
+        removeBg: s.removeBg,
+        smoothing: s.smoothing,
+        customColors: s.colorMode === 'limited' ? s.limitedColors : undefined,
+        photoFlatten: s.photoFlatten,
+      });
+    }
   } else if (s.importMode === 'svg') {
     if (!appData.currentSvgText) { store.set({ status: 'Upload an SVG file first.' }); return; }
     try {
@@ -234,6 +242,14 @@ export function rebuild(quiet = false) {
   };
 
   const bottomOutline = appData.bottomRegionSet ? appData.bottomRegionSet.outline : undefined;
+  const keycapImageRegions: BuildRegion[] = appData.keycapImageRegionSet?.regions.flatMap((region, regionIndex) =>
+    region.components.map((component, componentIndex) => ({
+      filamentRgb: region.quantRgb,
+      coverage: region.coverage,
+      rings: component.rings,
+      partName: `keycap-image-source-${regionIndex}-${componentIndex}`,
+    })),
+  ) ?? [];
 
   if (!quiet) store.set({ building: !appData.isInitialLoad, status: 'Building clickerâ€¦' });
   const isBlocks = s.importMode === 'blocks';
@@ -280,6 +296,9 @@ export function rebuild(quiet = false) {
           keycapUnit: s.blockKeycapUnit,
           squareModuleBase: true,
           keychainEnd: 'left',
+          keycapImageRegions,
+          keycapImageSizeMm: 10,
+          keycapImageExtrudeMm: 0.35,
         },
       });
     } else if (isHybrid) {
@@ -325,6 +344,9 @@ export function rebuild(quiet = false) {
           keycapUnit: s.blockKeycapUnit,
           squareModuleBase: true,
           keychainEnd: 'left',
+          keycapImageRegions,
+          keycapImageSizeMm: 10,
+          keycapImageExtrudeMm: 0.35,
         },
       });
     } else {

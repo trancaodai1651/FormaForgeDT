@@ -1,4 +1,4 @@
-import type { RGB } from '../../types';
+import type { RGB, RegionSet } from '../../types';
 
 export interface BlocksConfig {
   name: string;
@@ -10,6 +10,8 @@ export interface BlocksConfig {
   blockHeightMm: number;
   blockDepthMm: number;
   cornerRadiusMm: number;
+  keycapImageRegionSet?: RegionSet | null;
+  keycapImageName?: string;
 }
 
 export const DEFAULT_BLOCKS: BlocksConfig = {
@@ -36,6 +38,8 @@ export function clampBlocksConfig(cfg: BlocksConfig): BlocksConfig {
     blockHeightMm: Math.max(8, Math.min(60, cfg.blockHeightMm)),
     blockDepthMm: Math.max(2, Math.min(20, cfg.blockDepthMm)),
     cornerRadiusMm: Math.max(0, Math.min(12, cfg.cornerRadiusMm)),
+    keycapImageRegionSet: cfg.keycapImageRegionSet ?? null,
+    keycapImageName: cfg.keycapImageName ?? '',
   };
 }
 

@@ -2,6 +2,7 @@ import type {
   BlockAssetBuffers,
   BlockGlyph,
   BlocksBuildParams,
+  BuildRegion,
   ClickerPart,
   PartGroup,
   RGB,
@@ -59,6 +60,25 @@ export function bounds(rings: Ring[]) {
     maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
   }
   return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY };
+}
+
+function fitKeycapImageRegions(regions: BuildRegion[], targetSizeMm: number): BuildRegion[] {
+  const valid = regions.filter((region) => region.rings.some((ring) => ring.length >= 3));
+  if (!valid.length) return [];
+  const allRings = valid.flatMap((region) => region.rings);
+  const imageBounds = bounds(allRings);
+  const maxSide = Math.max(imageBounds.w, imageBounds.h);
+  if (!(maxSide > 0.0001)) return [];
+  const size = Math.max(4, Math.min(13, Number.isFinite(targetSizeMm) ? targetSizeMm : 10));
+  const scale = size / maxSide;
+  const centerX = (imageBounds.minX + imageBounds.maxX) / 2;
+  const centerY = (imageBounds.minY + imageBounds.maxY) / 2;
+  return valid.map((region) => ({
+    ...region,
+    rings: region.rings
+      .filter((ring) => ring.length >= 3)
+      .map((ring) => ring.map(([x, y]) => [(x - centerX) * scale, (y - centerY) * scale] as [number, number])),
+  }));
 }
 
 function keycapFootprint(keycap: KeycapAsset): number {
@@ -903,6 +923,12 @@ export function buildBlocks(
   const glyphScale = (Math.max(6, topExtent - 4.2) / Math.max(maxGlyphHeight, maxGlyphWidth))
     * Math.min(1.6, Math.max(0.4, params.fontSize / 15));
   const bold = Math.max(-0.35, Math.min(0.9, params.legendBold ?? 0));
+  const keycapImageRegions = fitKeycapImageRegions(
+    params.keycapImageRegions ?? [],
+    params.keycapImageSizeMm ?? Math.min(10, Math.max(4, topExtent - 4.2)),
+  );
+  const hasKeycapImage = keycapImageRegions.length > 0;
+  const keycapImageHeight = Math.max(0.08, Math.min(3, params.keycapImageExtrudeMm ?? 0.35));
 
   for (let index = 0; index < filled.length; index++) {
     const entry = filled[index];
@@ -920,7 +946,7 @@ export function buildBlocks(
 
     if (!rings.length) {
       warnings.push(`Letter ${index + 1} has no printable outline. Its cap is blank.`);
-    } else {
+    } else if (!hasKeycapImage) {
       try {
         let glyph = ctx.track(new wasm.CrossSection(rings, 'NonZero'));
         if (Math.abs(bold) > 0.005) {
@@ -966,6 +992,27 @@ export function buildBlocks(
       // Keep the printed character readable instead of rotating it with that
       // connector orientation (the end character was previously mirrored).
       parts.push(toPart(legend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`));
+    }
+    if (hasKeycapImage) {
+      keycapImageRegions.forEach((region, regionIndex) => {
+        try {
+          const imageRings = region.rings.filter((ring) => area(ring) > 0.00005);
+          if (!imageRings.length) return;
+          const imageSection = ctx.track(new wasm.CrossSection(imageRings, 'NonZero'));
+          const regionPartName = `keycap-image-${index}-${regionIndex}`;
+          const extrusionLevel = params.componentHeights?.[regionPartName]
+            ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
+            ?? 0;
+          const height = Math.max(0.08, Math.min(6, keycapImageHeight + extrusionLevel * (params.stepHeight ?? 0.6)));
+          const image = ctx.track(wasm.Manifold.extrude(imageSection, height)
+            .translate([0, 0, capTopZ + 0.02]));
+          if (!image.isEmpty()) {
+            parts.push(toPart(image, position, 'cap', 'top', region.filamentRgb, regionPartName));
+          }
+        } catch {
+          warnings.push(`Keycap image region ${regionIndex + 1} could not be printed.`);
+        }
+      });
     }
   }
 
