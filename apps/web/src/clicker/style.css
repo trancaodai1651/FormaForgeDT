@@ -273,26 +273,49 @@ details.section-collapsible[open] > summary { padding-bottom: 14px; }
 }
 .field select:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.plate-control {
-  display: grid;
-  gap: 8px;
-  margin: 14px 0 18px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--panel-2) 72%, transparent);
+.model-preview-section { display: grid; gap: 10px; }
+.model-preview-heading, .model-transform-heading {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
-.plate-control select {
-  width: 100%;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text);
-  border-radius: 9px;
-  padding: 10px 11px;
-  font: inherit;
+.model-preview-badge {
+  padding: 4px 8px; border: 1px solid var(--accent); border-radius: 999px;
+  color: var(--accent); font-size: 10px; letter-spacing: .08em;
 }
-.plate-size { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.plate-control .field-help { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.model-preview-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.model-preview-tabs button {
+  padding: 9px 10px; color: var(--muted); font-size: 12px;
+}
+.model-preview-tabs button.active { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
+.model-preview-tabs button:disabled { opacity: .42; cursor: not-allowed; }
+.model-preview-drop {
+  display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 12px;
+  border: 1px dashed var(--accent); border-radius: 12px; cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.model-preview-drop:hover, .model-preview-drop.dragging {
+  background: color-mix(in srgb, var(--accent) 16%, transparent); transform: translateY(-1px);
+}
+.model-preview-drop-icon {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel-2)); color: var(--accent);
+  font-size: 11px; font-weight: 700;
+}
+.model-preview-drop strong, .model-preview-drop small, .model-preview-info strong, .model-preview-info small { display: block; }
+.model-preview-drop small, .model-preview-info small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.model-preview-info {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2);
+}
+.model-preview-color { display: grid; gap: 3px; color: var(--muted); font-size: 10px; text-align: center; }
+.model-preview-color input { width: 30px; height: 26px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.model-preview-clear { padding: 7px 9px; }
+.model-transform-controls { display: grid; gap: 9px; padding-top: 4px; }
+.model-transform-heading .hint-text { font-size: 10px; }
+.model-axis-grid { display: grid; gap: 7px; }
+.model-axis-grid label { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; color: var(--muted); font-size: 11px; }
+.model-axis-grid output { color: var(--text); font-variant-numeric: tabular-nums; }
+.model-axis-grid input { grid-column: 1 / -1; width: 100%; }
 
 button {
   font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
@@ -1696,69 +1719,6 @@ button.fil-chip:active {
   color: var(--accent-text);
   box-shadow: 0 1px 6px rgba(91, 157, 255, 0.35);
 }
-
-/* Reference-style build plate picker. It stays attached to the viewport so
-   the selected printer plate is discoverable even when the settings sidebar
-   is scrolled down to Image + Blocks controls. */
-.plate-picker {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  z-index: 20;
-  width: min(260px, calc(100% - 32px));
-  pointer-events: auto;
-}
-.plate-picker-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 36px;
-  padding: 8px 11px;
-  border: 1px solid var(--accent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--panel) 90%, transparent);
-  color: var(--text);
-  box-shadow: 0 4px 20px rgba(0,0,0,.2);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  font-size: 12px;
-  text-align: left;
-}
-.plate-picker-icon { color: var(--muted); font-size: 14px; }
-.plate-picker-button #platePickerLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.plate-picker-caret { color: var(--muted); font-size: 14px; line-height: 1; }
-.plate-picker-menu {
-  display: grid;
-  gap: 3px;
-  margin-top: 6px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--panel) 96%, transparent);
-  box-shadow: 0 14px 32px rgba(0,0,0,.35);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-.plate-picker-menu[hidden] { display: none; }
-.plate-picker-option {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  padding: 8px 9px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-}
-.plate-picker-option:hover,
-.plate-picker-option.active {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-}
-.plate-picker-option-name { font-size: 12px; font-weight: 600; }
-.plate-picker-option-details { color: var(--muted); font-size: 10px; line-height: 1.35; }
 
 /* ===== Separate-letters toggle (text mode, floating under the mode bar) ===== */
 .letters-toggle {

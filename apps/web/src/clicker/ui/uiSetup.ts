@@ -243,7 +243,47 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockBaseHeight: (value) => { store.set({ blockBaseHeightMm: Math.max(8, Math.min(30, value)) }); debouncedRebuild(); },
     onBlockModuleThickness: (value) => { store.set({ blockModuleThicknessMm: Math.max(8, Math.min(40, value)) }); debouncedRebuild(); },
     onBlockModuleSideThickness: (value) => { store.set({ blockModuleSideThicknessMm: Math.max(0, Math.min(33, value)) }); debouncedRebuild(); },
-    onPlateChange: (id) => { store.set({ plateId: id }); },
+    onModelImport: async (file) => {
+      store.set({ building: true, status: `Importing ${file.name}…` });
+      try {
+        const info = await viewer.importModel(file);
+        const s = store.get();
+        viewer.setImportedModelColor(s.importedModelColor);
+        viewer.setImportedModelRotation('x', s.importedModelRotateX);
+        viewer.setImportedModelRotation('y', s.importedModelRotateY);
+        viewer.setImportedModelRotation('z', s.importedModelRotateZ);
+        store.set({
+          building: false,
+          status: `${info.name} ready for preview.`,
+          previewSource: 'imported',
+          importedModelName: info.name,
+          importedModelFormat: info.format,
+          importedModelMeshCount: info.meshCount,
+          importedModelTriangleCount: info.triangleCount,
+        });
+      } catch (error) {
+        store.set({
+          building: false,
+          previewSource: 'generated',
+          importedModelName: '', importedModelFormat: '', importedModelMeshCount: 0, importedModelTriangleCount: 0,
+          status: `Could not import model: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
+    },
+    onModelColor: (hex) => { viewer.setImportedModelColor(hex); store.set({ importedModelColor: hex }); },
+    onModelPreviewSource: (source) => { viewer.setPreviewSource(source); store.set({ previewSource: source }); },
+    onModelClear: () => {
+      viewer.clearImportedModel();
+      store.set({ previewSource: 'generated', importedModelName: '', importedModelFormat: '', importedModelMeshCount: 0, importedModelTriangleCount: 0, status: 'Imported preview removed.' });
+    },
+    onModelRotation: (axis, value) => {
+      viewer.setImportedModelRotation(axis, value);
+      store.set({ [`importedModelRotate${axis.toUpperCase()}`]: Math.max(0, Math.min(360, value)) } as any);
+    },
+    onModelTransformReset: () => {
+      viewer.resetImportedModelTransform();
+      store.set({ importedModelRotateX: 0, importedModelRotateY: 0, importedModelRotateZ: 0 });
+    },
     onBlockBaseCornerRadius: (value) => { store.set({ blockBaseCornerRadiusMm: Math.max(0.5, Math.min(8, value)) }); debouncedRebuild(); },
     onBlockKeycapHeight: (value) => { store.set({ blockKeycapHeightMm: Math.max(6, Math.min(18, value)) }); debouncedRebuild(); },
     onBlockKeycapCornerRadius: (value) => { store.set({ blockKeycapCornerRadiusMm: Math.max(0.8, Math.min(7, value)) }); debouncedRebuild(); },
@@ -298,8 +338,10 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onRefresh: () => historyShortcuts.refreshDesign(),
   });
 
-  let renderedPlateId = store.get().plateId;
-  viewer.setPlate(renderedPlateId);
+  const initialModel = store.get();
+  viewer.setImportedModelRotation('x', initialModel.importedModelRotateX);
+  viewer.setImportedModelRotation('y', initialModel.importedModelRotateY);
+  viewer.setImportedModelRotation('z', initialModel.importedModelRotateZ);
 
   // Sá»± kiá»‡n nháº­n yÃªu cáº§u hiá»‡n báº£ng chá»n mÃ u tá»« Engine
   getClickerDocument().addEventListener('show-color-popover', ((e: CustomEvent) => {
@@ -311,10 +353,6 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
 
   store.subscribe((s) => {
     ui.update(s);
-    if (s.plateId !== renderedPlateId) {
-      renderedPlateId = s.plateId;
-      viewer.setPlate(renderedPlateId);
-    }
     const indices: number[] = [];
     s.selectedParts.forEach((name: string) => { const idx = appData.latestParts.findIndex((p: ClickerPart) => p.name === name); if (idx >= 0) indices.push(idx); });
     viewer.highlightParts(indices);

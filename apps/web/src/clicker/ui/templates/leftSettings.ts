@@ -1,5 +1,4 @@
 import { tip } from '../helpers';
-import { PLATES } from '../../types';
 
 export const renderLeftSettings = () => `
   <div id="geometrySettingsContainer">
@@ -68,17 +67,6 @@ export const renderLeftSettings = () => `
               <input type="range" id="keychainHoleDiameter" min="3" max="16" step="0.1" aria-label="Hole diameter" />
             </div>
           </div>
-        </div>
-
-        <div class="plate-control" id="plateControl">
-          <div class="prow-header">
-            <label for="plateSelect">Build plate</label>
-            <span class="plate-size" id="plateSizeVal">256 × 256 mm</span>
-          </div>
-          <select id="plateSelect">
-            ${PLATES.map((plate) => `<option value="${plate.id}">${plate.name}</option>`).join('')}
-          </select>
-          <p class="field-help" id="plateDetails">${PLATES[0].details}</p>
         </div>
 
         <div class="global-edges" id="globalEdges" style="display:none; margin-bottom: 16px;">

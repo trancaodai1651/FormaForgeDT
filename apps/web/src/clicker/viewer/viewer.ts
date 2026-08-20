@@ -2,10 +2,19 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
-import { PLATES, type ClickerPart, type MeshData, type PlateId, type RGB, type SwitchPlacement, type ViewMode } from '../types';
+import { type ClickerPart, type MeshData, type RGB, type SwitchPlacement, type ViewMode } from '../types';
 
 export type SectionAxis = 'x' | 'y' | 'z';
+
+export interface ImportedModelInfo {
+  name: string;
+  format: 'STL' | '3MF';
+  meshCount: number;
+  triangleCount: number;
+}
 
 export interface Viewer {
   setParts(parts: ClickerPart[], preserveCamera?: boolean): void;
@@ -15,8 +24,12 @@ export interface Viewer {
   showSwitch(on: boolean): void;
   /** Place one preview switch mesh per (clamped) placement the geometry was built with. */
   setSwitchPlacements(placements: SwitchPlacement[]): void;
-  /** Select the reference printer plate shown below the model. */
-  setPlate(id: PlateId): void;
+  importModel(file: File): Promise<ImportedModelInfo>;
+  setImportedModelColor(hex: string): void;
+  setPreviewSource(source: 'generated' | 'imported'): void;
+  clearImportedModel(): void;
+  setImportedModelRotation(axis: 'x' | 'y' | 'z', degrees: number): void;
+  resetImportedModelTransform(): void;
   /** Separate modular units like the reference preview when a base module is clicked. */
   setModularSplit(on: boolean, vertical?: boolean): void;
   renderToPng(): Promise<Blob | null>;
@@ -108,116 +121,12 @@ export function createViewer(container: HTMLElement): Viewer {
 
   let gridZ = -20;
   let grid: THREE.GridHelper | null = null;
-  let plateId: PlateId = 'a1';
-  let plateGroup: THREE.Group | null = null;
-
-  function roundedPlateShape(width: number, depth: number, radius: number): THREE.Shape {
-    const x = width / 2;
-    const y = depth / 2;
-    const r = Math.min(radius, x, y);
-    const shape = new THREE.Shape();
-    shape.moveTo(-x + r, -y);
-    shape.lineTo(x - r, -y);
-    shape.quadraticCurveTo(x, -y, x, -y + r);
-    shape.lineTo(x, y - r);
-    shape.quadraticCurveTo(x, y, x - r, y);
-    shape.lineTo(-x + r, y);
-    shape.quadraticCurveTo(-x, y, -x, y - r);
-    shape.lineTo(-x, -y + r);
-    shape.quadraticCurveTo(-x, -y, -x + r, -y);
-    return shape;
-  }
-
-  function clearPlate() {
-    if (!plateGroup) return;
-    plateGroup.removeFromParent();
-    plateGroup.traverse((child) => {
-      const renderable = child as THREE.Mesh | THREE.LineSegments;
-      if (renderable.geometry) renderable.geometry.dispose();
-      if (Array.isArray(renderable.material)) renderable.material.forEach((m) => m.dispose());
-      else if (renderable.material) renderable.material.dispose();
-    });
-    plateGroup = null;
-  }
-
-  function rebuildPlate(theme: string, z: number) {
-    clearPlate();
-    if (plateId === 'grid') return;
-    const option = PLATES.find((item) => item.id === plateId);
-    if (!option?.size) return;
-    const [width, depth] = option.size;
-    const group = new THREE.Group();
-    const geometry = new THREE.ExtrudeGeometry(roundedPlateShape(width, depth, 8), {
-      depth: 0.45,
-      bevelEnabled: false,
-      curveSegments: 12,
-    });
-    geometry.translate(0, 0, z + 0.18);
-    const material = new THREE.MeshStandardMaterial({
-      color: theme === 'dark' ? 0x2a2f39 : 0xe5e7eb,
-      roughness: 0.82,
-      metalness: 0,
-      transparent: true,
-      opacity: theme === 'dark' ? 0.5 : 0.78,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.renderOrder = -2;
-    group.add(mesh);
-
-    // The reference plate is not a blank translucent square: its usable area
-    // has a visible 10 mm texture grid. Keep it as a separate render layer so
-    // the model still occludes the plate cleanly while orbiting.
-    const plateGridPositions: number[] = [];
-    const pushPlateGridLine = (x1: number, y1: number, x2: number, y2: number) => {
-      plateGridPositions.push(x1, y1, z + 0.66, x2, y2, z + 0.66);
-    };
-    const gridStep = 10;
-    for (let x = -width / 2 + gridStep; x < width / 2 - 0.01; x += gridStep) {
-      pushPlateGridLine(x, -depth / 2, x, depth / 2);
-    }
-    for (let y = -depth / 2 + gridStep; y < depth / 2 - 0.01; y += gridStep) {
-      pushPlateGridLine(-width / 2, y, width / 2, y);
-    }
-    const plateGridGeometry = new THREE.BufferGeometry();
-    plateGridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(plateGridPositions, 3));
-    const plateGrid = new THREE.LineSegments(
-      plateGridGeometry,
-      new THREE.LineBasicMaterial({
-        color: theme === 'dark' ? 0x687282 : 0x9aa3b2,
-        transparent: true,
-        opacity: theme === 'dark' ? 0.3 : 0.42,
-        depthTest: false,
-      }),
-    );
-    plateGrid.renderOrder = -1.25;
-    group.add(plateGrid);
-
-    const edge = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geometry),
-      new THREE.LineBasicMaterial({
-        color: theme === 'dark' ? 0x6b7280 : 0x9ca3af,
-        transparent: true,
-        opacity: 0.78,
-        depthTest: false,
-      }),
-    );
-    edge.renderOrder = -1.5;
-    group.add(edge);
-    plateGroup = group;
-    scene.add(group);
-  }
-
   function rebuildGrid(theme: string, z: number) {
     if (grid) scene.remove(grid);
     gridZ = z;
     const accentColor = theme === 'dark' ? 0x5b9dff : 0x2563eb;
     const gridColor = theme === 'dark' ? 0x2d3139 : 0xd1d5db;
-    const plate = PLATES.find((item) => item.id === plateId);
-    const gridSize = plate?.size ? Math.max(300, Math.max(...plate.size) + 60) : 300;
-    const gridDivisions = Math.max(30, Math.round(gridSize / 10));
-    grid = new THREE.GridHelper(gridSize, gridDivisions, accentColor, gridColor);
+    grid = new THREE.GridHelper(300, 30, accentColor, gridColor);
     grid.rotation.x = Math.PI / 2;
     grid.position.z = gridZ;
     // Prevent grid lines from bleeding through model body:
@@ -229,7 +138,6 @@ export function createViewer(container: HTMLElement): Viewer {
       grid.material.depthWrite = false;
     }
     scene.add(grid);
-    rebuildPlate(theme, z);
   }
 
   rebuildGrid(currentTheme, gridZ);
@@ -237,15 +145,26 @@ export function createViewer(container: HTMLElement): Viewer {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
+  controls.enablePan = true;
+  controls.screenSpacePanning = true;
+  controls.zoomToCursor = false;
 
   // Root group is recentered for viewing; children keep relative positions.
   const root = new THREE.Group();
   scene.add(root);
+  const importedRoot = new THREE.Group();
+  importedRoot.visible = false;
+  scene.add(importedRoot);
   const capGroup = new THREE.Group();
   const bodyGroup = new THREE.Group();
   const switchGroup = new THREE.Group(); // the real MX switch â€” display-only, toggleable
   switchGroup.visible = false;
   root.add(capGroup, bodyGroup, switchGroup);
+
+  const importedMaterials = new Set<THREE.MeshStandardMaterial>();
+  let previewSource: 'generated' | 'imported' = 'generated';
+  const importedBounds = new THREE.Vector3(1, 1, 1);
+  const importedRotation = { x: 0, y: 0, z: 0 };
 
   let placeholder: THREE.Group | null = null;
   framePlaceholder();
@@ -286,6 +205,39 @@ export function createViewer(container: HTMLElement): Viewer {
     const radius = 40 * 2.2 + 15;
     camera.position.set(radius, -radius, radius * 0.75);
     controls.target.set(0, 0, 11);
+    controls.update();
+  }
+
+  function frameCenteredSize(
+    size: THREE.Vector3,
+    preserveCamera: boolean,
+    previousOffset?: THREE.Vector3,
+    previousPan?: THREE.Vector3,
+  ) {
+    const target = new THREE.Vector3(0, 0, Math.max(0, size.z / 2));
+    // Rebuilds recenter the generated geometry. Preserve the user's pan delta
+    // relative to the old model center so changing a slider never teleports a
+    // deliberately panned model back to an arbitrary screen position.
+    if (preserveCamera && previousPan) target.add(previousPan);
+    const offset = previousOffset?.clone() ?? camera.position.clone().sub(controls.target);
+    const previousDistance = offset.length();
+    const direction = offset.lengthSq() > 0.0001
+      ? offset.normalize()
+      : new THREE.Vector3(1, -1, 0.75).normalize();
+    const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(camera.aspect, 0.1));
+    const limitingFov = Math.max(0.2, Math.min(verticalFov, horizontalFov));
+    // Fit against the largest projected dimension instead of Vector3.length().
+    // This keeps long Image + Blocks products at a useful scale and prevents a
+    // rebuild from making them look artificially flattened or tiny.
+    const halfExtent = Math.max(size.x, size.y, size.z) / 2;
+    const fittedDistance = Math.max(1, halfExtent / Math.tan(limitingFov / 2) * 1.22);
+    const distance = preserveCamera ? Math.max(previousDistance, fittedDistance) : fittedDistance;
+    controls.target.copy(target);
+    camera.position.copy(target).add(direction.multiplyScalar(distance));
+    camera.near = Math.max(0.05, distance / 1000);
+    camera.far = Math.max(5000, distance * 20);
+    camera.updateProjectionMatrix();
     controls.update();
   }
 
@@ -349,14 +301,13 @@ export function createViewer(container: HTMLElement): Viewer {
   }
 
   function setParts(parts: ClickerPart[], preserveCamera = false) {
-    const previousTarget = controls.target.clone();
     const previousCamera = camera.position.clone();
-    const previousOffset = previousCamera.sub(previousTarget);
-    const previousRadius = Math.max(bounds.x, bounds.y, bounds.z, 1);
+    const previousOffset = previousCamera.sub(controls.target);
+    const previousCenter = new THREE.Vector3(0, 0, Math.max(0, bounds.z / 2));
+    const previousPan = controls.target.clone().sub(previousCenter);
     clearPlaceholder();
     clearGroup(capGroup);
     clearGroup(bodyGroup);
-    clearPlate();
     materials.length = 0;
     partMeshes.length = 0;
     hoveredIndex = null;
@@ -400,21 +351,7 @@ export function createViewer(container: HTMLElement): Viewer {
     const activeTheme = getClickerDocument().documentElement.getAttribute('data-theme') || 'dark';
     rebuildGrid(activeTheme, -GRID_GAP);
 
-    if (!preserveCamera) {
-      const radius = Math.max(size.x, size.y, size.z) * 2.2 + 15;
-      camera.position.set(radius, -radius, radius * 0.75);
-      controls.target.set(0, 0, size.z / 2);
-      controls.update();
-    } else {
-      // The root group is recentered for every new mesh. Move the orbit target
-      // to the new model center as well, otherwise changing a dimension makes
-      // the product appear to jump across the viewport.
-      const target = new THREE.Vector3(0, 0, size.z / 2);
-      const scale = Math.max(1, Math.max(size.x, size.y, size.z) / previousRadius);
-      controls.target.copy(target);
-      camera.position.copy(target).add(previousOffset.multiplyScalar(scale));
-      controls.update();
-    }
+    if (previewSource === 'generated') frameCenteredSize(size, preserveCamera, previousOffset, previousPan);
 
   }
 
@@ -532,10 +469,120 @@ export function createViewer(container: HTMLElement): Viewer {
     applyView();
   }
 
-  function setPlate(id: PlateId) {
-    plateId = PLATES.some((item) => item.id === id) ? id : 'a1';
-    const activeTheme = getClickerDocument().documentElement.getAttribute('data-theme') || 'dark';
-    rebuildGrid(activeTheme, gridZ);
+  function applyImportedRotation() {
+    importedRoot.rotation.set(
+      THREE.MathUtils.degToRad(importedRotation.x),
+      THREE.MathUtils.degToRad(importedRotation.y),
+      THREE.MathUtils.degToRad(importedRotation.z),
+    );
+  }
+
+  function setImportedModelRotation(axis: 'x' | 'y' | 'z', degrees: number) {
+    if (!Number.isFinite(degrees)) return;
+    importedRotation[axis] = THREE.MathUtils.euclideanModulo(degrees, 360);
+    applyImportedRotation();
+  }
+
+  function resetImportedModelTransform() {
+    importedRotation.x = 0;
+    importedRotation.y = 0;
+    importedRotation.z = 0;
+    importedRoot.position.set(0, 0, 0);
+    applyImportedRotation();
+  }
+
+  function clearImportedModel() {
+    const geometries = new Set<THREE.BufferGeometry>();
+    const sourceMaterials = new Set<THREE.Material>();
+    importedRoot.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      geometries.add(child.geometry);
+      const list = Array.isArray(child.material) ? child.material : [child.material];
+      list.forEach((material) => { if (material) sourceMaterials.add(material); });
+    });
+    importedRoot.clear();
+    geometries.forEach((geometry) => geometry.dispose());
+    sourceMaterials.forEach((material) => material.dispose());
+    importedMaterials.clear();
+    importedRoot.visible = false;
+    root.visible = true;
+    previewSource = 'generated';
+    resetImportedModelTransform();
+    frameCenteredSize(bounds, false, camera.position.clone().sub(controls.target));
+  }
+
+  function setImportedModelColor(hex: string) {
+    const nextColor = new THREE.Color(hex);
+    importedMaterials.forEach((material) => {
+      material.color.copy(nextColor);
+      material.vertexColors = false;
+      material.map = null;
+      material.needsUpdate = true;
+    });
+  }
+
+  function setPreviewSource(source: 'generated' | 'imported') {
+    previewSource = source === 'imported' && importedRoot.children.length > 0 ? 'imported' : 'generated';
+    const imported = previewSource === 'imported';
+    importedRoot.visible = imported;
+    root.visible = !imported;
+    frameCenteredSize(imported ? importedBounds : bounds, false, camera.position.clone().sub(controls.target));
+  }
+
+  async function importModel(file: File): Promise<ImportedModelInfo> {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension !== 'stl' && extension !== '3mf') throw new Error('Only STL and 3MF files are supported.');
+    const data = await file.arrayBuffer();
+    clearImportedModel();
+    const object: THREE.Object3D = extension === 'stl'
+      ? new THREE.Mesh(new STLLoader().parse(data))
+      : new ThreeMFLoader().parse(data);
+    const sourceMaterials = new Set<THREE.Material>();
+    let meshCount = 0;
+    let triangleCount = 0;
+    object.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      meshCount += 1;
+      const list = Array.isArray(child.material) ? child.material : child.material ? [child.material] : [];
+      list.forEach((material) => sourceMaterials.add(material));
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xf0b967,
+        roughness: 0.52,
+        metalness: 0,
+        side: THREE.DoubleSide,
+        vertexColors: false,
+      });
+      importedMaterials.add(material);
+      child.material = material;
+      const position = child.geometry.getAttribute('position');
+      triangleCount += child.geometry.index ? child.geometry.index.count / 3 : (position?.count ?? 0) / 3;
+      if (!child.geometry.getAttribute('normal')) child.geometry.computeVertexNormals();
+    });
+    sourceMaterials.forEach((material) => material.dispose());
+    if (meshCount === 0) {
+      importedMaterials.forEach((material) => material.dispose());
+      importedMaterials.clear();
+      throw new Error('The file does not contain a printable mesh.');
+    }
+    importedRoot.add(object);
+    object.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(object);
+    if (box.isEmpty()) {
+      clearImportedModel();
+      throw new Error('The file has invalid or empty bounds.');
+    }
+    const center = box.getCenter(new THREE.Vector3());
+    object.position.add(new THREE.Vector3(-center.x, -center.y, -box.min.z));
+    object.updateMatrixWorld(true);
+    new THREE.Box3().setFromObject(object).getSize(importedBounds);
+    resetImportedModelTransform();
+    setPreviewSource('imported');
+    return {
+      name: file.name,
+      format: extension.toUpperCase() as 'STL' | '3MF',
+      meshCount,
+      triangleCount: Math.round(triangleCount),
+    };
   }
 
   function setModularSplit(on: boolean, vertical = modularVertical) {
@@ -567,13 +614,15 @@ export function createViewer(container: HTMLElement): Viewer {
   }
 
   function onResize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    const w = Math.max(1, container.clientWidth);
+    const h = Math.max(1, container.clientHeight);
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', onResize);
+  const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onResize);
+  resizeObserver?.observe(container);
 
   let raf = 0;
   (function animate() {
@@ -719,6 +768,7 @@ export function createViewer(container: HTMLElement): Viewer {
   function dispose() {
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);
+    resizeObserver?.disconnect();
     renderer.domElement.removeEventListener('pointermove', onPointerMove);
     renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
     renderer.domElement.removeEventListener('pointerdown', onPointerDown);
@@ -726,7 +776,7 @@ export function createViewer(container: HTMLElement): Viewer {
     clearGroup(capGroup);
     clearGroup(bodyGroup);
     clearSwitchMeshes();
-    clearPlate();
+    clearImportedModel();
     switchGeometry?.dispose();
     switchMaterial?.dispose();
     controls.dispose();
@@ -747,7 +797,12 @@ export function createViewer(container: HTMLElement): Viewer {
     setSwitch,
     showSwitch,
     setSwitchPlacements,
-    setPlate,
+    importModel,
+    setImportedModelColor,
+    setPreviewSource,
+    clearImportedModel,
+    setImportedModelRotation,
+    resetImportedModelTransform,
     setModularSplit,
     renderToPng,
     setTheme,

@@ -17,7 +17,6 @@ import { bindHistoryEvents } from './bindings/history';
 
 import { setupWelcomeModal, showTutorialPrompt } from './components/modals';
 import { showColorPopoverAt, renderPalette } from './components/colorPicker';
-import { PLATES } from '../types';
 import { appData } from '../store/appState';
 
 export function createUi(
@@ -40,21 +39,6 @@ export function createUi(
         <button class="edit-mode-btn" data-editmode="extrude" type="button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>Extrude</button>
         <button class="edit-mode-btn" data-editmode="edges" type="button" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" ry="4"/></svg>Edges</button>
       </div>
-       <div id="platePicker" class="plate-picker">
-         <button id="platePickerButton" class="plate-picker-button" type="button" aria-haspopup="listbox" aria-expanded="false">
-           <span class="plate-picker-icon" aria-hidden="true">▣</span>
-           <span id="platePickerLabel">${PLATES[0].name}</span>
-           <span class="plate-picker-caret" aria-hidden="true">⌃</span>
-         </button>
-         <div id="platePickerMenu" class="plate-picker-menu" role="listbox" hidden>
-           ${PLATES.map((plate) => `
-             <button class="plate-picker-option" data-plate="${plate.id}" role="option" type="button">
-               <span class="plate-picker-option-name">${plate.name}</span>
-               <span class="plate-picker-option-details">${plate.details}</span>
-             </button>
-           `).join('')}
-         </div>
-       </div>
        <div id="lettersToggle" class="letters-toggle" hidden><span>Separate letters</span><label class="toggle"><input type="checkbox" id="separateLetters" /><span class="slider"></span></label></div>
       <div id="extrudePanel" class="edges-panel" hidden><div class="edges-title">Extrude Part</div><div id="extrudeLevelLabel" style="text-align:center; margin-top:8px; font-size:13px; color:var(--muted);">Level: 0</div><div style="display:flex; gap:8px; margin-top:8px;"><button type="button" class="btn" id="extrudeMinus" style="flex:1; font-size:18px;">-</button><button type="button" class="btn" id="extrudePlus" style="flex:1; font-size:18px;">+</button></div><div class="extrude-chamfer-row"><span>Chamfer edges</span><label class="toggle"><input type="checkbox" id="extrudeChamfer" /><span class="slider"></span></label></div><div class="panel-hint">Raises or lowers the selected color. Shift-click parts to select several.</div></div>
       <div id="edgesPanel" class="edges-panel" hidden><div class="edges-title" id="edgesTitle">Edge Modifications</div><div id="edgesContent"></div><div class="panel-hint">Select a part to round (fillet) or bevel (chamfer) its top edge. Shift-click for several.</div></div>
@@ -63,30 +47,6 @@ export function createUi(
     $('editModeBar')?.addEventListener('click', (e: MouseEvent) => {
       const btn = (e.target as HTMLElement).closest('[data-editmode]') as HTMLElement | null;
       if (btn) cb.onEditMode(btn.dataset.editmode as EditMode);
-    });
-
-    const platePicker = $('platePicker');
-    const platePickerButton = $<HTMLButtonElement>('platePickerButton');
-    const platePickerMenu = $('platePickerMenu');
-    const closePlatePicker = () => {
-      if (!platePickerMenu || !platePickerButton) return;
-      platePickerMenu.hidden = true;
-      platePickerButton.setAttribute('aria-expanded', 'false');
-    };
-    platePickerButton?.addEventListener('click', () => {
-      if (!platePickerMenu) return;
-      platePickerMenu.hidden = !platePickerMenu.hidden;
-      platePickerButton.setAttribute('aria-expanded', String(!platePickerMenu.hidden));
-    });
-    platePickerMenu?.addEventListener('click', (e: MouseEvent) => {
-      const option = (e.target as HTMLElement).closest<HTMLElement>('[data-plate]');
-      if (!option) return;
-      cb.onPlateChange(option.dataset.plate as UiState['plateId']);
-      closePlatePicker();
-    });
-    getClickerDocument().addEventListener('pointerdown', (e: Event) => {
-      const target = e.target as Node;
-      if (platePicker && !target.parentElement?.closest('#platePicker')) closePlatePicker();
     });
 
     $('separateLetters')?.addEventListener('change', (e: Event) => cb.onSeparateLetters((e.target as HTMLInputElement).checked));
@@ -192,15 +152,23 @@ export function createUi(
     setVal('hybridNeckWidthVal', `${state.hybridNeckWidthMm.toFixed(1)} mm`);
     if ($('blockKeycapProfile')) $<HTMLSelectElement>('blockKeycapProfile').value = state.blockKeycapProfile;
     if ($('blockKeySize')) $<HTMLSelectElement>('blockKeySize').value = String(state.blockKeycapUnit);
-    const plate = PLATES.find((item) => item.id === state.plateId) ?? PLATES[0];
-    if ($('plateSelect')) $<HTMLSelectElement>('plateSelect').value = plate.id;
-    if ($('plateSizeVal')) $('plateSizeVal')!.textContent = plate.size ? `${plate.size[0]} × ${plate.size[1]} mm` : '—';
-    if ($('plateDetails')) $('plateDetails')!.textContent = plate.details;
-    if ($('platePickerLabel')) $('platePickerLabel')!.textContent = plate.name;
-    for (const option of getClickerDocument().querySelectorAll<HTMLElement>('.plate-picker-option')) {
-      const active = option.dataset.plate === plate.id;
-      option.classList.toggle('active', active);
-      option.setAttribute('aria-selected', String(active));
+    const hasImportedModel = Boolean(state.importedModelName);
+    const importedTab = $<HTMLButtonElement>('importedPreviewTab');
+    if (importedTab) importedTab.disabled = !hasImportedModel;
+    for (const button of getClickerDocument().querySelectorAll<HTMLElement>('[data-preview-source]')) {
+      button.classList.toggle('active', button.dataset.previewSource === state.previewSource);
+    }
+    if ($('modelPreviewInfo')) $('modelPreviewInfo')!.hidden = !hasImportedModel;
+    if ($('modelTransformControls')) $('modelTransformControls')!.hidden = !hasImportedModel;
+    if ($('modelPreviewName')) $('modelPreviewName')!.textContent = state.importedModelName;
+    if ($('modelPreviewStats')) $('modelPreviewStats')!.textContent = hasImportedModel
+      ? `${state.importedModelFormat} · ${state.importedModelMeshCount} mesh · ${state.importedModelTriangleCount.toLocaleString()} triangles`
+      : '';
+    if ($('modelPreviewColor')) $<HTMLInputElement>('modelPreviewColor').value = state.importedModelColor;
+    for (const [axis, value] of [['X', state.importedModelRotateX], ['Y', state.importedModelRotateY], ['Z', state.importedModelRotateZ]] as const) {
+      const input = $<HTMLInputElement>(`modelRotate${axis}`);
+      if (input && getClickerDocument().activeElement !== input) input.value = String(value);
+      if ($(`modelRotate${axis}Val`)) $(`modelRotate${axis}Val`)!.textContent = `${Math.round(value)}°`;
     }
 
     // Äá»“ng bá»™ giÃ¡ trá»‹ slider má»Ÿ rá»™ng Ä‘áº¿

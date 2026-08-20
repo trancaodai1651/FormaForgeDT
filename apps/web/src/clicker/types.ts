@@ -51,43 +51,6 @@ export interface PaletteEntry {
 export type BaseShapeKind = 'outline' | 'circle' | 'square' | 'hexagon' | 'heart' | 'star' | 'egg';
 export type ViewMode = 'assembled' | 'exploded' | 'section';
 
-/** Reference printer plates shown underneath the Clicker preview. */
-export type PlateId = 'a1' | 'a1mini' | 'h2d' | 'grid';
-
-export interface PlateOption {
-  id: PlateId;
-  name: string;
-  details: string;
-  size?: [number, number];
-}
-
-/** Matches the reference Clicker Generator plate selector, including its no-plate grid mode. */
-export const PLATES: PlateOption[] = [
-  {
-    id: 'a1',
-    name: 'Plate: A1, P/X series',
-    details: '256 × 256 mm · A1, P1 Series, X1 Series, X2D, P2S',
-    size: [256, 256],
-  },
-  {
-    id: 'a1mini',
-    name: 'Plate: A1 mini',
-    details: '184 × 184 mm',
-    size: [184, 184],
-  },
-  {
-    id: 'h2d',
-    name: 'Plate: H series',
-    details: '355 × 362 mm · H2D, H2C',
-    size: [355, 362],
-  },
-  {
-    id: 'grid',
-    name: 'No plate',
-    details: 'Plain reference grid',
-  },
-];
-
 export interface BlockSlot {
   kind: 'char' | 'symbol';
   ch: string;

@@ -66,7 +66,9 @@ export function saveProject() {
       keycapImageSlotIndices: s.keycapImageSlotIndices,
       keycapLogoAssignments: s.keycapLogoAssignments,
       keycapLogoSizeMm: s.keycapLogoSizeMm,
-      plateId: s.plateId,
+      importedModelRotateX: s.importedModelRotateX,
+      importedModelRotateY: s.importedModelRotateY,
+      importedModelRotateZ: s.importedModelRotateZ,
     },
     palette: s.palette,
     image: appData.originalImage ? imageToDataUrl(appData.originalImage) : null,
@@ -164,7 +166,9 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
             ? store.get().blockSlots.map((_, slotIndex) => set.keycapImageSlotIndices.includes(slotIndex) ? 0 : null)
             : store.get().keycapLogoAssignments),
       keycapLogoSizeMm: Math.max(4, Math.min(13, set.keycapLogoSizeMm ?? store.get().keycapLogoSizeMm)),
-      plateId: ['a1', 'a1mini', 'h2d', 'grid'].includes(set.plateId) ? set.plateId : store.get().plateId,
+      importedModelRotateX: Math.max(0, Math.min(360, set.importedModelRotateX ?? store.get().importedModelRotateX)),
+      importedModelRotateY: Math.max(0, Math.min(360, set.importedModelRotateY ?? store.get().importedModelRotateY)),
+      importedModelRotateZ: Math.max(0, Math.min(360, set.importedModelRotateZ ?? store.get().importedModelRotateZ)),
       keycapImageName: appData.keycapImageName,
     });
 

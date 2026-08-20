@@ -1,10 +1,54 @@
 import { store } from '../../store/appState';
 import { debouncedRebuild } from '../../core/engine';
 import { $, bindValInput } from '../helpers';
-import type { PlateId, UiCallbacks } from '../types';
+import type { UiCallbacks } from '../types';
 import { SWITCH_STEP } from '../constants';
 
 export function bindGlobalEvents(cb: UiCallbacks) {
+  const modelFile = $<HTMLInputElement>('modelPreviewFile');
+  const importModelFile = (file?: File) => {
+    if (!file || !/\.(stl|3mf)$/i.test(file.name)) return;
+    cb.onModelImport(file);
+    if (modelFile) modelFile.value = '';
+  };
+  modelFile?.addEventListener('change', () => importModelFile(modelFile.files?.[0]));
+  $('modelPreviewDrop')?.addEventListener('dragover', (event: DragEvent) => {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).classList.add('dragging');
+  });
+  $('modelPreviewDrop')?.addEventListener('dragleave', (event: DragEvent) => {
+    (event.currentTarget as HTMLElement).classList.remove('dragging');
+  });
+  $('modelPreviewDrop')?.addEventListener('drop', (event: DragEvent) => {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).classList.remove('dragging');
+    importModelFile(event.dataTransfer?.files?.[0]);
+  });
+  // The reference viewer also feels like a drop target. Allow dropping a model
+  // directly onto the 3D viewport in addition to the explicit import card.
+  const viewport = $('viewport');
+  viewport?.addEventListener('dragover', (event: DragEvent) => {
+    if (event.dataTransfer?.types.includes('Files')) event.preventDefault();
+  });
+  viewport?.addEventListener('drop', (event: DragEvent) => {
+    if (!event.dataTransfer?.files.length) return;
+    event.preventDefault();
+    importModelFile(event.dataTransfer.files[0]);
+  });
+  $('modelPreviewTabs')?.addEventListener('click', (event: MouseEvent) => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>('[data-preview-source]');
+    if (button && !button.hasAttribute('disabled')) cb.onModelPreviewSource(button.dataset.previewSource as 'generated' | 'imported');
+  });
+  const modelColor = $<HTMLInputElement>('modelPreviewColor');
+  modelColor?.addEventListener('input', () => cb.onModelColor(modelColor.value));
+  $('modelPreviewClear')?.addEventListener('click', () => cb.onModelClear());
+  for (const axis of ['x', 'y', 'z'] as const) {
+    $<HTMLInputElement>(`modelRotate${axis.toUpperCase()}`)?.addEventListener('input', (event: Event) => {
+      cb.onModelRotation(axis, +(event.target as HTMLInputElement).value);
+    });
+  }
+  $('modelTransformReset')?.addEventListener('click', () => cb.onModelTransformReset());
+
   // --- Home & History ---
   $('btnBackHome')?.addEventListener('click', () => cb.onBackToHome());
   $('undoBtn')?.addEventListener('click', () => cb.onUndo());
@@ -55,8 +99,6 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('hybridNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
   $('hybridBaseImageOverlap')?.addEventListener('input', (e: Event) => cb.onHybridBaseImageOverlap(+(e.target as HTMLInputElement).value));
   $('hybridNeckWidth')?.addEventListener('input', (e: Event) => cb.onHybridNeckWidth(+(e.target as HTMLInputElement).value));
-  $('plateSelect')?.addEventListener('change', (e: Event) => cb.onPlateChange((e.target as HTMLSelectElement).value as PlateId));
-
   // --- Color Count & Smoothing ---
   const ccount = $<HTMLSelectElement>('ccount');
   ccount?.addEventListener('change', () => cb.onColorCount(+ccount.value));
