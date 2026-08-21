@@ -13,7 +13,7 @@ Chrome does not install a ZIP directly; it must be unzipped before using **Load 
 
 ## Use
 
-Click the extension icon to open the full-height Chrome side panel on the right. The panel can be resized by dragging its left edge. Use **Đọc giá trang này** to capture every SKU/variant exposed by the product page, including current price, original price, attributes and stock when available. The side panel shows the lowest price, a CNY/VND conversion updated from the latest public reference rate, Vietnamese labels and detailed promotions. Use **Dịch trang** to translate visible Chinese text; repeated labels are cached and unique texts are translated concurrently to reduce wait time.
+Click the extension icon to open the full-height Chrome side panel on the right. When a supported product tab opens, changes URL or becomes active, the panel automatically captures every SKU/variant without requiring a button click. Use **Đọc giá trang này** as a manual refresh when needed. Each product and variant keeps the original marketplace text together with its Vietnamese translation, plus current price, original price, attributes and stock when available. The side panel shows the lowest price, a CNY/VND conversion updated from the latest public reference rate, Vietnamese labels and detailed promotions. Use **Dịch trang** to translate visible Chinese text; repeated labels are cached and unique texts are translated concurrently to reduce wait time.
 
 Supported pages: Taobao, Tmall, 1688, JD, Pinduoduo and Xiaohongshu product pages.
 

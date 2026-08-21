@@ -115,10 +115,12 @@ function normalizedProduct(product) {
       id: String(value.id || crypto.randomUUID()),
       skuId: value.skuId ? String(value.skuId) : undefined,
       label: String(value.label || value.name || `Phân loại ${index + 1}`),
+      labelOriginal: String(value.labelOriginal || value.label || value.name || `Phân loại ${index + 1}`),
       priceCny: Number(value.priceCny ?? prices[index] ?? prices[0] ?? 0),
       originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
       stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
-      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {}
+      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {},
+      skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {})
     };
   });
   const promotions = (Array.isArray(product.promotions) ? product.promotions : []).map((item, index) => {
@@ -126,6 +128,7 @@ function normalizedProduct(product) {
     return {
       id: String(value.id || crypto.randomUUID()),
       title: String(value.title || value.name || `Khuyến mãi ${index + 1}`),
+      titleOriginal: String(value.titleOriginal || value.title || value.name || `Khuyến mãi ${index + 1}`),
       description: String(value.description || 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.'),
       discountCny: Number.isFinite(Number(value.discountCny)) ? Number(value.discountCny) : undefined,
       finalPriceCny: Number.isFinite(Number(value.finalPriceCny)) ? Number(value.finalPriceCny) : undefined,
@@ -159,10 +162,12 @@ function productForPopup(row) {
       id: String(value.id || `variant-${index}`),
       skuId: value.skuId ? String(value.skuId) : undefined,
       label: String(value.label || value.name || `Phân loại ${index + 1}`),
+      labelOriginal: String(value.labelOriginal || value.label || value.name || `Phân loại ${index + 1}`),
       priceCny: Number(value.priceCny),
       originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
       stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
-      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {}
+      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {},
+      skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {})
     };
   });
   const promotionRows = Array.isArray(row.promotions) ? row.promotions.map((promotion, index) => {
@@ -170,6 +175,7 @@ function productForPopup(row) {
     return {
       id: String(value.id || `promotion-${index}`),
       title: String(value.title || value.name || `Khuyến mãi ${index + 1}`),
+      titleOriginal: String(value.titleOriginal || value.title || value.name || `Khuyến mãi ${index + 1}`),
       description: String(value.description || 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.'),
       discountCny: Number.isFinite(Number(value.discountCny)) ? Number(value.discountCny) : undefined,
       finalPriceCny: Number.isFinite(Number(value.finalPriceCny)) ? Number(value.finalPriceCny) : undefined,
@@ -182,6 +188,7 @@ function productForPopup(row) {
     sourceProductId: row.source_product_id || '',
     url: row.url,
     title: row.title,
+    titleOriginal: row.title_original || row.title,
     pricesCny: variantRows.map((variant) => variant.priceCny).filter((price) => Number.isFinite(price) && price > 0),
     variants: variantRows,
     promotions: promotionRows,

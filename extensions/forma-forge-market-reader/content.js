@@ -96,7 +96,8 @@ function marketplaceState() {
   const source = [...document.scripts].map((script) => script.textContent || '').join('\n');
   return {
     decision: embeddedObject(source, 'skuDecisionPropVO'),
-    core: embeddedObject(source, 'skuCore')
+    core: embeddedObject(source, 'skuCore'),
+    base: embeddedObject(source, 'skuBase')
   };
 }
 
@@ -120,13 +121,18 @@ function variantPrice(info) {
 }
 
 function findVariantDetails() {
-  const { decision, core } = marketplaceState();
-  const skus = Array.isArray(decision?.skus) ? decision.skus : [];
+  const { decision, core, base } = marketplaceState();
+  const skus = Array.isArray(decision?.skus) ? decision.skus : (Array.isArray(base?.skus) ? base.skus : []);
   const filters = new Map();
-  (decision?.filterParams || []).forEach((filter) => {
+  const filterParams = decision?.filterParams || (base?.props || []).map((property) => ({
+    code: property.pid,
+    name: property.name,
+    options: property.values || []
+  }));
+  filterParams.forEach((filter) => {
     filters.set(String(filter.code), {
       name: String(filter.name || filter.code),
-      options: new Map((filter.options || []).map((option) => [String(option.code), String(option.name || option.code)]))
+      options: new Map((filter.options || []).map((option) => [String(option.code ?? option.vid), String(option.name || option.code || option.vid)]))
     });
   });
   const sku2info = core?.sku2info || {};
@@ -134,7 +140,7 @@ function findVariantDetails() {
     const skuId = String(sku.skuId || index);
     const attributes = {};
     const labels = [];
-    String(sku.propPath || '').split('|').forEach((segment) => {
+    String(sku.propPath || '').split(/[|;]/).forEach((segment) => {
       const [propertyCode, valueCode] = segment.split(':');
       if (!propertyCode || !valueCode) return;
       const property = filters.get(String(propertyCode));
@@ -149,10 +155,12 @@ function findVariantDetails() {
       id: `sku-${skuId}`,
       skuId,
       label: labels.join(' · ') || `SKU ${skuId}`,
+      labelOriginal: labels.join(' · ') || `SKU ${skuId}`,
       priceCny: prices.priceCny,
       originalPriceCny: prices.originalPriceCny,
       stock: Number.isFinite(Number(info.quantity)) ? Number(info.quantity) : undefined,
-      skuAttributes: attributes
+      skuAttributes: attributes,
+      skuAttributesOriginal: { ...attributes }
     };
   }).filter((variant) => variant.priceCny !== undefined || Object.keys(variant.skuAttributes).length > 0);
 }
@@ -179,6 +187,7 @@ function findPromotions() {
   return texts.map((text, index) => ({
     id: `promotion-${index}`,
     title: text,
+    titleOriginal: text,
     description: 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.',
     source: 'extension-dom'
   }));
@@ -192,8 +201,10 @@ function readProduct() {
   const variants = variantDetails.length ? variantDetails : findVariants().map((label, index) => ({
     id: `variant-${index}`,
     label,
+    labelOriginal: label,
     priceCny: fallbackPrices[index] ?? fallbackPrices[0],
-    skuAttributes: {}
+    skuAttributes: {},
+    skuAttributesOriginal: {}
   }));
   const pricesCny = variants.map((variant) => Number(variant.priceCny)).filter((price) => Number.isFinite(price));
   return {
@@ -201,6 +212,7 @@ function readProduct() {
     sourceProductId: productId(),
     url: location.href,
     title,
+    titleOriginal: title,
     pricesCny: [...new Set(pricesCny)],
     variants,
     promotions: findPromotions(),
