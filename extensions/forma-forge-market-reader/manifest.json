@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "FormaForge Market Reader",
+  "version": "1.0.0",
+  "description": "Read visible China marketplace prices and translate common commerce labels.",
+  "action": {
+    "default_title": "FormaForge Market Reader",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://translate.googleapis.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.taobao.com/*",
+        "https://*.tmall.com/*",
+        "https://*.1688.com/*",
+        "https://*.jd.com/*",
+        "https://*.yangkeduo.com/*",
+        "https://*.pinduoduo.com/*",
+        "https://*.xiaohongshu.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html"
+}

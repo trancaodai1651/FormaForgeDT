@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FormaForge Market Reader</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header class="brand"><span class="mark">F</span><div><strong>FormaForge</strong><small>Market Reader</small></div></header>
+      <p id="status" class="status">Mở một trang sản phẩm Trung Quốc để bắt đầu.</p>
+      <div class="actions">
+        <button id="read">Đọc giá trang này</button>
+        <button id="translate" class="secondary">Dịch trang</button>
+        <button id="restore" class="ghost">Khôi phục chữ gốc</button>
+      </div>
+      <section id="result" class="result hidden"></section>
+      <div class="footer-actions">
+        <button id="copy" class="secondary" disabled>Copy JSON</button>
+        <button id="download" class="secondary" disabled>Tải JSON</button>
+        <button id="price-reader" class="ghost">Mở Price Reader</button>
+      </div>
+      <a class="options" href="#" id="options">Cài đặt dịch</a>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

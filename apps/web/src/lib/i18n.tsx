@@ -278,6 +278,19 @@ Object.assign(vi, {
   'admin.priceReaderEnds': 'Kết thúc',
 });
 
+Object.assign(en, {
+  'admin.priceReaderExtensionTitle': 'Chrome price reader',
+  'admin.priceReaderExtensionText': 'Read visible prices and translate common Chinese commerce labels directly on supported marketplace pages.',
+  'admin.priceReaderExtensionDownload': 'Download Chrome extension',
+  'admin.priceReaderExtensionGuide': 'Unzip it, then load the folder from chrome://extensions with Developer mode enabled.',
+});
+Object.assign(vi, {
+  'admin.priceReaderExtensionTitle': 'Tiện ích đọc giá Chrome',
+  'admin.priceReaderExtensionText': 'Đọc giá đang hiển thị và dịch các nhãn mua bán tiếng Trung trên các trang sàn được hỗ trợ.',
+  'admin.priceReaderExtensionDownload': 'Tải extension Chrome',
+  'admin.priceReaderExtensionGuide': 'Giải nén, sau đó chọn Load unpacked tại chrome://extensions và bật Developer mode.',
+});
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 
