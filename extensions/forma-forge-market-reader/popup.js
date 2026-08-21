@@ -256,7 +256,7 @@ function createStoredZip(files) {
     centralChunks.push(concatBytes([
       new Uint8Array([0x50, 0x4b, 0x01, 0x02]), littleEndian(20, 2), littleEndian(20, 2), littleEndian(0x800, 2), littleEndian(0, 2),
       littleEndian(0, 2), littleEndian(0, 2), littleEndian(checksum, 4), littleEndian(data.length, 4), littleEndian(data.length, 4),
-      littleEndian(name.length, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(localOffset, 4), name
+      littleEndian(name.length, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 4), littleEndian(localOffset, 4), name
     ]));
     localOffset += localHeader.length + data.length;
   });

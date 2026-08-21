@@ -10,6 +10,7 @@
     "frontendDist": "../../web/dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [{
       "title": "Hometown Module Lamp Studio",
       "width": 1440,

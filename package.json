@@ -11,6 +11,7 @@
     "build": "corepack pnpm run typecheck && corepack pnpm --filter @hometown/geometry test && corepack pnpm --filter @hometown/web build && corepack pnpm --filter @hometown/api build",
     "build:web": "corepack pnpm --filter @hometown/web build",
     "build:market-reader": "node scripts/build-market-reader.mjs",
+    "validate:market-reader": "node scripts/validate-market-reader-zip.mjs",
     "test": "corepack pnpm --filter @hometown/geometry test",
     "lint": "corepack pnpm --filter @hometown/web lint && corepack pnpm --filter @hometown/api lint && corepack pnpm --filter @hometown/geometry lint",
     "typecheck": "corepack pnpm --filter @hometown/types typecheck && corepack pnpm --filter @hometown/geometry typecheck && corepack pnpm --filter @hometown/web typecheck && corepack pnpm --filter @hometown/api typecheck",

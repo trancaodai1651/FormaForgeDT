@@ -12,4 +12,5 @@ extensions/forma-forge-market-reader/config.js
 src-tauri/target/
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
+apps/web/public/downloads/FormaForgeDT-Desktop-Setup.exe
 .pnpm-store/

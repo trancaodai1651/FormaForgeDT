@@ -202,6 +202,51 @@
 .admin-tool-directory-copy small { overflow: hidden; color: var(--muted); font-size: 10px; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
 .admin-tool-directory-card > svg { flex: 0 0 auto; color: var(--muted); }
 
+.hunyuan3d-page { min-height: 100dvh; padding: 22px clamp(20px, 4vw, 72px) 70px; background: radial-gradient(circle at 78% -12%, rgba(240,185,103,.16), transparent 34%), #0a0c0f; color: var(--text); }
+.hunyuan3d-topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.hunyuan3d-back, .hunyuan3d-topbar-actions a, .hunyuan3d-topbar-actions button { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font: 500 10px 'DM Mono', monospace; text-decoration: none; }
+.hunyuan3d-back:hover, .hunyuan3d-topbar-actions a:hover { color: var(--text); }
+.hunyuan3d-topbar-actions { display: flex; align-items: center; gap: 15px; }
+.hunyuan3d-topbar-actions button { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: transparent; cursor: pointer; }
+.hunyuan3d-hero { display: flex; align-items: end; justify-content: space-between; gap: 28px; padding: clamp(44px, 8vw, 110px) 0 38px; }
+.hunyuan3d-hero h1 { max-width: 780px; margin: 16px 0 13px; font-size: clamp(3.1rem, 8vw, 7.8rem); line-height: .88; letter-spacing: -.075em; }
+.hunyuan3d-hero p { max-width: 700px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.hunyuan3d-runtime-pill { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; padding: 10px 13px; color: var(--muted); font: 500 9px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+.hunyuan3d-runtime-pill.desktop { border-color: rgba(89,199,133,.42); color: #8ee5ad; }
+.hunyuan3d-runtime-pill.web { border-color: rgba(240,185,103,.4); color: var(--accent); }
+.hunyuan3d-gate, .hunyuan3d-workspace-card, .hunyuan3d-info-grid article, .hunyuan3d-status-card { border: 1px solid var(--line); border-radius: 20px; background: color-mix(in srgb, var(--surface) 82%, transparent); box-shadow: var(--shadow); }
+.hunyuan3d-gate { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: start; max-width: 940px; padding: clamp(22px, 4vw, 42px); border-color: rgba(240,185,103,.48); background: radial-gradient(circle at 0 0, rgba(240,185,103,.14), transparent 44%), color-mix(in srgb, var(--surface) 85%, transparent); }
+.hunyuan3d-gate-icon { display: grid; place-items: center; width: 58px; height: 58px; border: 1px solid rgba(240,185,103,.55); border-radius: 17px; background: rgba(240,185,103,.12); color: var(--accent); }
+.hunyuan3d-gate h2, .hunyuan3d-workspace-card h2, .hunyuan3d-info-grid h2 { margin: 10px 0 9px; font-size: clamp(1.5rem, 3vw, 2.4rem); letter-spacing: -.04em; }
+.hunyuan3d-gate p, .hunyuan3d-workspace-card > p, .hunyuan3d-info-grid p { max-width: 720px; margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.hunyuan3d-gate small { display: block; margin-top: 12px; color: var(--muted); font: 500 10px/1.5 'DM Mono', monospace; }
+.hunyuan3d-primary-action, .hunyuan3d-secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border-radius: 10px; padding: 0 16px; font-size: 11px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.hunyuan3d-primary-action { border: 1px solid rgba(240,185,103,.7); background: var(--accent); color: #17191d; }
+.hunyuan3d-primary-action:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.hunyuan3d-primary-action:disabled, .hunyuan3d-secondary-action:disabled { cursor: not-allowed; opacity: .45; }
+.hunyuan3d-secondary-action { border: 1px solid var(--line-strong); background: transparent; color: var(--text); }
+.hunyuan3d-status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+.hunyuan3d-status-card { display: grid; gap: 12px; min-height: 148px; padding: 20px; }
+.hunyuan3d-status-card > span { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font: 500 9px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+.hunyuan3d-status-card strong { font-size: 18px; font-weight: 600; }
+.hunyuan3d-status-card strong.ready { color: #8ee5ad; }
+.hunyuan3d-status-card strong.warning { color: var(--accent); }
+.hunyuan3d-status-card small, .hunyuan3d-inline-hint { color: var(--muted); font: 500 10px/1.5 'DM Mono', monospace; }
+.hunyuan3d-workspace-card { padding: clamp(22px, 4vw, 38px); }
+.hunyuan3d-section-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+.hunyuan3d-inline-hint { display: flex; align-items: center; gap: 7px; margin-top: 14px; }
+.hunyuan3d-error { display: flex; align-items: center; gap: 8px; max-width: 940px; margin-top: 16px; }
+.hunyuan3d-info-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; margin-top: 18px; }
+.hunyuan3d-info-grid article { padding: clamp(22px, 4vw, 38px); }
+.hunyuan3d-info-grid ol { display: grid; gap: 12px; margin: 20px 0 0; padding-left: 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.hunyuan3d-text-link { display: inline-flex; align-items: center; gap: 7px; color: var(--accent); font: 500 10px 'DM Mono', monospace; text-decoration: none; }
+.hunyuan3d-text-link:hover { color: var(--text); }
+@media (max-width: 760px) {
+  .hunyuan3d-hero { align-items: start; flex-direction: column; }
+  .hunyuan3d-status-grid, .hunyuan3d-info-grid { grid-template-columns: 1fr; }
+  .hunyuan3d-section-heading { align-items: start; flex-direction: column; }
+}
+
 .price-reader-page { min-height: 100dvh; overflow: auto; background: radial-gradient(circle at 72% -12%, rgba(240,185,103,.13), transparent 32%), #0a0c0f; color: var(--text); }
 .price-reader-shell { width: min(1540px, calc(100% - 48px)); min-height: 100dvh; margin: 0 auto; padding: 18px 0 38px; }
 .price-reader-topbar, .price-reader-identity, .price-reader-session, .price-reader-product-meta, .price-reader-product-facts, .price-reader-product-actions, .price-reader-section-heading, .price-reader-rate, .price-reader-source-badge, .price-reader-live, .price-reader-promotions article { display: flex; align-items: center; }
