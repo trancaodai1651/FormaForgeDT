@@ -1,0 +1,186 @@
+/*
+ * FormaForge Tahoe UI layer
+ *
+ * The visual system is intentionally additive: existing product and 3D
+ * components keep their layout and behavior while shared surfaces gain the
+ * translucent title-bar, sidebar, toolbar, and control language of macOS.
+ */
+:root {
+  --tahoe-blue: #78a9ff;
+  --tahoe-blue-strong: #3e82f7;
+  --tahoe-purple: #9d8cff;
+  --tahoe-cyan: #79d9ef;
+  --tahoe-glass: rgba(28, 31, 39, .66);
+  --tahoe-glass-heavy: rgba(28, 31, 39, .86);
+  --tahoe-border: rgba(255, 255, 255, .16);
+  --tahoe-border-soft: rgba(255, 255, 255, .09);
+  --tahoe-shadow: 0 28px 80px rgba(0, 0, 0, .33), 0 2px 12px rgba(0, 0, 0, .2);
+}
+
+.tahoe-ui {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif;
+}
+
+.tahoe-ui::before {
+  position: fixed;
+  z-index: -2;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% -8%, rgba(120, 169, 255, .18), transparent 34%),
+    radial-gradient(ellipse at 94% 8%, rgba(157, 140, 255, .16), transparent 32%),
+    radial-gradient(ellipse at 56% 108%, rgba(72, 211, 225, .08), transparent 34%);
+}
+
+.tahoe-ui::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: .22;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, #000, transparent 78%);
+}
+
+.tahoe-ui .site-header {
+  width: min(1320px, calc(100% - 32px));
+  min-height: 58px;
+  top: 14px;
+  margin-top: 14px;
+  padding: 7px 10px 7px 12px;
+  border-color: var(--tahoe-border);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(44, 48, 59, .74), rgba(23, 25, 32, .56));
+  box-shadow: var(--tahoe-shadow);
+  backdrop-filter: blur(30px) saturate(145%);
+  -webkit-backdrop-filter: blur(30px) saturate(145%);
+}
+
+.tahoe-traffic-lights {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  margin-right: 8px;
+  padding: 0 3px;
+}
+
+.tahoe-traffic-lights i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffbd4f;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 0 10px rgba(255,189,79,.18);
+}
+
+.tahoe-traffic-lights i:first-child { background: #ff6259; box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 0 10px rgba(255,98,89,.18); }
+.tahoe-traffic-lights i:last-child { background: #28c840; box-shadow: inset 0 0 0 1px rgba(0,0,0,.14), 0 0 10px rgba(40,200,64,.18); }
+
+.tahoe-ui .wordmark-mark {
+  border-color: rgba(255,255,255,.23);
+  background: linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.035));
+  box-shadow: inset 0 1px rgba(255,255,255,.12);
+}
+
+.tahoe-ui .nav-links a.active:after { background: linear-gradient(90deg, var(--tahoe-blue), var(--tahoe-purple)); }
+.tahoe-ui .icon-button:hover, .tahoe-ui .cart-link:hover { border-color: rgba(120,169,255,.58); background: rgba(120,169,255,.12); }
+
+.tahoe-ui .glass-button {
+  min-height: 44px;
+  border-radius: 12px;
+  border-color: rgba(255,255,255,.12);
+  background: linear-gradient(145deg, #78a9ff, #4e86ed);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(62,130,247,.22), inset 0 1px rgba(255,255,255,.25);
+}
+
+.tahoe-ui .glass-button.primary { background: linear-gradient(145deg, #f7f8fb, #d9e0ef); color: #1d2430; box-shadow: 0 10px 22px rgba(0,0,0,.16), inset 0 1px rgba(255,255,255,.72); }
+.tahoe-ui .glass-button.ghost, .tahoe-ui .glass-button.quiet { border-color: var(--tahoe-border); background: rgba(255,255,255,.065); color: var(--text); box-shadow: inset 0 1px rgba(255,255,255,.08); }
+.tahoe-ui .glass-button:hover { box-shadow: 0 12px 26px rgba(62,130,247,.24), inset 0 1px rgba(255,255,255,.25); }
+
+.tahoe-ui .product-card-art,
+.tahoe-ui .story-art,
+.tahoe-ui .lamp-viewer,
+.tahoe-ui .account-card,
+.tahoe-ui .account-auth-form,
+.tahoe-ui .account-address-form,
+.tahoe-ui .admin-table,
+.tahoe-ui .admin-metric,
+.tahoe-ui .admin-settings-form,
+.tahoe-ui .empty-state {
+  border-color: var(--tahoe-border);
+  background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)), var(--tahoe-glass);
+  box-shadow: var(--tahoe-shadow);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+}
+
+.tahoe-ui .product-card-art:hover,
+.tahoe-ui .account-card:hover,
+.tahoe-ui .admin-metric:hover { border-color: rgba(120,169,255,.42); }
+.tahoe-ui input:not([type='range']), .tahoe-ui textarea, .tahoe-ui select { border-color: var(--tahoe-border); background: rgba(10, 12, 18, .42); box-shadow: inset 0 1px rgba(255,255,255,.05); }
+.tahoe-ui input:not([type='range']):focus, .tahoe-ui textarea:focus, .tahoe-ui select:focus { border-color: rgba(120,169,255,.78); outline: 3px solid rgba(120,169,255,.15); }
+.tahoe-ui input[type='range'] { accent-color: var(--tahoe-blue); }
+.tahoe-ui .filter.active, .tahoe-ui .filter:hover { border-color: rgba(120,169,255,.48); background: rgba(120,169,255,.12); }
+
+/* Tahoe window treatment for full-screen tools and the price reader. */
+.tahoe-workspace {
+  min-height: 100dvh;
+  background: #11141b;
+}
+
+.tahoe-workspace .admin-tool-page,
+.tahoe-workspace .price-reader-page {
+  background: transparent;
+}
+
+.tahoe-workspace .admin-tool-container,
+.tahoe-workspace .price-reader-shell {
+  position: relative;
+}
+
+.tahoe-workspace .admin-tool-switcher {
+  padding: 9px;
+  border: 1px solid var(--tahoe-border-soft);
+  border-radius: 16px;
+  background: rgba(16, 19, 27, .58);
+  box-shadow: 0 16px 42px rgba(0,0,0,.18), inset 0 1px rgba(255,255,255,.05);
+  backdrop-filter: blur(24px);
+}
+
+.tahoe-workspace .admin-tool-switcher a { min-height: 35px; border-radius: 10px; }
+.tahoe-workspace .admin-tool-switcher a:hover { border-color: var(--tahoe-border); background: rgba(255,255,255,.07); }
+.tahoe-workspace .admin-tool-switcher a.active { border-color: rgba(120,169,255,.58); background: linear-gradient(135deg, rgba(120,169,255,.22), rgba(157,140,255,.13)); color: #f4f7ff; box-shadow: inset 0 1px rgba(255,255,255,.1); }
+.tahoe-workspace .admin-tool-mark, .tahoe-workspace .admin-tool-directory-mark { border-color: rgba(120,169,255,.5); background: linear-gradient(145deg, rgba(120,169,255,.26), rgba(157,140,255,.15)); color: #afd0ff; }
+
+.tahoe-workspace .price-reader-page { background: radial-gradient(ellipse at 78% -15%, rgba(120,169,255,.17), transparent 36%), radial-gradient(ellipse at 8% 80%, rgba(157,140,255,.09), transparent 36%), transparent; }
+.tahoe-workspace .price-reader-shell { width: min(1580px, calc(100% - 40px)); padding-top: 14px; }
+.tahoe-workspace .price-reader-topbar { min-height: 54px; border: 1px solid var(--tahoe-border-soft); border-radius: 17px; padding: 8px 12px; background: rgba(27,30,39,.65); box-shadow: var(--tahoe-shadow); backdrop-filter: blur(28px); }
+.tahoe-workspace .price-reader-card, .tahoe-workspace .price-reader-empty-state, .tahoe-workspace .price-reader-quote, .tahoe-workspace .price-reader-error { border-color: var(--tahoe-border); background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)), rgba(25,28,36,.72); box-shadow: var(--tahoe-shadow); backdrop-filter: blur(26px) saturate(130%); }
+.tahoe-workspace .price-reader-card { border-radius: 17px; }
+.tahoe-workspace .price-reader-source-badge, .tahoe-workspace .price-reader-rate { border-color: rgba(120,169,255,.4); background: rgba(120,169,255,.11); }
+.tahoe-workspace .price-reader-tracked-item:hover, .tahoe-workspace .price-reader-tracked-item.active { border-color: rgba(120,169,255,.52); background: linear-gradient(135deg, rgba(120,169,255,.16), rgba(157,140,255,.1)); }
+.tahoe-workspace .price-reader-extension-download { border-color: rgba(120,169,255,.48); background: linear-gradient(135deg, rgba(120,169,255,.2), rgba(157,140,255,.13)); }
+
+.tahoe-workspace .flex-lamp-chooser,
+.tahoe-workspace .flex-lamp-app { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", sans-serif; }
+.tahoe-workspace .flex-lamp-chooser { background: radial-gradient(ellipse at 74% -12%, rgba(120,169,255,.17), transparent 35%), #11141b; }
+.tahoe-workspace .flex-lamp-chooser-bar { background: rgba(17,20,27,.56); backdrop-filter: blur(26px); }
+.tahoe-workspace .flex-lamp-chooser-cards button { border-color: var(--tahoe-border); background: rgba(255,255,255,.055); box-shadow: 0 18px 42px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.06); backdrop-filter: blur(20px); }
+.tahoe-workspace .flex-lamp-chooser-cards button:hover { border-color: rgba(120,169,255,.68); background: rgba(120,169,255,.12); }
+
+@media (max-width: 900px) {
+  .tahoe-traffic-lights { display: none; }
+  .tahoe-ui .site-header { width: calc(100% - 22px); }
+  .tahoe-workspace .price-reader-shell { width: min(100% - 24px, 700px); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .tahoe-ui .site-header, .tahoe-ui .product-card-art, .tahoe-ui .lamp-viewer, .tahoe-workspace .price-reader-card, .tahoe-workspace .price-reader-quote { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface-strong); }
+}
