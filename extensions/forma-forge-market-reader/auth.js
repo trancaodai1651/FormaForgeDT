@@ -107,9 +107,31 @@ function sourceCode(value) {
 function normalizedProduct(product) {
   const source = sourceCode(product.source);
   const prices = Array.isArray(product.pricesCny) ? product.pricesCny.filter((price) => Number.isFinite(Number(price))).map(Number) : [];
-  const labels = Array.isArray(product.variants) && product.variants.length ? product.variants : ['Giá đang hiển thị'];
-  const variants = labels.map((label, index) => ({ id: crypto.randomUUID(), label: String(label), priceCny: prices[index] ?? prices[0] ?? 0, skuAttributes: {} }));
-  const promotions = (Array.isArray(product.promotions) ? product.promotions : []).map((title) => ({ id: crypto.randomUUID(), title: String(title), source: 'extension-dom' }));
+  const rawVariants = Array.isArray(product.variants) ? product.variants : [];
+  const variantSource = rawVariants.length ? rawVariants : prices.map((price, index) => ({ label: `Phân loại ${index + 1}`, priceCny: price }));
+  const variants = variantSource.map((item, index) => {
+    const value = item && typeof item === 'object' ? item : { label: item };
+    return {
+      id: String(value.id || crypto.randomUUID()),
+      skuId: value.skuId ? String(value.skuId) : undefined,
+      label: String(value.label || value.name || `Phân loại ${index + 1}`),
+      priceCny: Number(value.priceCny ?? prices[index] ?? prices[0] ?? 0),
+      originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
+      stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
+      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {}
+    };
+  });
+  const promotions = (Array.isArray(product.promotions) ? product.promotions : []).map((item, index) => {
+    const value = item && typeof item === 'object' ? item : { title: item };
+    return {
+      id: String(value.id || crypto.randomUUID()),
+      title: String(value.title || value.name || `Khuyến mãi ${index + 1}`),
+      description: String(value.description || 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.'),
+      discountCny: Number.isFinite(Number(value.discountCny)) ? Number(value.discountCny) : undefined,
+      finalPriceCny: Number.isFinite(Number(value.finalPriceCny)) ? Number(value.finalPriceCny) : undefined,
+      source: String(value.source || 'extension-dom')
+    };
+  });
   return {
     id: crypto.randomUUID(),
     source,
@@ -121,7 +143,7 @@ function normalizedProduct(product) {
     image_url: null,
     shop_name: null,
     provider: 'extension-dom',
-    exchange_rate_vnd: DEFAULT_EXCHANGE_RATE_VND,
+    exchange_rate_vnd: Number(product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND,
     variants,
     promotions,
     last_checked_at: product.capturedAt || new Date().toISOString(),
@@ -131,15 +153,38 @@ function normalizedProduct(product) {
 
 function productForPopup(row) {
   const variants = Array.isArray(row.variants) ? row.variants : [];
+  const variantRows = variants.map((variant, index) => {
+    const value = variant && typeof variant === 'object' ? variant : { label: variant };
+    return {
+      id: String(value.id || `variant-${index}`),
+      skuId: value.skuId ? String(value.skuId) : undefined,
+      label: String(value.label || value.name || `Phân loại ${index + 1}`),
+      priceCny: Number(value.priceCny),
+      originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
+      stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
+      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {}
+    };
+  });
+  const promotionRows = Array.isArray(row.promotions) ? row.promotions.map((promotion, index) => {
+    const value = promotion && typeof promotion === 'object' ? promotion : { title: promotion };
+    return {
+      id: String(value.id || `promotion-${index}`),
+      title: String(value.title || value.name || `Khuyến mãi ${index + 1}`),
+      description: String(value.description || 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.'),
+      discountCny: Number.isFinite(Number(value.discountCny)) ? Number(value.discountCny) : undefined,
+      finalPriceCny: Number.isFinite(Number(value.finalPriceCny)) ? Number(value.finalPriceCny) : undefined,
+      source: String(value.source || 'extension-dom')
+    };
+  }) : [];
   return {
     id: row.id,
     source: row.source_label || row.source,
     sourceProductId: row.source_product_id || '',
     url: row.url,
     title: row.title,
-    pricesCny: variants.map((variant) => Number(variant.priceCny)).filter((price) => Number.isFinite(price) && price > 0),
-    variants: variants.map((variant) => variant.label),
-    promotions: Array.isArray(row.promotions) ? row.promotions.map((promotion) => promotion.title) : [],
+    pricesCny: variantRows.map((variant) => variant.priceCny).filter((price) => Number.isFinite(price) && price > 0),
+    variants: variantRows,
+    promotions: promotionRows,
     exchangeRateVnd: Number(row.exchange_rate_vnd) || DEFAULT_EXCHANGE_RATE_VND,
     capturedAt: row.updated_at
   };

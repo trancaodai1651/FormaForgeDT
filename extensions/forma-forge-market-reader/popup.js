@@ -2,6 +2,7 @@ const PRICE_READER_URL = 'https://trancaodai1651.github.io/FormaForgeDT/#/price-
 let lastProduct = null;
 let savedProducts = [];
 let session = null;
+let exchangeRateState = { rate: DEFAULT_EXCHANGE_RATE_VND, updatedAt: 0, date: null, source: 'Dự phòng', stale: true };
 
 const $ = (id) => document.getElementById(id);
 const vndFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
@@ -19,13 +20,93 @@ function priceLabel(price, rate = DEFAULT_EXCHANGE_RATE_VND) {
 
 function productPriceLabel(product) {
   const prices = Array.isArray(product.pricesCny) ? product.pricesCny : [];
-  const rate = Number(product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
+  const rate = Number(exchangeRateState.rate || product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
   return prices.length ? prices.map((price) => priceLabel(price, rate)).join(' · ') : 'Chưa thấy giá CNY';
 }
 
 function exchangeRateLabel(product) {
-  const rate = Number(product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
-  return `Tỷ giá tham chiếu: 1 CNY = ${vndFormatter.format(rate)}`;
+  const rate = Number(exchangeRateState.rate || product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
+  const date = exchangeRateState.date ? ` · cập nhật ${exchangeRateState.date}` : '';
+  const statusLabel = exchangeRateState.stale ? ' · dự phòng' : '';
+  return `Tỷ giá tham chiếu mới nhất: 1 CNY = ${vndFormatter.format(rate)}${date}${statusLabel}`;
+}
+
+function variantRows(product) {
+  const rawRows = Array.isArray(product?.variants) ? product.variants : [];
+  if (rawRows.length) return rawRows.map((item, index) => {
+    const value = item && typeof item === 'object' ? item : { label: item };
+    return {
+      id: String(value.id || `variant-${index}`),
+      label: String(value.label || value.name || `Phân loại ${index + 1}`),
+      priceCny: Number(value.priceCny),
+      originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
+      stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
+      skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {}
+    };
+  });
+  return (Array.isArray(product?.pricesCny) ? product.pricesCny : []).map((price, index) => ({
+    id: `price-${index}`,
+    label: `Phân loại ${index + 1}`,
+    priceCny: Number(price),
+    skuAttributes: {}
+  }));
+}
+
+function promotionRows(product) {
+  return (Array.isArray(product?.promotions) ? product.promotions : []).map((item, index) => {
+    const value = item && typeof item === 'object' ? item : { title: item };
+    return {
+      id: String(value.id || `promotion-${index}`),
+      title: String(value.title || value.name || `Khuyến mãi ${index + 1}`),
+      description: String(value.description || 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.'),
+      discountCny: Number.isFinite(Number(value.discountCny)) ? Number(value.discountCny) : undefined,
+      finalPriceCny: Number.isFinite(Number(value.finalPriceCny)) ? Number(value.finalPriceCny) : undefined
+    };
+  });
+}
+
+function applyExchangeRate(product) {
+  if (product && Number.isFinite(Number(exchangeRateState.rate)) && exchangeRateState.rate > 0) {
+    product.exchangeRateVnd = exchangeRateState.rate;
+  }
+}
+
+async function translateProductDetails(product) {
+  const rows = variantRows(product);
+  const promotions = promotionRows(product);
+  const texts = [product.title, ...rows.map((row) => row.label), ...rows.flatMap((row) => Object.values(row.skuAttributes || {})), ...promotions.map((promotion) => promotion.title)]
+    .map((value) => String(value || '').trim())
+    .filter((value) => /[\u3400-\u9fff]/.test(value));
+  const uniqueTexts = [...new Set(texts)];
+  if (!uniqueTexts.length) return product;
+  const response = await chrome.runtime.sendMessage({ type: 'TRANSLATE_TEXTS', texts: uniqueTexts, targetLanguage: 'vi' });
+  if (response?.error || !Array.isArray(response?.translations)) return product;
+  const translationMap = new Map(uniqueTexts.map((text, index) => [text, response.translations[index] || text]));
+  const translatedVariants = rows.map((row) => ({
+    ...row,
+    label: translationMap.get(row.label) || row.label,
+    skuAttributes: Object.fromEntries(Object.entries(row.skuAttributes || {}).map(([key, value]) => [key, translationMap.get(String(value)) || value]))
+  }));
+  return {
+    ...product,
+    title: translationMap.get(product.title) || product.title,
+    variants: translatedVariants,
+    promotions: promotions.map((promotion) => ({ ...promotion, title: translationMap.get(promotion.title) || promotion.title }))
+  };
+}
+
+async function refreshExchangeRate(force = false) {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: 'GET_EXCHANGE_RATE', force });
+    if (!result?.rate) return exchangeRateState;
+    exchangeRateState = { ...exchangeRateState, ...result, rate: Number(result.rate) };
+    savedProducts.forEach(applyExchangeRate);
+    applyExchangeRate(lastProduct);
+    renderSavedProducts();
+    return exchangeRateState;
+  } catch {
+    return exchangeRateState;
+  }
 }
 
 async function activeTab() {
@@ -54,12 +135,30 @@ function jsonText() {
 
 function render(product) {
   lastProduct = product;
+  applyExchangeRate(product);
   $('copy').disabled = false;
   $('download').disabled = false;
   $('save').disabled = !session;
   $('save').textContent = savedProducts.some((item) => item.url === product.url) ? 'Đã lưu sản phẩm' : 'Lưu sản phẩm';
   $('result').classList.remove('hidden');
-  $('result').innerHTML = `<h2>${escapeHtml(product.title)}</h2><p>${escapeHtml(product.source)} · ID: ${escapeHtml(product.sourceProductId || '—')}</p><p>Giá đọc được:</p><strong class="price-lines">${product.pricesCny?.length ? product.pricesCny.map((price) => escapeHtml(priceLabel(price, product.exchangeRateVnd))).join('<br />') : 'Chưa thấy giá CNY'}</strong><p class="exchange-rate">${escapeHtml(exchangeRateLabel(product))}</p><p>Khuyến mãi: ${product.promotions?.length || 0}</p><div class="chips">${(product.variants || []).slice(0, 12).map((variant) => `<span class="chip">${escapeHtml(variant)}</span>`).join('')}</div>`;
+  const rows = variantRows(product);
+  const promotions = promotionRows(product);
+  const rates = rows.map((row) => row.priceCny).filter((price) => Number.isFinite(price) && price > 0);
+  const rate = Number(product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
+  const variantMarkup = rows.length
+    ? rows.map((variant) => {
+      const attributes = Object.entries(variant.skuAttributes || {}).map(([key, value]) => `${key}: ${value}`).join(' · ');
+      const original = variant.originalPriceCny && variant.originalPriceCny > variant.priceCny
+        ? `<span class="original-price">${escapeHtml(priceLabel(variant.originalPriceCny, rate))}</span>`
+        : '';
+      const stock = Number.isFinite(variant.stock) ? `<small>Tồn kho: ${escapeHtml(variant.stock)}</small>` : '';
+      return `<article class="variant-row"><div><strong>${escapeHtml(variant.label)}</strong>${attributes ? `<small>${escapeHtml(attributes)}</small>` : ''}${stock}</div><span>${Number.isFinite(variant.priceCny) ? escapeHtml(priceLabel(variant.priceCny, rate)) : 'Chưa có giá'}${original}</span></article>`;
+    }).join('')
+    : '<p>Chưa đọc được danh sách phân loại.</p>';
+  const promotionMarkup = promotions.length
+    ? promotions.map((promotion) => `<article class="promotion-item"><strong>${escapeHtml(promotion.title)}</strong><small>${escapeHtml(promotion.description)}</small>${promotion.discountCny ? `<span>Giảm ${escapeHtml(priceLabel(promotion.discountCny, rate))}</span>` : ''}${promotion.finalPriceCny ? `<span>Giá sau ưu đãi: ${escapeHtml(priceLabel(promotion.finalPriceCny, rate))}</span>` : ''}</article>`).join('')
+    : '<p>Chưa phát hiện thông tin khuyến mãi chi tiết.</p>';
+  $('result').innerHTML = `<h2>${escapeHtml(product.title)}</h2><p>${escapeHtml(product.source)} · ID: ${escapeHtml(product.sourceProductId || '—')}</p><p>Giá thấp nhất trong ${rows.length || rates.length || 0} phân loại:</p><strong class="price-lines">${rates.length ? escapeHtml(priceLabel(Math.min(...rates), rate)) : 'Chưa thấy giá CNY'}</strong><p class="exchange-rate">${escapeHtml(exchangeRateLabel(product))}</p><section class="result-section"><div class="result-section-title">Tất cả phân loại <span>${rows.length}</span></div><div class="variant-list">${variantMarkup}</div></section><section class="result-section"><div class="result-section-title">Chi tiết khuyến mãi <span>${promotions.length}</span></div><div class="promotion-list">${promotionMarkup}</div></section>`;
 }
 
 function renderSavedProducts() {
@@ -127,9 +226,18 @@ $('read').addEventListener('click', async () => {
   status('Đang đọc dữ liệu trên trang…');
   try {
     const product = await sendToPage({ type: 'READ_PRODUCT' });
+    await refreshExchangeRate(true);
+    applyExchangeRate(product);
     render(product);
     status('Đã đọc dữ liệu đang hiển thị trên trang.');
     await chrome.storage.local.set({ lastProduct: product });
+    void translateProductDetails(product).then(async (translatedProduct) => {
+      if (translatedProduct === product || lastProduct?.url !== product.url) return;
+      applyExchangeRate(translatedProduct);
+      lastProduct = translatedProduct;
+      render(translatedProduct);
+      await chrome.storage.local.set({ lastProduct: translatedProduct });
+    }).catch(() => {});
   } catch (error) {
     status(error.message || 'Không đọc được trang này. Hãy tải lại trang sản phẩm.', true);
   } finally {
@@ -216,4 +324,5 @@ chrome.storage.local.get({ lastProduct: null }).then(async ({ lastProduct: produ
   setAuthView();
   renderSavedProducts();
   if (product) render(product);
+  void refreshExchangeRate(false);
 });

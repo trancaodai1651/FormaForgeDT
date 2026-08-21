@@ -2,12 +2,22 @@ const DEFAULT_TRANSLATION_ENDPOINT = 'https://translate.googleapis.com/translate
 const TRANSLATION_CACHE_KEY = 'translationCache';
 const TRANSLATION_CACHE_LIMIT = 600;
 const DEFAULT_TRANSLATION_CONCURRENCY = 6;
+const EXCHANGE_RATE_ENDPOINT = 'https://api.frankfurter.dev/v2/rate/CNY/VND';
+const EXCHANGE_RATE_STORAGE_KEY = 'exchangeRateVnd';
+const DEFAULT_EXCHANGE_RATE_VND = 3500;
+const EXCHANGE_RATE_TTL_MS = 60 * 60 * 1000;
 let translationCache = new Map();
 let translationCacheReady = false;
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'GET_EXCHANGE_RATE') {
+    getLatestExchangeRate(Boolean(message.force))
+      .then((rate) => sendResponse(rate))
+      .catch((error) => sendResponse({ rate: DEFAULT_EXCHANGE_RATE_VND, stale: true, error: error instanceof Error ? error.message : 'Exchange rate unavailable' }));
+    return true;
+  }
   if (message?.type !== 'TRANSLATE_TEXTS') return undefined;
 
   translateTexts(Array.isArray(message.texts) ? message.texts : [], message.targetLanguage || 'vi')
@@ -15,6 +25,31 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     .catch((error) => sendResponse({ error: error instanceof Error ? error.message : 'Translation failed' }));
   return true;
 });
+
+async function getLatestExchangeRate(force = false) {
+  const storedResult = await chrome.storage.local.get({ [EXCHANGE_RATE_STORAGE_KEY]: null });
+  const stored = storedResult[EXCHANGE_RATE_STORAGE_KEY];
+  const now = Date.now();
+  if (!force && stored?.rate && now - Number(stored.updatedAt || 0) < EXCHANGE_RATE_TTL_MS) return stored;
+
+  try {
+    const response = await fetch(EXCHANGE_RATE_ENDPOINT, { cache: 'no-store' });
+    const body = await response.json().catch(() => ({}));
+    const rate = Number(body?.rate);
+    if (!response.ok || !Number.isFinite(rate) || rate <= 0) throw new Error(`Exchange rate service returned ${response.status}`);
+    const current = {
+      rate,
+      updatedAt: now,
+      date: body.date || new Date(now).toISOString().slice(0, 10),
+      source: 'Frankfurter'
+    };
+    await chrome.storage.local.set({ [EXCHANGE_RATE_STORAGE_KEY]: current });
+    return current;
+  } catch (error) {
+    if (stored?.rate) return { ...stored, stale: true, error: error instanceof Error ? error.message : 'Exchange rate unavailable' };
+    return { rate: DEFAULT_EXCHANGE_RATE_VND, updatedAt: 0, date: null, source: 'Dự phòng', stale: true, error: error instanceof Error ? error.message : 'Exchange rate unavailable' };
+  }
+}
 
 async function translateTexts(texts, targetLanguage) {
   const normalized = [...new Set(texts.map((text) => String(text || '').trim()).filter(Boolean))];

@@ -50,12 +50,111 @@ function unique(values, limit = 20) {
 function findPrices() {
   const text = document.body?.innerText || '';
   const results = [];
-  const currencyPattern = /(?:¥|￥|RMB|CNY|元)\s*([0-9]+(?:[.,][0-9]{1,2})?)/gi;
+  const currencyPattern = /(?:\u00a5|RMB|CNY|\u5143)\s*([0-9]+(?:[.,][0-9]{1,2})?)/gi;
   for (const match of text.matchAll(currencyPattern)) {
     const amount = Number(match[1].replace(',', '.'));
     if (Number.isFinite(amount) && amount >= 0) results.push(amount);
   }
   return [...new Set(results)].slice(0, 20);
+}
+
+function parseNumber(value) {
+  const cleaned = String(value ?? '').replace(/[^0-9.,-]/g, '').replace(/,(?=\d{3}(?:\D|$))/g, '');
+  const normalized = cleaned.includes('.') && cleaned.includes(',')
+    ? cleaned.replace(/,/g, '')
+    : cleaned.replace(',', '.');
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function embeddedObject(source, key) {
+  const markerIndex = source.indexOf(`"${key}":`);
+  if (markerIndex < 0) return null;
+  const start = source.indexOf('{', markerIndex);
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < source.length; index += 1) {
+    const character = source[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') { inString = true; continue; }
+    if (character === '{') depth += 1;
+    if (character === '}' && --depth === 0) {
+      try { return JSON.parse(source.slice(start, index + 1)); } catch { return null; }
+    }
+  }
+  return null;
+}
+
+function marketplaceState() {
+  const source = [...document.scripts].map((script) => script.textContent || '').join('\n');
+  return {
+    decision: embeddedObject(source, 'skuDecisionPropVO'),
+    core: embeddedObject(source, 'skuCore')
+  };
+}
+
+function nestedPrice(info, key) {
+  const money = info?.[key]?.priceMoney;
+  if (money !== undefined && money !== null && money !== '') {
+    const parsedMoney = parseNumber(money);
+    if (parsedMoney !== undefined) return parsedMoney / 100;
+  }
+  const text = info?.[key]?.priceText;
+  return text === undefined ? undefined : parseNumber(text);
+}
+
+function variantPrice(info) {
+  const sale = nestedPrice(info, 'subPrice');
+  const regular = nestedPrice(info, 'price');
+  return {
+    priceCny: sale !== undefined && sale > 0 ? sale : regular,
+    originalPriceCny: sale !== undefined && regular !== undefined && regular > sale ? regular : undefined
+  };
+}
+
+function findVariantDetails() {
+  const { decision, core } = marketplaceState();
+  const skus = Array.isArray(decision?.skus) ? decision.skus : [];
+  const filters = new Map();
+  (decision?.filterParams || []).forEach((filter) => {
+    filters.set(String(filter.code), {
+      name: String(filter.name || filter.code),
+      options: new Map((filter.options || []).map((option) => [String(option.code), String(option.name || option.code)]))
+    });
+  });
+  const sku2info = core?.sku2info || {};
+  return skus.map((sku, index) => {
+    const skuId = String(sku.skuId || index);
+    const attributes = {};
+    const labels = [];
+    String(sku.propPath || '').split('|').forEach((segment) => {
+      const [propertyCode, valueCode] = segment.split(':');
+      if (!propertyCode || !valueCode) return;
+      const property = filters.get(String(propertyCode));
+      const value = property?.options.get(String(valueCode));
+      if (!value) return;
+      attributes[property.name] = value;
+      labels.push(`${property.name}: ${value}`);
+    });
+    const info = sku2info[skuId] || {};
+    const prices = variantPrice(info);
+    return {
+      id: `sku-${skuId}`,
+      skuId,
+      label: labels.join(' · ') || `SKU ${skuId}`,
+      priceCny: prices.priceCny,
+      originalPriceCny: prices.originalPriceCny,
+      stock: Number.isFinite(Number(info.quantity)) ? Number(info.quantity) : undefined,
+      skuAttributes: attributes
+    };
+  }).filter((variant) => variant.priceCny !== undefined || Object.keys(variant.skuAttributes).length > 0);
 }
 
 function findVariants() {
@@ -68,23 +167,42 @@ function findVariants() {
 }
 
 function findPromotions() {
-  const promotionWords = /(优惠|促销|满减|折扣|券|立减|包邮|限时|活动|秒杀|赠)/;
-  return unique([...document.querySelectorAll('body *')]
-    .filter((element) => element.children.length === 0)
+  const promotionWords = /[\u4f18\u60e0\u4fc3\u9500\u6ee1\u51cf\u6298\u6263\u5238\u7acb\u51cf\u5305\u90ae\u9650\u65f6\u6d3b\u52a8\u79d2\u6740\u8d60\u8fd4\u73b0\u7ea2\u5305]/;
+  const candidates = [
+    ...document.querySelectorAll('[class*="coupon"], [class*="promotion"], [class*="promo"], [class*="discount"], [class*="activity"], [class*="benefit"]'),
+    ...document.querySelectorAll('body *')
+  ];
+  const texts = unique(candidates
+    .filter((element) => element.children.length === 0 || /coupon|promotion|promo|discount|activity|benefit/i.test(String(element.className)))
     .map(textOf)
-    .filter((text) => text.length >= 2 && text.length < 160 && promotionWords.test(text)), 20);
+    .filter((text) => text.length >= 2 && text.length < 240 && promotionWords.test(text)), 30);
+  return texts.map((text, index) => ({
+    id: `promotion-${index}`,
+    title: text,
+    description: 'Thông tin ưu đãi được đọc trực tiếp từ trang sản phẩm.',
+    source: 'extension-dom'
+  }));
 }
 
 function readProduct() {
   const title = textOf(document.querySelector('h1')) ||
     document.querySelector('meta[property="og:title"]')?.content || document.title || 'Untitled product';
+  const variantDetails = findVariantDetails();
+  const fallbackPrices = findPrices();
+  const variants = variantDetails.length ? variantDetails : findVariants().map((label, index) => ({
+    id: `variant-${index}`,
+    label,
+    priceCny: fallbackPrices[index] ?? fallbackPrices[0],
+    skuAttributes: {}
+  }));
+  const pricesCny = variants.map((variant) => Number(variant.priceCny)).filter((price) => Number.isFinite(price));
   return {
     source: sourceLabel(),
     sourceProductId: productId(),
     url: location.href,
     title,
-    pricesCny: findPrices(),
-    variants: findVariants(),
+    pricesCny: [...new Set(pricesCny)],
+    variants,
     promotions: findPromotions(),
     capturedAt: new Date().toISOString()
   };
