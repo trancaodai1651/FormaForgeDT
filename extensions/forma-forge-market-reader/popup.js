@@ -1,6 +1,7 @@
 const PRICE_READER_URL = 'https://trancaodai1651.github.io/FormaForgeDT/#/price-reader';
 let lastProduct = null;
 let savedProducts = [];
+let session = null;
 
 const $ = (id) => document.getElementById(id);
 const status = (text, error = false) => { $('status').textContent = text; $('status').style.color = error ? '#ff9489' : ''; };
@@ -25,6 +26,7 @@ function render(product) {
   $('copy').disabled = false;
   $('download').disabled = false;
   $('save').disabled = false;
+  $('save').disabled = !session;
   $('save').textContent = savedProducts.some((item) => item.url === product.url) ? 'Đã lưu sản phẩm' : 'Lưu sản phẩm';
   $('result').classList.remove('hidden');
   $('result').innerHTML = `<h2>${escapeHtml(product.title)}</h2><p>${escapeHtml(product.source)} · ID: ${escapeHtml(product.sourceProductId || '—')}</p><p>Giá đọc được: <strong>${product.pricesCny?.length ? product.pricesCny.map((price) => `¥${price}`).join(' · ') : 'Chưa thấy giá CNY'}</strong></p><p>Khuyến mãi: ${product.promotions?.length || 0}</p><div class="chips">${(product.variants || []).slice(0, 12).map((variant) => `<span class="chip">${escapeHtml(variant)}</span>`).join('')}</div>`;
@@ -42,10 +44,38 @@ function renderSavedProducts() {
 
 async function saveCurrentProduct() {
   if (!lastProduct) return;
-  savedProducts = [{ ...lastProduct, savedAt: new Date().toISOString() }, ...savedProducts.filter((item) => item.url !== lastProduct.url)].slice(0, 50);
-  await chrome.storage.local.set({ savedProducts });
-  renderSavedProducts();
-  status('Đã lưu sản phẩm để truy cập nhanh.');
+  if (!session) { status('Hãy đăng nhập Supabase để lưu sản phẩm.', true); return; }
+  try {
+    await saveSupabaseProduct(lastProduct);
+    savedProducts = await listSupabaseProducts();
+    renderSavedProducts();
+    status('Đã lưu sản phẩm vào Supabase.');
+  } catch (error) { status(error.message || 'Không thể lưu sản phẩm vào Supabase.', true); }
+}
+
+function setAuthView() {
+  $('auth-logged-out').classList.toggle('hidden', Boolean(session));
+  $('auth-logged-in').classList.toggle('hidden', !session);
+  $('auth-state').textContent = session ? 'Đã kết nối' : 'Chưa đăng nhập';
+  $('auth-user').textContent = session?.user?.email || '';
+  if (lastProduct) $('save').disabled = !session;
+}
+
+async function authAction(action) {
+  const email = $('auth-email').value.trim();
+  const password = $('auth-password').value;
+  const name = $('auth-name').value.trim() || 'FormaForge user';
+  if (!email || !password) { $('auth-status').textContent = 'Nhập email và mật khẩu.'; return; }
+  $('auth-status').textContent = 'Đang kết nối Supabase…';
+  try {
+    const result = action === 'register' ? await signUpSupabase(email, password, name) : await signInSupabase(email, password);
+    if (!result) { $('auth-status').textContent = 'Đăng ký thành công. Hãy xác nhận email rồi đăng nhập.'; return; }
+    session = result;
+    savedProducts = await listSupabaseProducts();
+    setAuthView();
+    renderSavedProducts();
+    $('auth-status').textContent = 'Đã đăng nhập Supabase.';
+  } catch (error) { $('auth-status').textContent = error.message || 'Supabase Auth thất bại.'; }
 }
 
 $('read').addEventListener('click', async () => {
@@ -60,6 +90,9 @@ $('restore').addEventListener('click', async () => { try { await sendToPage({ ty
 $('copy').addEventListener('click', async () => { await navigator.clipboard.writeText(jsonText()); status('Đã copy JSON vào clipboard.'); });
 $('download').addEventListener('click', () => { const blob = new Blob([jsonText()], { type: 'application/json' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'formaforge-market-reading.json'; anchor.click(); URL.revokeObjectURL(url); });
 $('save').addEventListener('click', () => { void saveCurrentProduct(); });
+$('login').addEventListener('click', () => { void authAction('login'); });
+$('register').addEventListener('click', () => { void authAction('register'); });
+$('logout').addEventListener('click', async () => { await signOutSupabase(); session = null; savedProducts = []; setAuthView(); renderSavedProducts(); $('auth-status').textContent = 'Đã đăng xuất.'; });
 $('saved-list').addEventListener('click', async (event) => {
   const target = event.target.closest('[data-open], [data-delete]');
   if (!target) return;
@@ -73,4 +106,4 @@ $('saved-list').addEventListener('click', async (event) => {
 $('price-reader').addEventListener('click', () => chrome.tabs.create({ url: PRICE_READER_URL }));
 $('options').addEventListener('click', (event) => { event.preventDefault(); chrome.runtime.openOptionsPage(); });
 
-chrome.storage.local.get({ lastProduct: null, savedProducts: [] }).then(({ lastProduct: product, savedProducts: saved }) => { savedProducts = Array.isArray(saved) ? saved : []; renderSavedProducts(); if (product) render(product); });
+chrome.storage.local.get({ lastProduct: null }).then(async ({ lastProduct: product }) => { lastProduct = product; session = await getSupabaseSession(); if (session) { try { savedProducts = await listSupabaseProducts(); } catch (error) { $('auth-status').textContent = error.message || 'Không thể tải sản phẩm đã lưu.'; } } setAuthView(); renderSavedProducts(); if (product) render(product); });

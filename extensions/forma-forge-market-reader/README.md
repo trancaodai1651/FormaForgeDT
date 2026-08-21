@@ -17,4 +17,4 @@ Taobao, Tmall, 1688, JD, Pinduoduo and Xiaohongshu product pages.
 
 The extension reads the rendered page only. It does not access, export or transmit login cookies. Price results are a snapshot of data currently rendered by the marketplace page. The translation button uses the default translation endpoint in `background.js`; a compatible custom endpoint can be set from Options.
 
-Use **Lưu sản phẩm** after reading a page to keep a local quick-access list in the extension. The saved list is stored in Chrome extension storage on the current browser profile and can be opened or deleted from the popup.
+Open Options once and enter the Supabase project anon key, then sign up or sign in from the popup. Use **Lưu sản phẩm** after reading a page to store it in the shared `price_reader_products` table under the signed-in Supabase user. The popup list is then synchronized across browser profiles using the same account.

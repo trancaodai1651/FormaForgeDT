@@ -9,6 +9,17 @@
   <body>
     <main>
       <header class="brand"><span class="mark">F</span><div><strong>FormaForge</strong><small>Market Reader</small></div></header>
+      <section class="account-panel">
+        <div class="account-heading"><strong>Supabase account</strong><span id="auth-state">Chưa đăng nhập</span></div>
+        <div id="auth-logged-out">
+          <input id="auth-name" class="auth-register-field" type="text" placeholder="Tên hiển thị khi đăng ký (không bắt buộc)" />
+          <input id="auth-email" type="email" placeholder="Email Supabase" autocomplete="username" />
+          <input id="auth-password" type="password" placeholder="Mật khẩu" autocomplete="current-password" />
+          <div class="auth-actions"><button id="login">Đăng nhập</button><button id="register" class="secondary">Đăng ký</button></div>
+        </div>
+        <div id="auth-logged-in" class="hidden"><div id="auth-user" class="auth-user"></div><button id="logout" class="secondary">Đăng xuất</button></div>
+        <p id="auth-status" class="auth-status"></p>
+      </section>
       <p id="status" class="status">Mở một trang sản phẩm Trung Quốc để bắt đầu.</p>
       <div class="actions">
         <button id="read">Đọc giá trang này</button>
@@ -29,6 +40,7 @@
       </section>
       <a class="options" href="#" id="options">Cài đặt dịch</a>
     </main>
+    <script src="auth.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

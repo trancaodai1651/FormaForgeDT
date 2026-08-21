@@ -47,4 +47,4 @@ The response can be either the product object or `{ "data": { ... } }` / `{ "pro
 }
 ```
 
-Apply `supabase/migrations/0006_price_reader.sql` and then `supabase/migrations/0007_price_reader_user_ownership.sql` before using saved tracking. The saved record includes the latest variants/promotions and a snapshot row for every refresh. The browser route is `#/price-reader`; `#/admin/price-reader` remains as a compatibility alias and is no longer admin-only.
+Apply `supabase/migrations/0006_price_reader.sql`, `supabase/migrations/0007_price_reader_user_ownership.sql` and `supabase/migrations/0008_price_reader_customer_policies.sql` before using saved tracking. Migration 0008 enables direct signed-in customer access for the Chrome extension while keeping every row scoped to `auth.uid()`. The saved record includes the latest variants/promotions and a snapshot row for every refresh. The browser route is `#/price-reader`; `#/admin/price-reader` remains as a compatibility alias and is no longer admin-only.
