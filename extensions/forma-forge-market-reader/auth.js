@@ -1,6 +1,7 @@
 const EMBEDDED_SUPABASE_CONFIG = globalThis.FORMAFORGE_MARKET_CONFIG || {};
 const DEFAULT_SUPABASE_URL = 'https://caghwzzhuqfnybcfqxph.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = String(EMBEDDED_SUPABASE_CONFIG.anonKey || '');
+const DEFAULT_EXCHANGE_RATE_VND = 3500;
 const SESSION_KEY = 'supabaseSession';
 const CONFIG_KEY = 'supabaseConfig';
 
@@ -120,7 +121,7 @@ function normalizedProduct(product) {
     image_url: null,
     shop_name: null,
     provider: 'extension-dom',
-    exchange_rate_vnd: 3500,
+    exchange_rate_vnd: DEFAULT_EXCHANGE_RATE_VND,
     variants,
     promotions,
     last_checked_at: product.capturedAt || new Date().toISOString(),
@@ -139,6 +140,7 @@ function productForPopup(row) {
     pricesCny: variants.map((variant) => Number(variant.priceCny)).filter((price) => Number.isFinite(price) && price > 0),
     variants: variants.map((variant) => variant.label),
     promotions: Array.isArray(row.promotions) ? row.promotions.map((promotion) => promotion.title) : [],
+    exchangeRateVnd: Number(row.exchange_rate_vnd) || DEFAULT_EXCHANGE_RATE_VND,
     capturedAt: row.updated_at
   };
 }

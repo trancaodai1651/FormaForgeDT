@@ -100,19 +100,25 @@ async function translatePage() {
   const dictionaryNodes = nodes.filter(({ text }) => DICTIONARY[text]);
   dictionaryNodes.forEach(({ element, text }) => applyTranslation(element, DICTIONARY[text]));
   const remaining = nodes.filter(({ element }) => !element.dataset.ffTranslated);
-  const translated = [];
-  for (let index = 0; index < remaining.length; index += 40) {
-    const batch = remaining.slice(index, index + 40);
-    const response = await chrome.runtime.sendMessage({ type: 'TRANSLATE_TEXTS', texts: batch.map(({ text }) => text), targetLanguage: 'vi' });
+  const uniqueTexts = [...new Set(remaining.map(({ text }) => text))];
+  const translations = new Map();
+  for (let index = 0; index < uniqueTexts.length; index += 80) {
+    const batch = uniqueTexts.slice(index, index + 80);
+    const response = await chrome.runtime.sendMessage({ type: 'TRANSLATE_TEXTS', texts: batch, targetLanguage: 'vi' });
     if (response?.error) throw new Error(response.error);
     response?.translations?.forEach((value, offset) => {
-      if (value && value !== batch[offset].text) {
-        applyTranslation(batch[offset].element, value);
-        translated.push(value);
-      }
+      translations.set(batch[offset], value);
     });
   }
-  return { ok: true, count: dictionaryNodes.length + translated.length };
+  let translatedCount = 0;
+  remaining.forEach(({ element, text }) => {
+    const value = translations.get(text);
+    if (value && value !== text) {
+      applyTranslation(element, value);
+      translatedCount += 1;
+    }
+  });
+  return { ok: true, count: dictionaryNodes.length + translatedCount };
 }
 
 function applyTranslation(element, value) {
