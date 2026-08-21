@@ -1,5 +1,41 @@
 <!doctype html>
 <html lang="vi">
-  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>FormaForge Market Reader — Cài đặt</title><link rel="stylesheet" href="options.css" /></head>
-  <body><main><header><span class="mark">F</span><div><strong>FormaForge Market Reader</strong><p>Cài đặt dịch trang</p></div></header><form id="settings"><label>Supabase URL <span>Đã điền sẵn project hiện tại.</span><input id="supabaseUrl" type="url" /></label><label>Supabase anon key <span>Chỉ dùng public anon key; không nhập service-role key.</span><input id="anonKey" type="password" placeholder="Dán anon key của Supabase" /></label><label>Translation endpoint tùy chỉnh <span>POST JSON: { texts: string[], targetLanguage: string } → { translations: string[] }</span><input id="translationUrl" type="url" placeholder="Để trống để dùng dịch tự động mặc định" /></label><button>Lưu cài đặt</button><p id="saved" role="status"></p></form><section><h2>Cách dùng</h2><ol><li>Mở trang sản phẩm trên Taobao, Tmall, 1688, JD, Pinduoduo hoặc Xiaohongshu.</li><li>Vào Cài đặt, dán Supabase anon key rồi lưu.</li><li>Bấm icon extension, đăng ký/đăng nhập Supabase, sau đó đọc và lưu sản phẩm.</li><li>Dùng “Mở Price Reader” để xem danh sách đã đồng bộ.</li></ol><p class="note">Extension chỉ đọc nội dung đang hiển thị và không lấy hoặc gửi cookie đăng nhập.</p></section></main><script src="auth.js"></script><script src="options.js"></script></body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FormaForge Market Reader — Cài đặt</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="mark">F</span>
+        <div><strong>FormaForge Market Reader</strong><p>Cài đặt dịch trang</p></div>
+      </header>
+      <section class="connection-card">
+        <strong>Kết nối Supabase đã được tích hợp</strong>
+        <span>Extension sử dụng public anon key của FormaForge. Không đưa service-role key vào extension.</span>
+      </section>
+      <form id="settings">
+        <label>Translation endpoint tùy chỉnh
+          <span>POST JSON: { texts: string[], targetLanguage: string } → { translations: string[] }</span>
+          <input id="translationUrl" type="url" placeholder="Để trống để dùng dịch tự động mặc định" />
+        </label>
+        <button>Lưu cài đặt</button>
+        <p id="saved" role="status"></p>
+      </form>
+      <section>
+        <h2>Cách dùng</h2>
+        <ol>
+          <li>Mở trang sản phẩm trên Taobao, Tmall, 1688, JD, Pinduoduo hoặc Xiaohongshu.</li>
+          <li>Bấm icon extension, đăng ký hoặc đăng nhập Supabase.</li>
+          <li>Đọc và lưu sản phẩm; dữ liệu sẽ đồng bộ với Price Reader.</li>
+        </ol>
+        <p class="note">Anon key là public key và đã được đóng gói sẵn. Tuyệt đối không đưa service-role key vào extension.</p>
+      </section>
+    </main>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="options.js"></script>
+  </body>
 </html>

@@ -1,12 +1,14 @@
+const EMBEDDED_SUPABASE_CONFIG = globalThis.FORMAFORGE_MARKET_CONFIG || {};
 const DEFAULT_SUPABASE_URL = 'https://caghwzzhuqfnybcfqxph.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = String(EMBEDDED_SUPABASE_CONFIG.anonKey || '');
 const SESSION_KEY = 'supabaseSession';
 const CONFIG_KEY = 'supabaseConfig';
 
 async function getSupabaseConfig() {
   const { supabaseConfig } = await chrome.storage.local.get({ supabaseConfig: {} });
   return {
-    supabaseUrl: String(supabaseConfig.supabaseUrl || DEFAULT_SUPABASE_URL).replace(/\/$/, ''),
-    anonKey: String(supabaseConfig.anonKey || '')
+    supabaseUrl: String(EMBEDDED_SUPABASE_CONFIG.supabaseUrl || supabaseConfig.supabaseUrl || DEFAULT_SUPABASE_URL).replace(/\/$/, ''),
+    anonKey: String(DEFAULT_SUPABASE_ANON_KEY || supabaseConfig.anonKey || '')
   };
 }
 

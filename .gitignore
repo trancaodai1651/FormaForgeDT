@@ -6,6 +6,7 @@ dist/
 !.env.example
 !.env.development.example
 !.env.production.example
+extensions/forma-forge-market-reader/config.js
 *.log
 .DS_Store
 src-tauri/target/
