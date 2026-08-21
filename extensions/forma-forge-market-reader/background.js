@@ -18,6 +18,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((error) => sendResponse({ rate: DEFAULT_EXCHANGE_RATE_VND, stale: true, error: error instanceof Error ? error.message : 'Exchange rate unavailable' }));
     return true;
   }
+  if (message?.type === 'FETCH_IMAGE_ASSETS') {
+    fetchImageAssets(Array.isArray(message.images) ? message.images : [])
+      .then((assets) => sendResponse({ assets }))
+      .catch((error) => sendResponse({ error: error instanceof Error ? error.message : 'Image download failed' }));
+    return true;
+  }
   if (message?.type !== 'TRANSLATE_TEXTS') return undefined;
 
   translateTexts(Array.isArray(message.texts) ? message.texts : [], message.targetLanguage || 'vi')
@@ -25,6 +31,44 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     .catch((error) => sendResponse({ error: error instanceof Error ? error.message : 'Translation failed' }));
   return true;
 });
+
+async function fetchImageAssets(images) {
+  const uniqueImages = [...new Map(images
+    .map((item, index) => {
+      const value = item && typeof item === 'object' ? item : { url: item };
+      const url = String(value.url || '').trim();
+      return [url, { ...value, url, index }];
+    })
+    .filter(([url]) => /^https?:\/\//i.test(url))
+    .slice(0, 80)
+    .map(([url, value]) => [url, value])).values()];
+
+  return mapWithConcurrency(uniqueImages, 4, async (item) => {
+    try {
+      const response = await fetch(item.url, { cache: 'no-store', credentials: 'omit' });
+      if (!response.ok) throw new Error(`Image service returned ${response.status}`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const mime = response.headers.get('content-type') || mimeFromUrl(item.url);
+      return { ...item, mime, dataUrl: `data:${mime};base64,${bytesToBase64(bytes)}` };
+    } catch (error) {
+      return { ...item, error: error instanceof Error ? error.message : 'Image unavailable' };
+    }
+  });
+}
+
+function mimeFromUrl(url) {
+  const extension = String(url).split(/[?#]/)[0].match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  return extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : 'image/jpeg';
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
 
 async function getLatestExchangeRate(force = false) {
   const storedResult = await chrome.storage.local.get({ [EXCHANGE_RATE_STORAGE_KEY]: null });

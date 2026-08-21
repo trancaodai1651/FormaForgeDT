@@ -26,6 +26,20 @@
         <button id="translate" class="secondary">Dịch trang</button>
         <button id="restore" class="ghost">Khôi phục chữ gốc</button>
       </div>
+      <section class="conversation-panel">
+        <div class="conversation-heading"><strong>Trợ lý nhắn tin</strong><span>Trung · Việt · Anh</span></div>
+        <p class="conversation-help">Dùng bộ chuyển ngữ nhanh khi nhắn tin với shop. Bạn có thể dịch hai chiều Trung ↔ Việt hoặc Trung ↔ Anh.</p>
+        <select id="conversation-direction" aria-label="Hướng dịch">
+          <option value="zh-CN:vi">Trung → Tiếng Việt</option>
+          <option value="vi:zh-CN">Tiếng Việt → Trung</option>
+          <option value="zh-CN:en">Trung → English</option>
+          <option value="en:zh-CN">English → Trung</option>
+        </select>
+        <textarea id="conversation-input" rows="4" placeholder="Dán tin nhắn của shop hoặc nội dung bạn muốn gửi..."></textarea>
+        <div class="conversation-actions"><button id="conversation-translate">Dịch tin nhắn</button><button id="conversation-copy" class="secondary" disabled>Sao chép bản dịch</button></div>
+        <textarea id="conversation-output" rows="4" readonly placeholder="Bản dịch sẽ hiện ở đây..."></textarea>
+        <p id="conversation-status" class="conversation-status"></p>
+      </section>
       <section id="result" class="result hidden"></section>
       <button id="save" class="save-button" disabled>Lưu sản phẩm</button>
       <div class="footer-actions">

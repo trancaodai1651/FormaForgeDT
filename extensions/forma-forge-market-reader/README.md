@@ -17,6 +17,15 @@ Click the extension icon to open the full-height Chrome side panel on the right.
 
 Supported pages: Taobao, Tmall, 1688, JD, Pinduoduo and Xiaohongshu product pages.
 
+## Buyer tools
+
+- The page receives a small FormaForge VND overlay and inline VND labels next to detected CNY prices. The exchange rate is refreshed from the public reference endpoint and falls back to the last cached rate when offline.
+- **Trợ lý nhắn tin** supports Trung → Việt, Việt → Trung, Trung → English and English → Trung. Translations use the same cache and custom endpoint configured in Options.
+- **Báo giá PDF theo phân loại** creates one PDF page per detected variant and renders the product/variant names, original text, CNY/VND price, stock, attributes and an attached product image.
+- **Tải ảnh ZIP** downloads all detected product images and variant thumbnails into one ZIP archive.
+
+The PDF and ZIP exporters fetch image bytes in the extension service worker, so marketplace CDN images do not depend on page CORS settings. If a marketplace blocks a particular CDN asset, the remaining available assets are still exported.
+
 The extension reads the rendered page and embedded product data only. It does not access, export or transmit login cookies. Price results are a snapshot of data currently available in the marketplace page. The exchange rate is a daily reference rate and is cached for one hour with the last known value as offline fallback. The translation button uses the default translation endpoint in `background.js`; a compatible custom endpoint can be set from Options.
 
 The Supabase project URL and public anon key are bundled at build time, so users do not need to enter connection keys in Options. The anon key is public by design; never bundle a service-role key. Sign up or sign in from the side panel, then use **Lưu sản phẩm** after reading a page to store it in the shared `price_reader_products` table under the signed-in Supabase user. The saved-products list is synchronized across browser profiles using the same account.

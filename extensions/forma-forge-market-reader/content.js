@@ -47,6 +47,34 @@ function unique(values, limit = 20) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))].slice(0, limit);
 }
 
+function normalizeImageUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.startsWith('data:')) return '';
+  try {
+    return new URL(raw.startsWith('//') ? `https:${raw}` : raw, location.href).href;
+  } catch {
+    return '';
+  }
+}
+
+function imageFileName(url, index = 0) {
+  const extension = String(url).split(/[?#]/)[0].match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  return `product-image-${String(index + 1).padStart(2, '0')}.${extension === 'png' ? 'png' : extension === 'webp' ? 'webp' : 'jpg'}`;
+}
+
+function findProductImages(variantDetails = []) {
+  const source = [...document.scripts].map((script) => script.textContent || '').join('\n');
+  const item = embeddedObject(source, 'item');
+  const embeddedImages = Array.isArray(item?.images) ? item.images : [];
+  const variantImages = variantDetails.map((variant) => variant.imageUrl).filter(Boolean);
+  const domImages = [...document.querySelectorAll('img, [data-src], [data-ks-lazyload], [data-original], [data-zoom-image]')]
+    .map((element) => element.getAttribute('src') || element.getAttribute('data-src') || element.getAttribute('data-ks-lazyload') || element.getAttribute('data-original') || element.getAttribute('data-zoom-image'))
+    .filter((value) => value && !/avatar|sns_logo|logo|sprite|icon|rate\.jpg|userheader/i.test(value) && !/-tps-\d+-\d+/i.test(value) && /\.(?:jpe?g|png|webp)(?:[?#_.]|$)/i.test(value));
+  return [...new Set([...embeddedImages, ...variantImages, ...domImages].map(normalizeImageUrl).filter(Boolean))]
+    .slice(0, 80)
+    .map((url, index) => ({ url, fileName: imageFileName(url, index) }));
+}
+
 function findPrices() {
   const text = document.body?.innerText || '';
   const results = [];
@@ -132,7 +160,10 @@ function findVariantDetails() {
   filterParams.forEach((filter) => {
     filters.set(String(filter.code), {
       name: String(filter.name || filter.code),
-      options: new Map((filter.options || []).map((option) => [String(option.code ?? option.vid), String(option.name || option.code || option.vid)]))
+      options: new Map((filter.options || []).map((option) => [String(option.code ?? option.vid), {
+        name: String(option.name || option.code || option.vid),
+        imageUrl: normalizeImageUrl(option.image || option.imageUrl)
+      }]))
     });
   });
   const sku2info = core?.sku2info || {};
@@ -140,14 +171,16 @@ function findVariantDetails() {
     const skuId = String(sku.skuId || index);
     const attributes = {};
     const labels = [];
+    let imageUrl = '';
     String(sku.propPath || '').split(/[|;]/).forEach((segment) => {
       const [propertyCode, valueCode] = segment.split(':');
       if (!propertyCode || !valueCode) return;
       const property = filters.get(String(propertyCode));
-      const value = property?.options.get(String(valueCode));
-      if (!value) return;
-      attributes[property.name] = value;
-      labels.push(`${property.name}: ${value}`);
+      const option = property?.options.get(String(valueCode));
+      if (!option) return;
+      attributes[property.name] = option.name;
+      labels.push(`${property.name}: ${option.name}`);
+      imageUrl ||= option.imageUrl;
     });
     const info = sku2info[skuId] || {};
     const prices = variantPrice(info);
@@ -160,7 +193,8 @@ function findVariantDetails() {
       originalPriceCny: prices.originalPriceCny,
       stock: Number.isFinite(Number(info.quantity)) ? Number(info.quantity) : undefined,
       skuAttributes: attributes,
-      skuAttributesOriginal: { ...attributes }
+      skuAttributesOriginal: { ...attributes },
+      imageUrl
     };
   }).filter((variant) => variant.priceCny !== undefined || Object.keys(variant.skuAttributes).length > 0);
 }
@@ -207,6 +241,7 @@ function readProduct() {
     skuAttributesOriginal: {}
   }));
   const pricesCny = variants.map((variant) => Number(variant.priceCny)).filter((price) => Number.isFinite(price));
+  const images = findProductImages(variants);
   return {
     source: sourceLabel(),
     sourceProductId: productId(),
@@ -215,6 +250,7 @@ function readProduct() {
     titleOriginal: title,
     pricesCny: [...new Set(pricesCny)],
     variants,
+    images,
     promotions: findPromotions(),
     capturedAt: new Date().toISOString()
   };
@@ -263,4 +299,94 @@ function restoreTranslation() {
     delete element.dataset.ffOriginal;
     delete element.dataset.ffTranslated;
   });
+}
+
+let pagePriceTimer = 0;
+let pagePriceEnhancing = false;
+
+function formatVndOnPage(value) {
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(value));
+}
+
+function pagePriceAmount(text) {
+  const match = String(text || '').match(/(?:¥|￥|RMB|CNY|元)\s*([0-9]+(?:[.,][0-9]{1,2})?)/i);
+  return match ? parseNumber(match[1]) : undefined;
+}
+
+function ensurePagePriceStyles() {
+  if (document.getElementById('ff-vnd-price-style')) return;
+  const style = document.createElement('style');
+  style.id = 'ff-vnd-price-style';
+  style.textContent = `
+    #ff-vnd-overlay { position: fixed; top: 86px; right: 16px; z-index: 2147483647; width: min(330px, calc(100vw - 32px)); padding: 12px 14px; border: 1px solid rgba(240,185,103,.65); border-radius: 14px; background: rgba(15,18,23,.96); color: #f4f5f7; box-shadow: 0 14px 42px rgba(0,0,0,.28); font: 12px/1.45 Inter, system-ui, sans-serif; }
+    #ff-vnd-overlay strong { display: block; margin-bottom: 4px; color: #f0b967; font-size: 12px; }
+    #ff-vnd-overlay span { display: block; color: #b9c2ce; font-size: 11px; }
+    .ff-vnd-inline { display: inline-block !important; margin-left: 7px !important; color: #b35c00 !important; font: 600 11px/1.3 Inter, system-ui, sans-serif !important; white-space: nowrap !important; }
+  `;
+  document.documentElement.appendChild(style);
+}
+
+function renderPagePriceOverlay(product, rate) {
+  ensurePagePriceStyles();
+  let overlay = document.getElementById('ff-vnd-overlay');
+  if (!overlay) {
+    overlay = document.createElement('aside');
+    overlay.id = 'ff-vnd-overlay';
+    document.body.appendChild(overlay);
+  }
+  const prices = (product?.variants || []).map((variant) => Number(variant.priceCny)).filter((price) => Number.isFinite(price) && price > 0);
+  const fallback = findPrices();
+  const visiblePrices = prices.length ? prices : fallback;
+  const lowest = visiblePrices.length ? Math.min(...visiblePrices) : undefined;
+  overlay.innerHTML = `<strong>FormaForge · Giá Việt Nam</strong><span>1 CNY ≈ ${formatVndOnPage(rate)} ₫</span><span>${lowest !== undefined ? `Giá thấp nhất: ¥${lowest.toLocaleString('vi-VN')} ≈ ${formatVndOnPage(lowest * rate)} ₫` : 'Chưa đọc được giá CNY trên trang'}</span><span>Giá được cập nhật tự động theo tỷ giá tham chiếu.</span>`;
+}
+
+function renderInlinePagePrices(rate) {
+  document.querySelectorAll('.ff-vnd-inline').forEach((element) => element.remove());
+  const candidates = [...document.querySelectorAll('body *')]
+    .filter((element) => element.children.length === 0 && !element.closest('#ff-vnd-overlay') && !['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT'].includes(element.tagName))
+    .map((element) => ({ element, amount: pagePriceAmount(element.textContent) }))
+    .filter(({ amount }) => Number.isFinite(amount) && amount >= 0)
+    .slice(0, 12);
+  candidates.forEach(({ element, amount }) => {
+    const inline = document.createElement('span');
+    inline.className = 'ff-vnd-inline';
+    inline.textContent = `≈ ${formatVndOnPage(amount * rate)} ₫`;
+    element.appendChild(inline);
+  });
+}
+
+async function enhancePageWithVnd() {
+  if (pagePriceEnhancing || !document.body) return;
+  pagePriceEnhancing = true;
+  try {
+    const exchange = await chrome.runtime.sendMessage({ type: 'GET_EXCHANGE_RATE' });
+    const rate = Number(exchange?.rate) || 3500;
+    const product = readProduct();
+    renderPagePriceOverlay(product, rate);
+    renderInlinePagePrices(rate);
+  } catch {
+    // The page remains usable when the optional enhancement cannot load.
+  } finally {
+    pagePriceEnhancing = false;
+  }
+}
+
+function schedulePagePriceEnhancement() {
+  window.clearTimeout(pagePriceTimer);
+  pagePriceTimer = window.setTimeout(() => { void enhancePageWithVnd(); }, 900);
+}
+
+if (document.body) {
+  const pageObserver = new MutationObserver((records) => {
+    const ownMutation = records.length && records.every((record) => {
+      const nodes = [...record.addedNodes, ...record.removedNodes];
+      return (record.target.closest?.('#ff-vnd-overlay') || record.target.closest?.('.ff-vnd-inline')) ||
+        nodes.length > 0 && nodes.every((node) => node.nodeType !== Node.ELEMENT_NODE || node.id === 'ff-vnd-overlay' || node.classList.contains('ff-vnd-inline'));
+    });
+    if (ownMutation) return;
+    schedulePagePriceEnhancement();
+  });
+  pageObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+  schedulePagePriceEnhancement();
 }

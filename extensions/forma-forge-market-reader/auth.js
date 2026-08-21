@@ -120,7 +120,8 @@ function normalizedProduct(product) {
       originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
       stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
       skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {},
-      skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {})
+      skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {}),
+      imageUrl: String(value.imageUrl || value.image_url || '').trim()
     };
   });
   const promotions = (Array.isArray(product.promotions) ? product.promotions : []).map((item, index) => {
@@ -143,7 +144,7 @@ function normalizedProduct(product) {
     url: product.url,
     normalized_url: product.url,
     title: product.title || 'Untitled product',
-    image_url: null,
+    image_url: Array.isArray(product.images) ? String(product.images[0]?.url || product.images[0] || '') || null : null,
     shop_name: null,
     provider: 'extension-dom',
     exchange_rate_vnd: Number(product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND,
@@ -167,7 +168,8 @@ function productForPopup(row) {
       originalPriceCny: Number.isFinite(Number(value.originalPriceCny)) ? Number(value.originalPriceCny) : undefined,
       stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
       skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {},
-      skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {})
+      skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {}),
+      imageUrl: String(value.imageUrl || value.image_url || '').trim()
     };
   });
   const promotionRows = Array.isArray(row.promotions) ? row.promotions.map((promotion, index) => {
@@ -190,6 +192,7 @@ function productForPopup(row) {
     title: row.title,
     titleOriginal: row.title_original || row.title,
     pricesCny: variantRows.map((variant) => variant.priceCny).filter((price) => Number.isFinite(price) && price > 0),
+    images: row.image_url ? [{ url: row.image_url, fileName: 'product-image-01.jpg' }] : [],
     variants: variantRows,
     promotions: promotionRows,
     exchangeRateVnd: Number(row.exchange_rate_vnd) || DEFAULT_EXCHANGE_RATE_VND,
