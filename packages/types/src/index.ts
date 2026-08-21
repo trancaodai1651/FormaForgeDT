@@ -51,6 +51,49 @@ export type Order = {
   total: number;
 };
 
+export const MarketplaceSourceSchema = z.enum(['taobao', 'tmall', '1688', 'pinduoduo', 'jd', 'xiaohongshu', 'unknown']);
+export type MarketplaceSource = z.infer<typeof MarketplaceSourceSchema>;
+
+export const PriceReaderVariantSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  priceCny: z.number().nonnegative(),
+  originalPriceCny: z.number().nonnegative().optional(),
+  stock: z.number().int().nonnegative().optional(),
+  skuAttributes: z.record(z.string()).default({}),
+});
+export type PriceReaderVariant = z.infer<typeof PriceReaderVariantSchema>;
+
+export const PriceReaderPromotionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  discountCny: z.number().nonnegative().optional(),
+  finalPriceCny: z.number().nonnegative().optional(),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional(),
+  source: z.string().optional(),
+});
+export type PriceReaderPromotion = z.infer<typeof PriceReaderPromotionSchema>;
+
+export const PriceReaderProductSchema = z.object({
+  id: z.string(),
+  source: MarketplaceSourceSchema,
+  sourceLabel: z.string(),
+  sourceProductId: z.string(),
+  url: z.string().url(),
+  title: z.string(),
+  imageUrl: z.string().url().optional(),
+  shopName: z.string().optional(),
+  currency: z.literal('CNY').default('CNY'),
+  exchangeRateVnd: z.number().positive(),
+  variants: z.array(PriceReaderVariantSchema),
+  promotions: z.array(PriceReaderPromotionSchema),
+  updatedAt: z.string(),
+  provider: z.string(),
+});
+export type PriceReaderProduct = z.infer<typeof PriceReaderProductSchema>;
+
 export type ShapeDefinition = {
   type: ShapeType; source?: 'builtin' | 'svg' | 'png' | 'dxf' | 'obj' | 'stl' | 'glb' | 'custom';
   path?: string; scale?: number; width: number; height: number; depth?: number; extrusion?: number;
