@@ -1,6 +1,6 @@
 # Price Reader
 
-The admin price reader accepts product URLs from Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu. It resolves the marketplace and product ID, then delegates live lookup to a configured server-side provider.
+The authenticated price reader accepts product URLs from Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu. It resolves the marketplace and product ID, then delegates live lookup to a configured server-side provider. Every saved product is scoped to the signed-in user's Supabase ID.
 
 ## Provider configuration
 
@@ -47,4 +47,4 @@ The response can be either the product object or `{ "data": { ... } }` / `{ "pro
 }
 ```
 
-Apply `supabase/migrations/0006_price_reader.sql` before using saved tracking. The saved record includes the latest variants/promotions and a snapshot row for every refresh.
+Apply `supabase/migrations/0006_price_reader.sql` and then `supabase/migrations/0007_price_reader_user_ownership.sql` before using saved tracking. The saved record includes the latest variants/promotions and a snapshot row for every refresh. The browser route is `#/price-reader`; `#/admin/price-reader` remains as a compatibility alias and is no longer admin-only.

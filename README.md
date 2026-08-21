@@ -9,7 +9,7 @@ Premium storefront and geometry foundation for modular, FDM-printed lamp shades 
 - `@hometown/geometry` pipeline primitives: profile normalization, shape generation, mesh generation, FDM validation, STL export and GLB metadata export.
 - Supabase-compatible Postgres migration with product, collection, province, hardware, order, email, design-project and settings models.
 - Fastify API with server-side price calculation, rate limiting, validation, Supabase catalog/order persistence when configured, protected admin operations and SMTP email provider.
-- Admin-only price reader for Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu links, with CNY/VND conversion, variant and promotion snapshots, and a configurable licensed data-provider adapter.
+- Authenticated price reader for Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu links, with CNY/VND conversion, per-user variant and promotion snapshots, and a configurable licensed data-provider adapter.
 - Tauri 2 desktop shell configured for Windows NSIS and macOS DMG targets.
 - Responsive Module Lamp Studio at `#/module-studio`: draw a profile, generate a live 3D shade, arrange configurable modules, select E27 or Bambu LED Kit 001 hardware, choose printable joints, and export a project or STL.
 - GitHub Actions for validation and GitHub Pages deployment.
@@ -34,7 +34,7 @@ The web app intentionally does not pretend that email or database persistence ex
 
 ## Routes
 
-`/`, `/products`, `/products/:slug`, `/collections`, `/collections/:slug`, `/customize/:productId`, `/cart`, `/checkout`, `/order/:id`, `/about`, `/contact`, `/3d-showcase`, `/admin`, `/admin/price-reader`.
+`/`, `/products`, `/products/:slug`, `/collections`, `/collections/:slug`, `/customize/:productId`, `/cart`, `/checkout`, `/order/:id`, `/about`, `/contact`, `/3d-showcase`, `/admin`, `/price-reader`, `/admin/price-reader`.
 
 ## GitHub Pages
 
@@ -49,6 +49,14 @@ Supabase SQL must be applied in the supplied project, then `SUPABASE_URL`, `SUPA
 See the documentation files for architecture, geometry, hardware, email, database, deployment, desktop and development details.
 
 ## API surface
+
+Authenticated price reader routes (records are scoped to the signed-in user):
+
+- `POST /api/price-reader/inspect`
+- `GET /api/price-reader/products`
+- `POST /api/price-reader/products`
+- `POST /api/price-reader/products/:id/refresh`
+- `DELETE /api/price-reader/products/:id`
 
 - `POST /api/admin/price-reader/inspect` — ADMIN-only link inspection and current quote lookup.
 - `GET /api/admin/price-reader/products` — ADMIN-only tracked product snapshots.

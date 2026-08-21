@@ -305,6 +305,17 @@
 .price-reader-promo-price strong { display: grid; justify-items: end; color: var(--text); font-size: 12px; font-weight: 600; }
 .price-reader-promo-price small { margin-top: 3px; }
 .price-reader-muted { margin: 0; color: var(--muted); font-size: 12px; }
+.price-reader-auth-page { display: grid; min-height: 100dvh; place-items: center; padding: 30px 20px; background: radial-gradient(circle at 72% -12%, rgba(240,185,103,.13), transparent 32%), #0a0c0f; color: var(--text); }
+.price-reader-auth-card { width: min(100%, 520px); padding: 30px; border: 1px solid var(--line); border-radius: 22px; background: color-mix(in srgb, var(--surface) 82%, transparent); box-shadow: var(--shadow); }
+.price-reader-auth-card .price-reader-back { margin-bottom: 42px; }
+.price-reader-auth-card h1 { margin: 14px 0 10px; font-size: clamp(2.5rem, 8vw, 4.8rem); line-height: .94; }
+.price-reader-auth-card > p { margin: 0; color: var(--muted); line-height: 1.6; }
+.price-reader-auth-form { display: grid; gap: 14px; margin-top: 28px; }
+.price-reader-auth-form label { display: grid; gap: 7px; color: var(--muted); font: 500 10px 'DM Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
+.price-reader-auth-form input { min-height: 48px; border: 1px solid var(--line-strong); border-radius: 11px; padding: 0 13px; background: rgba(0,0,0,.16); color: var(--text); font: 400 13px 'Space Grotesk', system-ui, sans-serif; letter-spacing: normal; text-transform: none; outline: none; }
+.price-reader-auth-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,185,103,.1); }
+.price-reader-auth-switch { margin-top: 18px !important; text-align: center; }
+.price-reader-auth-state { min-height: 100dvh; }
 @media (max-width: 900px) {
   .price-reader-shell { width: min(100% - 28px, 700px); }
   .price-reader-topbar, .price-reader-nav, .price-reader-product-head { align-items: flex-start; flex-direction: column; }
@@ -326,6 +337,7 @@
   .price-reader-summary > div { padding: 14px 12px; }
   .price-reader-summary strong { font-size: 19px; }
   .price-reader-summary small { font-size: 8px; }
+  .price-reader-auth-card { padding: 22px; }
 }
 .admin-guard-loading { max-width: 620px; }
 .admin-guard-login { display: grid; place-items: center; min-height: calc(100vh - 180px); }

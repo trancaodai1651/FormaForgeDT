@@ -157,7 +157,7 @@ export async function inspectPriceUrl(rawUrl: string): Promise<PriceReaderProduc
   return normalizeProviderProduct(body, parsed, exchangeRateVnd, new URL(providerUrl).hostname);
 }
 
-const memoryTracked = new Map<string, { product: PriceReaderProduct; history: PriceReaderProduct[] }>();
+const memoryTracked = new Map<string, { userId: string; product: PriceReaderProduct; history: PriceReaderProduct[] }>();
 
 function productFromRow(row: Record<string, any>): PriceReaderProduct {
   return PriceReaderProductSchema.parse({
@@ -178,26 +178,28 @@ function productFromRow(row: Record<string, any>): PriceReaderProduct {
   });
 }
 
-export async function listTrackedPriceProducts(): Promise<PriceReaderProduct[]> {
-  if (!supabase) return [...memoryTracked.values()].map(({ product }) => product).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const { data, error } = await supabase.from('price_reader_products').select('*').order('updated_at', { ascending: false });
+export async function listTrackedPriceProducts(userId = 'legacy-admin'): Promise<PriceReaderProduct[]> {
+  if (!supabase) return [...memoryTracked.values()].filter((entry) => entry.userId === userId).map(({ product }) => product).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const { data, error } = await supabase.from('price_reader_products').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => productFromRow(row as Record<string, any>));
 }
 
-export async function trackPriceProduct(rawUrl: string): Promise<PriceReaderProduct> {
+export async function trackPriceProduct(rawUrl: string, userId = 'legacy-admin'): Promise<PriceReaderProduct> {
   const product = await inspectPriceUrl(rawUrl);
   if (!supabase) {
-    const previous = memoryTracked.get(product.url);
-    const tracked = { product: previous?.product.id ? { ...product, id: previous.product.id } : product, history: [...(previous?.history ?? []), product] };
-    memoryTracked.set(product.url, tracked);
+    const key = `${userId}:${product.url}`;
+    const previous = memoryTracked.get(key);
+    const tracked = { userId, product: previous?.product.id ? { ...product, id: previous.product.id } : product, history: [...(previous?.history ?? []), product] };
+    memoryTracked.set(key, tracked);
     return tracked.product;
   }
-  const { data: existing, error: existingError } = await supabase.from('price_reader_products').select('id').eq('normalized_url', product.url).maybeSingle();
+  const { data: existing, error: existingError } = await supabase.from('price_reader_products').select('id').eq('user_id', userId).eq('normalized_url', product.url).maybeSingle();
   if (existingError) throw new Error(existingError.message);
   const id = existing?.id ?? product.id;
   const row = {
     id,
+    user_id: userId,
     source: product.source,
     source_label: product.sourceLabel,
     source_product_id: product.sourceProductId,
@@ -213,16 +215,16 @@ export async function trackPriceProduct(rawUrl: string): Promise<PriceReaderProd
     last_checked_at: product.updatedAt,
     updated_at: product.updatedAt,
   };
-  const { data, error } = await supabase.from('price_reader_products').upsert(row, { onConflict: 'normalized_url' }).select('*').single();
+  const { data, error } = await supabase.from('price_reader_products').upsert(row, { onConflict: 'user_id,normalized_url' }).select('*').single();
   if (error || !data) throw new Error(error?.message ?? 'Không thể lưu sản phẩm theo dõi.');
   const { error: snapshotError } = await supabase.from('price_reader_snapshots').insert({ product_id: id, payload: product, captured_at: product.updatedAt });
   if (snapshotError) throw new Error(snapshotError.message);
   return productFromRow(data as Record<string, any>);
 }
 
-export async function refreshTrackedPriceProduct(id: string): Promise<PriceReaderProduct> {
+export async function refreshTrackedPriceProduct(id: string, userId = 'legacy-admin'): Promise<PriceReaderProduct> {
   if (!supabase) {
-    const entry = [...memoryTracked.values()].find(({ product }) => product.id === id);
+    const entry = [...memoryTracked.values()].find((value) => value.userId === userId && value.product.id === id);
     if (!entry) throw new Error('Không tìm thấy sản phẩm đang theo dõi.');
     const refreshed = await inspectPriceUrl(entry.product.url);
     const product = { ...refreshed, id };
@@ -230,22 +232,22 @@ export async function refreshTrackedPriceProduct(id: string): Promise<PriceReade
     entry.history.push(product);
     return product;
   }
-  const { data: existing, error: existingError } = await supabase.from('price_reader_products').select('url').eq('id', id).maybeSingle();
+  const { data: existing, error: existingError } = await supabase.from('price_reader_products').select('url').eq('id', id).eq('user_id', userId).maybeSingle();
   if (existingError || !existing) throw new Error(existingError?.message ?? 'Không tìm thấy sản phẩm đang theo dõi.');
   const refreshed = await inspectPriceUrl(existing.url);
-  const { data, error } = await supabase.from('price_reader_products').update({ title: refreshed.title, image_url: refreshed.imageUrl ?? null, shop_name: refreshed.shopName ?? null, provider: refreshed.provider, exchange_rate_vnd: refreshed.exchangeRateVnd, variants: refreshed.variants, promotions: refreshed.promotions, last_checked_at: refreshed.updatedAt, updated_at: refreshed.updatedAt }).eq('id', id).select('*').single();
+  const { data, error } = await supabase.from('price_reader_products').update({ title: refreshed.title, image_url: refreshed.imageUrl ?? null, shop_name: refreshed.shopName ?? null, provider: refreshed.provider, exchange_rate_vnd: refreshed.exchangeRateVnd, variants: refreshed.variants, promotions: refreshed.promotions, last_checked_at: refreshed.updatedAt, updated_at: refreshed.updatedAt }).eq('id', id).eq('user_id', userId).select('*').single();
   if (error || !data) throw new Error(error?.message ?? 'Không thể cập nhật sản phẩm.');
   const { error: snapshotError } = await supabase.from('price_reader_snapshots').insert({ product_id: id, payload: refreshed, captured_at: refreshed.updatedAt });
   if (snapshotError) throw new Error(snapshotError.message);
   return productFromRow(data as Record<string, any>);
 }
 
-export async function deleteTrackedPriceProduct(id: string): Promise<void> {
+export async function deleteTrackedPriceProduct(id: string, userId = 'legacy-admin'): Promise<void> {
   if (!supabase) {
-    const entry = [...memoryTracked.entries()].find(([, value]) => value.product.id === id);
+    const entry = [...memoryTracked.entries()].find(([, value]) => value.userId === userId && value.product.id === id);
     if (entry) memoryTracked.delete(entry[0]);
     return;
   }
-  const { error } = await supabase.from('price_reader_products').delete().eq('id', id);
+  const { error } = await supabase.from('price_reader_products').delete().eq('id', id).eq('user_id', userId);
   if (error) throw new Error(error.message);
 }

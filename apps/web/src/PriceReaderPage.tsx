@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, Check, CircleAlert, ExternalLink, Link2, RefreshCw, Save, Search, Store, Tag, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 import type { PriceReaderProduct } from '@hometown/types';
 import { GlassButton } from './components/Shell';
-import { AdminGuard } from './AdminGuard';
 import { apiConfigured, deletePriceReaderProduct, inspectPriceReaderUrl, listPriceReaderProducts, refreshPriceReaderProduct, savePriceReaderProduct } from './lib/api';
-import { getAccessToken, signOutAdmin } from './lib/supabase';
+import { authConfigured, getAccessToken, getCurrentUser, signInCustomer, signOutAdmin, signUpCustomer } from './lib/supabase';
 import { useI18n } from './lib/i18n';
 
 const sourceKey: Record<string, string> = { taobao: 'admin.priceReaderSourceTaobao', tmall: 'admin.priceReaderSourceTmall', '1688': 'admin.priceReaderSource1688', pinduoduo: 'admin.priceReaderSourcePinduoduo', jd: 'admin.priceReaderSourceJd', xiaohongshu: 'admin.priceReaderSourceXiaohongshu' };
@@ -17,7 +17,52 @@ function priceVnd(amount: number, rate: number) { return vnd.format(Math.round(a
 function sourceName(product: PriceReaderProduct, t: (key: string) => string) { return t(sourceKey[product.source] ?? 'admin.priceReaderSource'); }
 
 export function PriceReaderPage() {
-  return <AdminGuard>{(user) => <PriceReaderWorkspace email={user.email ?? ''} />}</AdminGuard>;
+  return <AuthenticatedPriceReaderGuard>{(user) => <PriceReaderWorkspace email={user.email ?? ''} />}</AuthenticatedPriceReaderGuard>;
+}
+
+type AuthenticatedPriceReaderGuardProps = { children: (user: User) => ReactNode };
+
+function AuthenticatedPriceReaderGuard({ children }: AuthenticatedPriceReaderGuardProps) {
+  const { t } = useI18n();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    getCurrentUser().then(setUser).catch((requestError) => setError(requestError instanceof Error ? requestError.message : t('auth.invalid'))).finally(() => setLoading(false));
+  }, [t]);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+    setSubmitting(true);
+    try {
+      if (mode === 'login') {
+        setUser(await signInCustomer(email, password));
+      } else {
+        const result = await signUpCustomer(email, password, name);
+        if (result.session && result.user) setUser(result.user);
+        else setMessage(t('auth.confirmEmail'));
+      }
+    } catch (authError) {
+      setError(authError instanceof Error ? authError.message : t('auth.invalid'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="container page-section empty-state price-reader-auth-state"><Search /><p>{t('auth.loading')}</p></div>;
+  if (!authConfigured) return <div className="container page-section empty-state price-reader-auth-state"><CircleAlert /><h3>{t('admin.notConfigured')}</h3></div>;
+  if (!user) return <main className="price-reader-page price-reader-auth-page"><div className="price-reader-auth-card"><Link className="price-reader-back" to="/"><ArrowLeft size={15} /> {t('admin.backToDashboard')}</Link><span className="eyebrow">{t('admin.priceReaderMembers')}</span><h1>{t('admin.priceReaderPageTitle')}</h1><p>{t('admin.priceReaderMemberHint')}</p><form className="price-reader-auth-form" onSubmit={submit}>{mode === 'register' && <label>{t('auth.name')}<input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} placeholder={t('auth.namePlaceholder')} /></label>}<label>{t('auth.email')}<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><label>{t('auth.password')}<input required minLength={6} type="password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>{error && <div className="error-box">{error}</div>}{message && <div className="success-box">{message}</div>}<GlassButton className="full-width" disabled={submitting}>{mode === 'login' ? t('auth.login') : t('auth.register')} <ArrowRight size={16} /></GlassButton></form><p className="price-reader-auth-switch">{mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')} <button className="text-link" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setMessage(''); }}>{mode === 'login' ? t('auth.switchRegister') : t('auth.switchLogin')}</button></p></div></main>;
+
+  return <>{children(user)}</>;
 }
 
 function PriceReaderWorkspace({ email }: { email: string }) {
@@ -92,8 +137,8 @@ function PriceReaderWorkspace({ email }: { email: string }) {
   return <main className="price-reader-page">
     <div className="price-reader-shell">
       <header className="price-reader-topbar">
-        <div className="price-reader-identity"><Link className="price-reader-back" to="/admin"><ArrowLeft size={15} /> {t('admin.backToDashboard')}</Link><span className="price-reader-divider" /><span className="price-reader-mark">¥</span><div><span className="price-reader-kicker">{t('admin.priceReaderEyebrow')}</span><strong>{t('admin.priceReader')}</strong></div></div>
-        <div className="price-reader-session"><span><span className="live-dot" /> {t('admin.adminOnly')}</span><small>{email}</small><button onClick={() => { void signOutAdmin().then(() => window.location.hash = '#/admin'); }}>{t('admin.signOut')}</button></div>
+        <div className="price-reader-identity"><Link className="price-reader-back" to="/"><ArrowLeft size={15} /> {t('admin.backToDashboard')}</Link><span className="price-reader-divider" /><span className="price-reader-mark">¥</span><div><span className="price-reader-kicker">{t('admin.priceReaderEyebrow')}</span><strong>{t('admin.priceReader')}</strong></div></div>
+        <div className="price-reader-session"><span><span className="live-dot" /> {t('admin.priceReaderMembers')}</span><small>{email}</small><button onClick={() => { void signOutAdmin().then(() => window.location.hash = '#/price-reader'); }}>{t('admin.signOut')}</button></div>
       </header>
       <div className="price-reader-nav"><div><span className="eyebrow">{t('admin.priceReaderEyebrow')}</span><h1>{t('admin.priceReaderPageTitle')}</h1><p>{t('admin.priceReaderPageDescription')}</p></div><span className="price-reader-rate"><span>{t('admin.priceReaderExchangeRate')}</span><strong>{rateLabel}</strong></span></div>
       <div className="price-reader-layout">

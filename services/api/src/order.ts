@@ -7,6 +7,15 @@ import { sendOrderEmails } from './email.js';
 
 const memoryOrders: Order[] = [];
 
+export async function assertAuthenticated(authorization?: string) {
+  if (!supabase) throw new Error('API chưa được cấu hình Supabase.');
+  const token = authorization?.replace(/^Bearer\s+/i, '');
+  if (!token) throw new Error('Yêu cầu đăng nhập.');
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) throw new Error('Phiên đăng nhập không hợp lệ.');
+  return data.user;
+}
+
 export async function assertAdmin(authorization?: string) {
   if (!supabase) throw new Error('Admin API chưa được cấu hình Supabase.');
   const token = authorization?.replace(/^Bearer\s+/i, '');

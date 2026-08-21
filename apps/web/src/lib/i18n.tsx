@@ -52,6 +52,8 @@ Object.assign(en, { 'admin.flexLampImportModel': 'Import model…', 'admin.flexL
 Object.assign(vi, { 'admin.flexLampImportModel': 'Nhập mô hình…', 'admin.flexLampModelHint': 'GLB, GLTF, OBJ hoặc STL · căn giữa và chuyển thành tam giác sẵn sàng xuất file.', 'admin.flexLampModelDescription': 'Nạp model 3D, gắn cổ socket và xuất hình học sẵn sàng cho đèn.', 'admin.flexLampMaterialType': 'Sợi nhựa', 'admin.flexLampColorLabel': 'Màu', 'admin.flexLampAutoUpdate': 'Tự động cập nhật khi chỉnh' });
 Object.assign(en, { 'admin.flexLampMode': 'Mode' });
 Object.assign(en, {
+  'admin.priceReaderMembers': 'SIGNED-IN USERS',
+  'admin.priceReaderMemberHint': 'Sign in or create an account to track marketplace prices.',
   'nav.moduleStudio': 'Module Studio',
   'moduleStudio.back': 'Back to website', 'moduleStudio.projectName': 'Project name', 'moduleStudio.autosaved': 'Autosaved locally', 'moduleStudio.modules': 'Modules', 'moduleStudio.open': 'Open', 'moduleStudio.save': 'Save',
   'moduleStudio.mobileNavigation': 'Studio panels', 'moduleStudio.properties': 'Properties', 'moduleStudio.sketch': 'Profile sketch', 'moduleStudio.sketchHint': 'Draw from bottom to top. The profile is revolved into a printable 3D shell.',
@@ -68,6 +70,8 @@ Object.assign(en, {
   'moduleStudio.joint.bayonet': 'Core Bayonet', 'moduleStudio.joint.thread': 'Quarter Thread', 'moduleStudio.joint.snap': 'Flex Snap', 'moduleStudio.joint.dovetail': 'Slide Rail', 'moduleStudio.joint.none': 'Open',
 });
 Object.assign(vi, {
+  'admin.priceReaderMembers': 'DÀNH CHO TÀI KHOẢN ĐÃ ĐĂNG NHẬP',
+  'admin.priceReaderMemberHint': 'Đăng nhập hoặc tạo tài khoản để theo dõi giá sản phẩm.',
   'nav.moduleStudio': 'Xưởng module',
   'moduleStudio.back': 'Quay lại trang web', 'moduleStudio.projectName': 'Tên dự án', 'moduleStudio.autosaved': 'Đã tự động lưu trên máy', 'moduleStudio.modules': 'Module', 'moduleStudio.open': 'Mở', 'moduleStudio.save': 'Lưu',
   'moduleStudio.mobileNavigation': 'Các bảng điều khiển', 'moduleStudio.properties': 'Thuộc tính', 'moduleStudio.sketch': 'Vẽ biên dạng', 'moduleStudio.sketchHint': 'Vẽ từ dưới lên trên. Biên dạng sẽ được xoay thành vỏ 3D có thể in.',
