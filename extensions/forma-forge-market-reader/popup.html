@@ -16,11 +16,17 @@
         <button id="restore" class="ghost">Khôi phục chữ gốc</button>
       </div>
       <section id="result" class="result hidden"></section>
+      <button id="save" class="save-button" disabled>Lưu sản phẩm</button>
       <div class="footer-actions">
         <button id="copy" class="secondary" disabled>Copy JSON</button>
         <button id="download" class="secondary" disabled>Tải JSON</button>
         <button id="price-reader" class="ghost">Mở Price Reader</button>
       </div>
+      <section class="saved-products">
+        <div class="saved-heading"><strong>Sản phẩm đã lưu</strong><span id="saved-count">0</span></div>
+        <div id="saved-list" class="saved-list"></div>
+        <p id="saved-empty" class="saved-empty">Chưa có sản phẩm. Hãy đọc và lưu một trang để truy cập nhanh.</p>
+      </section>
       <a class="options" href="#" id="options">Cài đặt dịch</a>
     </main>
     <script src="popup.js"></script>
