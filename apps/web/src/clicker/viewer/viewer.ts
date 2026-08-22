@@ -198,7 +198,13 @@ export function createViewer(container: HTMLElement): Viewer {
   let downT = 0;
 
   let outlineMesh: THREE.LineSegments | null = null;
-  const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x3b82f6, depthTest: false });
+  const outlineMaterial = new THREE.LineBasicMaterial({
+    color: 0x3b82f6,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.9,
+  });
 
   function framePlaceholder() {
     root.position.set(0, 0, 0);
@@ -632,6 +638,24 @@ export function createViewer(container: HTMLElement): Viewer {
   })();
 
   // Paint hover/selection glow via emissive (keeps each part's true base color).
+  // Image/SVG parts can contain tens of thousands of triangulation edges. Drawing
+  // EdgesGeometry for those parts turns selection into a blue wireframe and makes
+  // a clean top image look broken, even though the printable mesh is valid. Keep
+  // the outline for simple mechanical parts and use the emissive highlight for
+  // dense image meshes.
+  function createSelectionOutline(mesh: THREE.Mesh): THREE.LineSegments | null {
+    const positionCount = mesh.geometry.getAttribute('position')?.count ?? 0;
+    const indexCount = mesh.geometry.index?.count ?? 0;
+    if (Math.max(positionCount, indexCount) > 6000) return null;
+
+    const edges = new THREE.EdgesGeometry(mesh.geometry, 42);
+    const outline = new THREE.LineSegments(edges, outlineMaterial);
+    outline.position.copy(mesh.position);
+    outline.quaternion.copy(mesh.quaternion);
+    outline.scale.copy(mesh.scale);
+    return outline;
+  }
+
   function applyHighlight() {
     if (outlineMesh) {
       outlineMesh.removeFromParent();
@@ -659,23 +683,23 @@ export function createViewer(container: HTMLElement): Viewer {
       for (const idx of selectedIndices) {
         const mesh = partMeshes[idx];
         if (mesh) {
-          const edges = new THREE.EdgesGeometry(mesh.geometry, 15);
-          const subOutline = new THREE.LineSegments(edges, outlineMaterial);
-          subOutline.position.copy(mesh.position);
-          subOutline.quaternion.copy(mesh.quaternion);
-          subOutline.scale.copy(mesh.scale);
-          outlineGroup.add(subOutline);
+          const subOutline = createSelectionOutline(mesh);
+          if (subOutline) outlineGroup.add(subOutline);
         }
       }
-      outlineMesh = outlineGroup as any;
-      outlineMesh!.renderOrder = 999;
-      partMeshes[selectedIndices[0]].parent?.add(outlineMesh!);
+      if (outlineGroup.children.length > 0) {
+        outlineMesh = outlineGroup as any;
+        outlineMesh!.renderOrder = 999;
+        partMeshes[selectedIndices[0]].parent?.add(outlineMesh!);
+      }
     } else if (hoveredIndex !== null && partMeshes[hoveredIndex]) {
       const mesh = partMeshes[hoveredIndex];
-      const edges = new THREE.EdgesGeometry(mesh.geometry, 15);
-      outlineMesh = new THREE.LineSegments(edges, outlineMaterial) as any;
-      outlineMesh!.renderOrder = 999;
-      mesh.parent?.add(outlineMesh!);
+      const outline = createSelectionOutline(mesh);
+      if (outline) {
+        outlineMesh = outline;
+        outlineMesh!.renderOrder = 999;
+        mesh.parent?.add(outlineMesh!);
+      }
     }
   }
 
