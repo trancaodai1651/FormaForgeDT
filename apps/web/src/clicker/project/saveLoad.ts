@@ -29,7 +29,7 @@ export function dataUrlToImage(url: string): Promise<RgbaImage> {
 export function saveProject() {
   const s = store.get();
   const proj = {
-    version: 6,
+    version: 7,
     settings: {
       colorCount: s.colorCount, baseShape: s.baseShape, capWidthMm: s.capWidthMm,
       bottomBaseMode: s.bottomBaseMode, bottomExpandPercent: s.bottomExpandPercent, bottomPaddingMm: s.bottomPaddingMm,
@@ -40,6 +40,9 @@ export function saveProject() {
       hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm, hybridTextExtrudeMm: s.hybridTextExtrudeMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
       hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
       hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,
+      hybridBaseStyle: s.hybridBaseStyle, hybridVaseProfile: s.hybridVaseProfile,
+      hybridVaseWavinessMm: s.hybridVaseWavinessMm, hybridVaseThicknessMm: s.hybridVaseThicknessMm,
+      hybridVaseGapMm: s.hybridVaseGapMm,
       hybridNeckLengthMm: s.hybridNeckLengthMm, hybridBaseImageOverlapMm: s.hybridBaseImageOverlapMm, hybridNeckWidthMm: s.hybridNeckWidthMm,
       hybridKeycapSpacingMm: s.hybridKeycapSpacingMm, hybridKeycapClearanceMm: s.hybridKeycapClearanceMm, imageMargin: s.imageMargin,
       borderWidth: s.borderWidth, baseHeight: s.baseHeight, mergeTopFrame: s.mergeTopFrame, keepMeshesSeparate: s.keepMeshesSeparate, 
@@ -134,6 +137,11 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       hybridBaseEndPaddingMm: set.hybridBaseEndPaddingMm ?? store.get().hybridBaseEndPaddingMm,
       hybridBaseThicknessMm: set.hybridBaseThicknessMm ?? store.get().hybridBaseThicknessMm,
       hybridBaseCornerRadiusMm: set.hybridBaseCornerRadiusMm ?? store.get().hybridBaseCornerRadiusMm,
+      hybridBaseStyle: set.hybridBaseStyle === 'straight' || set.hybridBaseStyle === 'vase' ? set.hybridBaseStyle : 'rounded',
+      hybridVaseProfile: set.hybridVaseProfile === 'wavy' ? 'wavy' : 'straight',
+      hybridVaseWavinessMm: Math.max(0, Math.min(12, set.hybridVaseWavinessMm ?? store.get().hybridVaseWavinessMm)),
+      hybridVaseThicknessMm: Math.max(1, Math.min(12, set.hybridVaseThicknessMm ?? store.get().hybridVaseThicknessMm)),
+      hybridVaseGapMm: Math.max(0, Math.min(16, set.hybridVaseGapMm ?? store.get().hybridVaseGapMm)),
       hybridBaseWallHeightMm: set.hybridBaseWallHeightMm ?? store.get().hybridBaseWallHeightMm,
       hybridNeckLengthMm: set.hybridNeckLengthMm ?? store.get().hybridNeckLengthMm,
       hybridBaseImageOverlapMm: set.hybridBaseImageOverlapMm ?? store.get().hybridBaseImageOverlapMm,

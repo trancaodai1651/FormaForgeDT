@@ -49,6 +49,10 @@ export interface PaletteEntry {
 }
 
 export type BaseShapeKind = 'outline' | 'circle' | 'square' | 'hexagon' | 'heart' | 'star' | 'egg';
+/** Continuous carrier profile used by Image + Blocks. */
+export type HybridBaseStyle = 'straight' | 'rounded' | 'vase';
+/** Vase carrier bands can be straight or follow a sinusoidal path. */
+export type HybridVaseProfile = 'straight' | 'wavy';
 export type ViewMode = 'assembled' | 'exploded' | 'section';
 
 export interface BlockSlot {
@@ -154,6 +158,16 @@ export interface BuildParams {
   hybridBaseThicknessMm?: number;
   /** Outside corner radius of the continuous carrier. */
   hybridBaseCornerRadiusMm?: number;
+  /** Top-view carrier profile: square, rounded, or ribbed vase. */
+  hybridBaseStyle?: HybridBaseStyle;
+  /** Vase band path: straight or sinusoidally waved. */
+  hybridVaseProfile?: HybridVaseProfile;
+  /** Side-to-side amplitude of each wavy vase band. */
+  hybridVaseWavinessMm?: number;
+  /** Along-carrier thickness of each vase band. */
+  hybridVaseThicknessMm?: number;
+  /** Clear distance between adjacent vase bands. */
+  hybridVaseGapMm?: number;
   /** Height of the carrier wall above the switch plane, used to hide the switch body. */
   hybridBaseWallHeightMm?: number;
   /** Straight material before the first keycap; the carrier itself overlaps the image head. */

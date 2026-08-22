@@ -9,7 +9,7 @@ import { loadFileToImage } from '../../image/decode';
 import { processImage } from '../../image/pipeline';
 import { parseSvg } from '../../image/logo';
 import { parse3MF, type RawMesh } from '../../geometry/threemfImport';
-import { downloadSTL, downloadThreeMF } from '../../export';
+import { downloadSTLSplit, downloadThreeMF } from '../../export';
 import { clampBlocksConfig, DEFAULT_BLOCKS, splitBlocksText, type BlocksConfig } from './model';
 import { renderBlocksScreen } from './view';
 import type { ClickerPart, GeometryResponse, SwitchPlacement } from '../../types';
@@ -454,7 +454,7 @@ export function createBlocksController(): BlocksController {
     });
     $('blocksExportStl')?.addEventListener('click', () => {
       if (builtParts.length === 0) return;
-      downloadSTL(builtParts, `blocks-${splitBlocksText(cfg.name).join('').toLowerCase() || 'model'}.stl`);
+      downloadSTLSplit(builtParts, `blocks-${splitBlocksText(cfg.name).join('').toLowerCase() || 'model'}.stl`);
     });
 
     name?.addEventListener('input', () => {

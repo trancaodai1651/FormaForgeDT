@@ -1,5 +1,7 @@
 import type { BuildContext } from '../buildContext';
 
+export type VasePathProfile = 'straight' | 'wavy';
+
 export function roundedRect(ctx: BuildContext, w: number, h: number, r: number) {
   const rr = Math.max(0.1, Math.min(r, Math.min(w, h) / 2 - 0.01));
   const core = ctx.track(ctx.wasm.CrossSection.square([Math.max(0.2, w - 2 * rr), Math.max(0.2, h - 2 * rr)], true));
@@ -48,4 +50,61 @@ export function makeEgg(ctx: BuildContext, r: number) {
   }
   area *= 0.5; cx /= 6 * area; cy /= 6 * area;
   return ctx.track(new ctx.wasm.CrossSection([raw.map(([x, y]) => [x - cx, y - cy])], 'NonZero'));
+}
+
+/**
+ * Build a printable carrier with a continuous centre spine and repeated
+ * vase/rib bands. The spine keeps the result one connected solid even when a
+ * gap is requested; the bands control the visible side-to-side profile.
+ */
+export function vaseCarrier(
+  ctx: BuildContext,
+  width: number,
+  depth: number,
+  cornerRadius: number,
+  profile: VasePathProfile,
+  waviness: number,
+  bandThickness: number,
+  bandGap: number,
+  center: [number, number] = [0, 0],
+  vertical = false,
+) {
+  const safeWidth = Math.max(4, width);
+  const safeDepth = Math.max(4, depth);
+  const crossLength = vertical ? safeWidth : safeDepth;
+  const axisLength = vertical ? safeDepth : safeWidth;
+  const amplitude = profile === 'wavy'
+    ? Math.min(Math.max(0, waviness), Math.max(0, crossLength * 0.32))
+    : 0;
+  const bandCross = Math.max(4, crossLength - amplitude * 2);
+  const spineCross = Math.max(3, bandCross - Math.max(0.6, amplitude * 0.55));
+  const spine = roundedRect(
+    ctx,
+    vertical ? spineCross : axisLength,
+    vertical ? axisLength : spineCross,
+    Math.min(cornerRadius, spineCross / 2 - 0.05),
+  ).translate(center);
+
+  const thickness = Math.max(0.5, Math.min(axisLength, bandThickness));
+  const gap = Math.max(0, Math.min(axisLength, bandGap));
+  const pitch = Math.max(0.5, thickness + gap);
+  const count = Math.max(1, Math.ceil((axisLength + gap) / pitch));
+  let result = spine;
+  for (let index = 0; index < count; index++) {
+    const axis = -axisLength / 2 + thickness / 2 + index * pitch;
+    if (axis > axisLength / 2 + thickness / 2) break;
+    const normalized = count <= 1 ? 0.5 : index / Math.max(1, count - 1);
+    const crossOffset = amplitude * Math.sin(normalized * Math.PI * 2);
+    const band = roundedRect(
+      ctx,
+      vertical ? bandCross : thickness,
+      vertical ? thickness : bandCross,
+      Math.min(cornerRadius, thickness / 2 - 0.05, bandCross / 2 - 0.05),
+    ).translate([
+      center[0] + (vertical ? crossOffset : axis),
+      center[1] + (vertical ? axis : crossOffset),
+    ]);
+    result = ctx.track(result.add(band));
+  }
+  return ctx.track(result);
 }

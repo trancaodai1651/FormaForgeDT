@@ -1,7 +1,7 @@
 import { getClickerDocument } from '../../runtime';
 import { clickerText as tx } from '../../i18n';
 import { createViewer, type Viewer } from '../../viewer/viewer';
-import { downloadSTL, downloadThreeMF } from '../../export';
+import { downloadSTLSplit, downloadThreeMF } from '../../export';
 import type { ClickerPart, RGB } from '../../types';
 import { DEFAULT_SVG_LAYERS_SETTINGS, type SvgLayerAssignment, type SvgLayerDocument, type SvgLayersSettings } from './model';
 import { buildSvgLayerParts } from './geometry';
@@ -106,7 +106,7 @@ class SvgLayersControllerImpl implements SvgLayersController {
     doc.getElementById('svgLayersTopColor')?.addEventListener('input', (event) => { this.settings.topColor = hexToRgb((event.target as HTMLInputElement).value); this.rebuild(); });
     doc.getElementById('svgLayersSourceColors')?.addEventListener('change', (event) => { this.settings.topColorMode = (event.target as HTMLInputElement).checked ? 'source' : 'single'; this.rebuild(); });
     doc.getElementById('svgLayersExport3mf')?.addEventListener('click', () => { if (this.parts.length) downloadThreeMF(this.parts, `${safeName(this.document?.name || '')}.3mf`); });
-    doc.getElementById('svgLayersExportStl')?.addEventListener('click', () => { if (this.parts.length) downloadSTL(this.parts, `${safeName(this.document?.name || '')}.stl`); });
+    doc.getElementById('svgLayersExportStl')?.addEventListener('click', () => { if (this.parts.length) downloadSTLSplit(this.parts, `${safeName(this.document?.name || '')}.stl`); });
     doc.getElementById('svgLayersReset')?.addEventListener('click', () => this.reset());
   }
 

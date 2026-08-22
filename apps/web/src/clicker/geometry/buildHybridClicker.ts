@@ -11,7 +11,7 @@ import type {
 import { BuildContext } from './buildContext';
 import { buildBlocks, type KeycapAsset, type PreparedBlockAssets } from './buildBlocks';
 import { getRingArea, sectionIsEmpty } from './geometry/sectionUtils';
-import { roundedRect } from './geometry/shapeFactory';
+import { roundedRect, vaseCarrier } from './geometry/shapeFactory';
 
 const DEFAULT_BODY: RGB = [238, 238, 240];
 
@@ -179,6 +179,7 @@ export function buildHybridClicker(
     clamp(params.hybridBaseCornerRadiusMm, 1, 14, 5),
     Math.min(carrierWidth, carrierDepth) / 2 - 0.15,
   );
+  const baseStyle = params.hybridBaseStyle ?? 'rounded';
 
   const imageScale = imageSize / Math.max(outlineBounds.width, outlineBounds.height);
   const imageCenterX = (outlineBounds.minX + outlineBounds.maxX) / 2;
@@ -195,12 +196,16 @@ export function buildHybridClicker(
     return blockResult;
   }
 
-  const imageSection = ctx.track(new wasm.CrossSection(scaledOutline, 'NonZero'));
+  // Imported SVG/raster traces can contain nearly duplicate points and tiny
+  // contour fragments. Simplify before any offset/extrude so the image head
+  // is one stable printable section instead of a self-intersecting collection
+  // of microscopic faces.
+  const imageSection = ctx.simp(ctx.track(new wasm.CrossSection(scaledOutline, 'NonZero')));
   // Match Image mode's Flat keychain construction: the imported silhouette is
   // inset from a separately adjustable outer plate instead of using the
   // generic border-width setting from the regular clicker.
   const badgeSection = imagePadding > 0.001
-    ? ctx.track(imageSection.offset(imagePadding, 'Round', 2, 48))
+    ? ctx.simp(ctx.track(imageSection.offset(imagePadding, 'Round', 2, 48)))
     : imageSection;
   const badgeBounds = badgeSection.bounds();
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
@@ -209,8 +214,25 @@ export function buildHybridClicker(
   const shiftX = vertical ? 0 : carrierHeadEdge + carrierWidth / 2;
   const shiftY = vertical ? carrierHeadEdge - carrierDepth / 2 : 0;
 
-  const carrierProfile = ctx.track(roundedRect(ctx, carrierWidth, carrierDepth, cornerRadius)
-    .translate([shiftX, shiftY]));
+  const carrierProfile = baseStyle === 'vase'
+    ? vaseCarrier(
+      ctx,
+      carrierWidth,
+      carrierDepth,
+      cornerRadius,
+      params.hybridVaseProfile === 'wavy' ? 'wavy' : 'straight',
+      clamp(params.hybridVaseWavinessMm, 0, 12, 2.5),
+      clamp(params.hybridVaseThicknessMm, 1, 12, 3),
+      clamp(params.hybridVaseGapMm, 0, 16, 2),
+      [shiftX, shiftY],
+      vertical,
+    )
+    : ctx.track(roundedRect(
+      ctx,
+      carrierWidth,
+      carrierDepth,
+      baseStyle === 'straight' ? 0.15 : cornerRadius,
+    ).translate([shiftX, shiftY]));
   let carrier = ctx.track(wasm.Manifold.extrude(carrierProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
 
@@ -390,8 +412,8 @@ export function buildHybridClicker(
       ] as [number, number]));
     if (!rings.length) continue;
     try {
-      let section = ctx.track(new wasm.CrossSection(rings, 'NonZero'));
-      if (placedImage2D) section = ctx.track(section.subtract(placedImage2D));
+      let section = ctx.simp(ctx.track(new wasm.CrossSection(rings, 'NonZero')));
+      if (placedImage2D) section = ctx.simp(ctx.track(section.subtract(placedImage2D)));
       if (sectionIsEmpty(section)) continue;
       const topLayer = imageTopScale === 1
         ? section
@@ -407,16 +429,16 @@ export function buildHybridClicker(
         6,
         0,
       );
-      // A zero-height face is not a printable solid. Keep a microscopic skin
-      // centred on the badge top for the flush default; positive values rise
-      // above that plane as a real image relief.
-      const imageLayerHeight = Math.max(0.04, imageExtrude);
+      // A microscopic coplanar skin is not slicer-safe: it produces duplicate
+      // top faces, white rays and acne. Keep the default visually flush but use
+      // a small printable layer; explicit Extrude values remain unchanged.
+      const imageLayerHeight = Math.max(0.08, imageExtrude);
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageLayerHeight)
-        .translate([0, 0, imageTop - 0.02]));
+        .translate([0, 0, imageTop]));
       if (!layer.isEmpty()) {
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
         placedImage2D = placedImage2D
-          ? ctx.track(placedImage2D.add(section))
+          ? ctx.simp(ctx.track(placedImage2D.add(section)))
           : section;
       }
     } catch {

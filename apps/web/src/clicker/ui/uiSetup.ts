@@ -7,7 +7,7 @@ import { loadFileToImage } from '../image/decode';
 import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
 import { importFontFile } from '../image/letter';
-import { downloadThreeMF, downloadSTL } from '../export';
+import { downloadThreeMF, downloadSTLSplit } from '../export';
 import { hexToRgb, downloadBlob } from '../utils/helpers';
 import { saveProject, loadProject } from '../project/saveLoad';
 import type { ClickerPart } from '../types';
@@ -127,7 +127,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onSection: (axis, pos) => viewer.setSection(axis, pos),
     
     onExport: () => { if (!appData.latestParts.length) return; downloadThreeMF(appData.latestParts, 'clicker.3mf'); },
-    onExportSTL: () => { if (!appData.latestParts.length) return; downloadSTL(appData.latestParts, 'clicker.stl'); },
+    onExportSTL: () => { if (!appData.latestParts.length) return; downloadSTLSplit(appData.latestParts, 'clicker.stl'); },
     onRenderPng: async () => { const blob = await viewer.renderToPng(); if (blob) downloadBlob(blob, 'clicker-render.png'); },
     onAiPrompt: async () => { await navigator.clipboard.writeText("Create a simple, flat vector-style illustration suitable for a small multi-color 3D print..."); store.set({ status: 'AI prompt copied âœ“' }); },
     
@@ -304,6 +304,11 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridKeycapClearance: (value) => { store.set({ hybridKeycapClearanceMm: Math.max(0.2, Math.min(4, value)) }); debouncedRebuild(); },
     onHybridBaseThickness: (value) => { const thickness = Math.max(5, Math.min(20, value)); store.set({ hybridBaseThicknessMm: thickness, hybridImageThicknessMm: Math.max(thickness, store.get().hybridImageThicknessMm) }); debouncedRebuild(); },
     onHybridBaseCornerRadius: (value) => { store.set({ hybridBaseCornerRadiusMm: Math.max(1, Math.min(14, value)) }); debouncedRebuild(); },
+    onHybridBaseStyle: (style) => { store.set({ hybridBaseStyle: style }); debouncedRebuild(); },
+    onHybridVaseProfile: (profile) => { store.set({ hybridVaseProfile: profile }); debouncedRebuild(); },
+    onHybridVaseWaviness: (value) => { store.set({ hybridVaseWavinessMm: Math.max(0, Math.min(12, value)) }); debouncedRebuild(); },
+    onHybridVaseThickness: (value) => { store.set({ hybridVaseThicknessMm: Math.max(1, Math.min(12, value)) }); debouncedRebuild(); },
+    onHybridVaseGap: (value) => { store.set({ hybridVaseGapMm: Math.max(0, Math.min(16, value)) }); debouncedRebuild(); },
     onHybridBaseWallHeight: (value) => { store.set({ hybridBaseWallHeightMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridNeckLength: (value) => { store.set({ hybridNeckLengthMm: Math.max(0, Math.min(30, value)) }); debouncedRebuild(); },
     onHybridBaseImageOverlap: (value) => { store.set({ hybridBaseImageOverlapMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },

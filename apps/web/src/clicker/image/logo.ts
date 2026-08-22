@@ -25,26 +25,86 @@ function strokeGeomToContours(geom: THREE.BufferGeometry): Ring[] {
   const pos = geom.getAttribute('position');
   if (!pos) return [];
   const idx = geom.getIndex();
-  const contours: Ring[] = [];
+  // SVGLoader.pointsToStroke returns a triangulated fill. Treating each
+  // triangle as a CrossSection ring creates hundreds of overlapping solids,
+  // which is both noisy in the selected preview and invalid/ambiguous to a
+  // slicer. Reconstruct only the boundary edges of the triangulation instead.
+  const pointIds = new Map<string, number>();
+  const points: [number, number][] = [];
+  const pointId = (index: number): number => {
+    const x = pos.getX(index);
+    const y = pos.getY(index);
+    // Stroke tessellation can duplicate the same point with tiny float noise.
+    // This tolerance is far below the geometry scale used by the clicker.
+    const key = `${Math.round(x * 1e5)},${Math.round(y * 1e5)}`;
+    const existing = pointIds.get(key);
+    if (existing !== undefined) return existing;
+    const id = points.length;
+    pointIds.set(key, id);
+    points.push([x, y]);
+    return id;
+  };
 
   const getTri = idx
     ? (t: number) => [idx.array[t * 3], idx.array[t * 3 + 1], idx.array[t * 3 + 2]]
     : (t: number) => [t * 3, t * 3 + 1, t * 3 + 2];
 
+  type BoundaryEdge = { a: number; b: number; count: number };
+  const edges = new Map<string, BoundaryEdge>();
   const nTris = (idx ? idx.array.length : pos.count) / 3;
   for (let t = 0; t < nTris; t++) {
-    const [ia, ib, ic] = getTri(t);
-    const ax = pos.getX(ia), ay = pos.getY(ia);
-    const bx = pos.getX(ib), by = pos.getY(ib);
-    const cx = pos.getX(ic), cy = pos.getY(ic);
-
-    const area = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
+    let [ia, ib, ic] = getTri(t);
+    let a = pointId(ia), b = pointId(ib), c = pointId(ic);
+    const pa = points[a], pb = points[b], pc = points[c];
+    const area = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pc[0] - pa[0]) * (pb[1] - pa[1]);
     if (Math.abs(area) < 1e-12) continue;
+    // Keep every triangle counter-clockwise. The resulting boundary rings
+    // naturally retain opposite winding for holes.
+    if (area < 0) [b, c] = [c, b];
+    for (const [u, v] of [[a, b], [b, c], [c, a]] as [number, number][]) {
+      if (u === v) continue;
+      const lo = Math.min(u, v);
+      const hi = Math.max(u, v);
+      const key = `${lo}:${hi}`;
+      const edge = edges.get(key);
+      if (edge) edge.count++;
+      else edges.set(key, { a: u, b: v, count: 1 });
+    }
+  }
 
-    if (area > 0) {
-      contours.push([[ax, ay], [bx, by], [cx, cy]]);
-    } else {
-      contours.push([[ax, ay], [cx, cy], [bx, by]]);
+  const boundary = [...edges.values()].filter((edge) => edge.count === 1);
+  if (boundary.length === 0) return [];
+
+  const outgoing = new Map<number, number[]>();
+  for (let i = 0; i < boundary.length; i++) {
+    const edge = boundary[i];
+    const list = outgoing.get(edge.a) ?? [];
+    list.push(i);
+    outgoing.set(edge.a, list);
+  }
+  const used = new Uint8Array(boundary.length);
+  const contours: Ring[] = [];
+  for (let startEdge = 0; startEdge < boundary.length; startEdge++) {
+    if (used[startEdge]) continue;
+    const start = boundary[startEdge].a;
+    let edgeIndex = startEdge;
+    let current = start;
+    const ring: Ring = [];
+    for (let guard = 0; guard < boundary.length + 2; guard++) {
+      if (used[edgeIndex]) break;
+      used[edgeIndex] = 1;
+      const edge = boundary[edgeIndex];
+      if (edge.a !== current) break;
+      ring.push(points[edge.a]);
+      current = edge.b;
+      if (current === start) {
+        if (ring.length >= 3) contours.push(ring);
+        break;
+      }
+      const candidates = outgoing.get(current) ?? [];
+      const next = candidates.find((candidate) => !used[candidate]);
+      if (next === undefined) break;
+      edgeIndex = next;
     }
   }
   return contours;

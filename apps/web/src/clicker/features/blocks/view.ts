@@ -122,7 +122,7 @@ export function renderBlocksScreen(vm: BlocksViewModel) {
             </div>
             <div class="blocks-export-row">
               <button class="primary" id="blocksExport" type="button" ${vm.hasParts ? '' : 'disabled'}>Download 3MF</button>
-              <button class="primary" id="blocksExportStl" type="button" ${vm.hasParts ? '' : 'disabled'}>Download STL</button>
+              <button class="primary" id="blocksExportStl" type="button" ${vm.hasParts ? '' : 'disabled'}>Download STL (2 files)</button>
             </div>
           </section>
         </aside>

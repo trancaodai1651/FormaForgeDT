@@ -95,6 +95,17 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('hybridKeycapClearance')?.addEventListener('input', (e: Event) => cb.onHybridKeycapClearance(+(e.target as HTMLInputElement).value));
   $('hybridBaseThickness')?.addEventListener('input', (e: Event) => cb.onHybridBaseThickness(+(e.target as HTMLInputElement).value));
   $('hybridBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onHybridBaseCornerRadius(+(e.target as HTMLInputElement).value));
+  $('hybridBaseStyle')?.addEventListener('change', (e: Event) => cb.onHybridBaseStyle((e.target as HTMLSelectElement).value as 'straight' | 'rounded' | 'vase'));
+  $('hybridVaseProfile')?.addEventListener('change', (e: Event) => cb.onHybridVaseProfile((e.target as HTMLSelectElement).value as 'straight' | 'wavy'));
+  $('hybridVaseWaviness')?.addEventListener('input', (e: Event) => cb.onHybridVaseWaviness(+(e.target as HTMLInputElement).value));
+  $('hybridVaseThickness')?.addEventListener('input', (e: Event) => cb.onHybridVaseThickness(+(e.target as HTMLInputElement).value));
+  $('hybridVaseGap')?.addEventListener('input', (e: Event) => cb.onHybridVaseGap(+(e.target as HTMLInputElement).value));
+  $('imageBaseStyle')?.addEventListener('change', (e: Event) => cb.onHybridBaseStyle((e.target as HTMLSelectElement).value as 'straight' | 'rounded' | 'vase'));
+  $('imageBaseCornerRadius')?.addEventListener('input', (e: Event) => cb.onHybridBaseCornerRadius(+(e.target as HTMLInputElement).value));
+  $('imageVaseProfile')?.addEventListener('change', (e: Event) => cb.onHybridVaseProfile((e.target as HTMLSelectElement).value as 'straight' | 'wavy'));
+  $('imageVaseWaviness')?.addEventListener('input', (e: Event) => cb.onHybridVaseWaviness(+(e.target as HTMLInputElement).value));
+  $('imageVaseThickness')?.addEventListener('input', (e: Event) => cb.onHybridVaseThickness(+(e.target as HTMLInputElement).value));
+  $('imageVaseGap')?.addEventListener('input', (e: Event) => cb.onHybridVaseGap(+(e.target as HTMLInputElement).value));
   $('hybridBaseWallHeight')?.addEventListener('input', (e: Event) => cb.onHybridBaseWallHeight(+(e.target as HTMLInputElement).value));
   $('hybridNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
   $('hybridBaseImageOverlap')?.addEventListener('input', (e: Event) => cb.onHybridBaseImageOverlap(+(e.target as HTMLInputElement).value));

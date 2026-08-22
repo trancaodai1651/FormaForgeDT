@@ -1,7 +1,7 @@
 import type { BuildParams, BuildRegion, ClickerPart, PartGroup, Ring, RGB, SwitchPlacement } from '../types';
 import { BuildContext } from './buildContext';
 import { sectionIsEmpty, getRingArea, removeHoles, edgePointAt } from './geometry/sectionUtils';
-import { roundedRect, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
+import { roundedRect, vaseCarrier, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
 import { resolveSwitches } from './sizing/switchPlacement';
 import { createEdgeBevelBlock, applyEdges } from './modifiers/edgeBuilder';
 
@@ -60,6 +60,39 @@ export function buildClicker(
     for (let i = 0; i < 40 && !fits(hi); i++) hi *= 2;
     let lo = 1e-3; for (let i = 0; i < 26; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
     plate = genShape(hi);
+  }
+
+  // The image page uses the same base profile controls as Image + Blocks.
+  // Keep the straight option faithful to the source silhouette, make the
+  // rounded option adjustable, and use a connected ribbed carrier for Vase.
+  const baseStyle = params.hybridBaseStyle ?? 'rounded';
+  const baseRadius = Math.max(0.15, Math.min(14, params.hybridBaseCornerRadiusMm ?? 5));
+  if (baseStyle === 'rounded') {
+    plate = ctx.simp(ctx.track(plate
+      .offset(baseRadius, 'Round', 2, 48)
+      .offset(-baseRadius, 'Round', 2, 48)));
+  } else if (baseStyle === 'vase') {
+    const bounds = plate.bounds();
+    const width = Math.max(4, bounds.max[0] - bounds.min[0]);
+    const depth = Math.max(4, bounds.max[1] - bounds.min[1]);
+    const cx = (bounds.min[0] + bounds.max[0]) / 2;
+    const cy = (bounds.min[1] + bounds.max[1]) / 2;
+    const waviness = Math.max(0, Math.min(12, params.hybridVaseWavinessMm ?? 2.5));
+    const amplitude = params.hybridVaseProfile === 'wavy'
+      ? Math.min(waviness, Math.min(width, depth) * 0.32)
+      : 0;
+    plate = vaseCarrier(
+      ctx,
+      width + amplitude * 2,
+      depth + amplitude * 2,
+      baseRadius,
+      params.hybridVaseProfile === 'wavy' ? 'wavy' : 'straight',
+      amplitude,
+      Math.max(1, Math.min(12, params.hybridVaseThicknessMm ?? 3)),
+      Math.max(0, Math.min(16, params.hybridVaseGapMm ?? 2)),
+      [cx, cy],
+      false,
+    );
   }
 
   const imageArea = ctx.shrink(plate, border, plate, sectionIsEmpty);
@@ -258,18 +291,18 @@ export function buildClicker(
     let baseCs = ctx.simp(ctx.track(new ctx.wasm.CrossSection(validRings, 'NonZero')));
     let fatCs = params.colorBleed > 0.001 ? ctx.grow(baseCs, params.colorBleed) : baseCs;
 
-    let fp = ctx.track(fatCs.intersect(fatImageArea)); 
-    let holeFp = ctx.track(baseCs.intersect(imageArea));
+    let fp = ctx.simp(ctx.track(fatCs.intersect(fatImageArea)));
+    let holeFp = ctx.simp(ctx.track(baseCs.intersect(imageArea)));
 
     if (sectionIsEmpty(fp)) continue;
 
     if (placedHole2D) {
-      fp = ctx.track(fp.subtract(placedHole2D)); 
-      holeFp = ctx.track(holeFp.subtract(placedHole2D));
+      fp = ctx.simp(ctx.track(fp.subtract(placedHole2D)));
+      holeFp = ctx.simp(ctx.track(holeFp.subtract(placedHole2D)));
     }
     if (sectionIsEmpty(fp)) continue;
 
-    placedHole2D = placedHole2D ? ctx.track(placedHole2D.add(holeFp)) : holeFp;
+    placedHole2D = placedHole2D ? ctx.simp(ctx.track(placedHole2D.add(holeFp))) : holeFp;
 
     const level = params.componentHeights?.[r.partName] ?? 0;
     const heightShift = level * params.stepHeight;
@@ -282,7 +315,7 @@ export function buildClicker(
     if (Math.abs(heightShift) > 0.001) {
       boundingVolume = ctx.track(capSurfaceShell.translate([0, 0, heightShift]));
     }
-    let inlay = ctx.track(inlayVolume.intersect(boundingVolume));
+    let inlay = ctx.simp(ctx.track(inlayVolume.intersect(boundingVolume)));
 
     if (inlay.isEmpty()) continue;
 
@@ -312,7 +345,7 @@ export function buildClicker(
         ? ctx.track(capSurfaceShell.translate([0, 0, heightShift]))
         : capSurfaceShell;
       const holeVolume = ctx.track(holeColumn.intersect(holeShell));
-      base = ctx.track(base.subtract(holeVolume));
+      base = ctx.simp(ctx.track(base.subtract(holeVolume)));
     }
   }
 

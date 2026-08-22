@@ -154,6 +154,14 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridBaseWidth">${tx('Base width', 'Chiều rộng base')}</label><input type="text" class="val" id="hybridBaseWidthVal" /></div>
         <input type="range" id="hybridBaseWidth" min="20" max="60" step="0.5" />
       </div>
+      <div class="field">
+        <label for="hybridBaseStyle">${tx('Base profile', 'Kiá»ƒu dáº¡ng base')}</label>
+        <select id="hybridBaseStyle">
+          <option value="straight">${tx('Straight', 'Tháº³ng')}</option>
+          <option value="rounded">${tx('Rounded', 'Bo trÃ²n')}</option>
+          <option value="vase">${tx('Vase / ribbed', 'Vase / gá»n')}</option>
+        </select>
+      </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseEndPadding">${tx('End padding', 'Khoảng đệm cuối')}</label><input type="text" class="val" id="hybridBaseEndPaddingVal" /></div>
         <input type="range" id="hybridBaseEndPadding" min="10" max="35" step="0.5" />
@@ -178,6 +186,25 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridBaseCornerRadius">${tx('Tail corner radius', 'Bán kính bo góc đuôi')}</label><input type="text" class="val" id="hybridBaseCornerRadiusVal" /></div>
         <input type="range" id="hybridBaseCornerRadius" min="1" max="14" step="0.5" />
       </div>
+      <div class="field">
+        <label for="hybridVaseProfile">${tx('Vase path', 'Kieu vase')}</label>
+        <select id="hybridVaseProfile">
+          <option value="straight">${tx('Straight bands', 'Vase thang')}</option>
+          <option value="wavy">${tx('Wavy bands', 'Vase uon luon')}</option>
+        </select>
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridVaseWaviness">${tx('Vase waviness', 'Muc do uon luon')}</label><input type="text" class="val" id="hybridVaseWavinessVal" /></div>
+        <input type="range" id="hybridVaseWaviness" min="0" max="12" step="0.1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridVaseThickness">${tx('Vase thickness', 'Do day vase')}</label><input type="text" class="val" id="hybridVaseThicknessVal" /></div>
+        <input type="range" id="hybridVaseThickness" min="1" max="12" step="0.1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="hybridVaseGap">${tx('Vase gap', 'Khoang cach giua vase')}</label><input type="text" class="val" id="hybridVaseGapVal" /></div>
+        <input type="range" id="hybridVaseGap" min="0" max="16" step="0.1" />
+      </div>
       <div class="label" style="margin-top: 16px;">${tx('Straight base head', 'Đầu base thẳng')}</div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridNeckLength">${tx('Material before first keycap', 'Đoạn base trước keycap đầu')}</label><input type="text" class="val" id="hybridNeckLengthVal" /></div>
@@ -201,6 +228,39 @@ export const renderLeftSidebar = () => `
 
   <div class="section" id="baseStyleSection">
     <span class="label">${tx('Base style', 'Kiểu base')} ${tip(tx('Outline follows your image silhouette. Shape places the image on a preset base such as a circle or square.', 'Viền bám theo silhouette hình ảnh. Hình dạng đặt ảnh lên base có sẵn như hình tròn hoặc vuông.'))}</span>
+    <div id="imageBaseControls">
+      <div class="field">
+        <label for="imageBaseStyle">${tx('Image base profile', 'Kieu base hinh anh')}</label>
+        <select id="imageBaseStyle">
+          <option value="straight">${tx('Straight', 'Thang')}</option>
+          <option value="rounded">${tx('Rounded', 'Bo tron')}</option>
+          <option value="vase">${tx('Vase / ribbed', 'Vase / gon')}</option>
+        </select>
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="imageBaseCornerRadius">${tx('Base corner radius', 'Ban kinh bo goc base')}</label><input type="text" class="val" id="imageBaseCornerRadiusVal" /></div>
+        <input type="range" id="imageBaseCornerRadius" min="1" max="14" step="0.5" />
+      </div>
+      <div class="field">
+        <label for="imageVaseProfile">${tx('Vase path', 'Kieu vase')}</label>
+        <select id="imageVaseProfile">
+          <option value="straight">${tx('Straight bands', 'Vase thang')}</option>
+          <option value="wavy">${tx('Wavy bands', 'Vase uon luon')}</option>
+        </select>
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="imageVaseWaviness">${tx('Vase waviness', 'Muc do uon luon')}</label><input type="text" class="val" id="imageVaseWavinessVal" /></div>
+        <input type="range" id="imageVaseWaviness" min="0" max="12" step="0.1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="imageVaseThickness">${tx('Vase thickness', 'Do day vase')}</label><input type="text" class="val" id="imageVaseThicknessVal" /></div>
+        <input type="range" id="imageVaseThickness" min="1" max="12" step="0.1" />
+      </div>
+      <div class="prow-stacked">
+        <div class="prow-header"><label for="imageVaseGap">${tx('Vase gap', 'Khoang cach giua vase')}</label><input type="text" class="val" id="imageVaseGapVal" /></div>
+        <input type="range" id="imageVaseGap" min="0" max="16" step="0.1" />
+      </div>
+    </div>
     <div class="field">
       <div class="tabs" id="shapeTypeTabs" role="tablist" style="margin-bottom: 12px;">
         <button class="tab" data-style="outline" type="button">${tx('Outline', 'Theo đường viền')}</button>

@@ -142,6 +142,24 @@ export function createUi(
     setVal('hybridBaseThicknessVal', `${state.hybridBaseThicknessMm.toFixed(1)} mm`);
     if ($('hybridBaseCornerRadius')) $<HTMLInputElement>('hybridBaseCornerRadius').value = String(state.hybridBaseCornerRadiusMm);
     setVal('hybridBaseCornerRadiusVal', `${state.hybridBaseCornerRadiusMm.toFixed(1)} mm`);
+    if ($('hybridBaseStyle')) $<HTMLSelectElement>('hybridBaseStyle').value = state.hybridBaseStyle;
+    if ($('hybridVaseProfile')) $<HTMLSelectElement>('hybridVaseProfile').value = state.hybridVaseProfile;
+    if ($('hybridVaseWaviness')) $<HTMLInputElement>('hybridVaseWaviness').value = String(state.hybridVaseWavinessMm);
+    setVal('hybridVaseWavinessVal', `${state.hybridVaseWavinessMm.toFixed(1)} mm`);
+    if ($('hybridVaseThickness')) $<HTMLInputElement>('hybridVaseThickness').value = String(state.hybridVaseThicknessMm);
+    setVal('hybridVaseThicknessVal', `${state.hybridVaseThicknessMm.toFixed(1)} mm`);
+    if ($('hybridVaseGap')) $<HTMLInputElement>('hybridVaseGap').value = String(state.hybridVaseGapMm);
+    setVal('hybridVaseGapVal', `${state.hybridVaseGapMm.toFixed(1)} mm`);
+    if ($('imageBaseStyle')) $<HTMLSelectElement>('imageBaseStyle').value = state.hybridBaseStyle;
+    if ($('imageBaseCornerRadius')) $<HTMLInputElement>('imageBaseCornerRadius').value = String(state.hybridBaseCornerRadiusMm);
+    setVal('imageBaseCornerRadiusVal', `${state.hybridBaseCornerRadiusMm.toFixed(1)} mm`);
+    if ($('imageVaseProfile')) $<HTMLSelectElement>('imageVaseProfile').value = state.hybridVaseProfile;
+    if ($('imageVaseWaviness')) $<HTMLInputElement>('imageVaseWaviness').value = String(state.hybridVaseWavinessMm);
+    setVal('imageVaseWavinessVal', `${state.hybridVaseWavinessMm.toFixed(1)} mm`);
+    if ($('imageVaseThickness')) $<HTMLInputElement>('imageVaseThickness').value = String(state.hybridVaseThicknessMm);
+    setVal('imageVaseThicknessVal', `${state.hybridVaseThicknessMm.toFixed(1)} mm`);
+    if ($('imageVaseGap')) $<HTMLInputElement>('imageVaseGap').value = String(state.hybridVaseGapMm);
+    setVal('imageVaseGapVal', `${state.hybridVaseGapMm.toFixed(1)} mm`);
     if ($('hybridBaseWallHeight')) $<HTMLInputElement>('hybridBaseWallHeight').value = String(state.hybridBaseWallHeightMm);
     setVal('hybridBaseWallHeightVal', `${state.hybridBaseWallHeightMm.toFixed(2)} mm`);
     if ($('hybridNeckLength')) $<HTMLInputElement>('hybridNeckLength').value = String(state.hybridNeckLengthMm);
@@ -335,6 +353,7 @@ export function createUi(
     getClickerDocument().querySelectorAll('#blockKeycapShape [data-keycap-shape]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapShape === state.blockKeycapShape));
     getClickerDocument().querySelectorAll('#blockKeycapMount [data-keycap-mount]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapMount === state.blockKeycapMount));
     if ($('hybridBodyControls')) ($('hybridBodyControls') as HTMLElement).hidden = state.importMode !== 'hybrid';
+    if ($('imageBaseControls')) ($('imageBaseControls') as HTMLElement).hidden = state.importMode !== 'image';
     if ($('blocksLegacyBaseControls')) ($('blocksLegacyBaseControls') as HTMLElement).hidden = state.importMode === 'hybrid';
 
     // Cáº­p nháº­t View Tabs
