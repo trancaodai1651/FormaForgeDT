@@ -644,6 +644,16 @@ export function createViewer(container: HTMLElement): Viewer {
   // the outline for simple mechanical parts and use the emissive highlight for
   // dense image meshes.
   function createSelectionOutline(mesh: THREE.Mesh): THREE.LineSegments | null {
+    const partName = String((mesh.userData as { partName?: string }).partName ?? '');
+    // The generated image/base meshes are triangulated silhouettes. Even when
+    // their vertex count is small, their coplanar triangulation produces a
+    // noisy edge overlay (white/blue speckles) when the user selects them.
+    // Keep image selection feedback on the material only.
+    if (
+      partName === 'top-base'
+      || /^(?:top-color|bottom-color|hybrid-image|keycap-image)-/.test(partName)
+    ) return null;
+
     const positionCount = mesh.geometry.getAttribute('position')?.count ?? 0;
     const indexCount = mesh.geometry.index?.count ?? 0;
     if (Math.max(positionCount, indexCount) > 6000) return null;
@@ -687,10 +697,13 @@ export function createViewer(container: HTMLElement): Viewer {
           if (subOutline) outlineGroup.add(subOutline);
         }
       }
-      if (outlineGroup.children.length > 0) {
+      const anchor = selectedIndices
+        .map((idx) => partMeshes[idx])
+        .find((mesh): mesh is THREE.Mesh => Boolean(mesh));
+      if (outlineGroup.children.length > 0 && anchor) {
         outlineMesh = outlineGroup as any;
         outlineMesh!.renderOrder = 999;
-        partMeshes[selectedIndices[0]].parent?.add(outlineMesh!);
+        anchor.parent?.add(outlineMesh!);
       }
     } else if (hoveredIndex !== null && partMeshes[hoveredIndex]) {
       const mesh = partMeshes[hoveredIndex];
