@@ -174,15 +174,7 @@ export function buildClicker(
   const slabTopZ = slabBottomZ + backing + imageDepth;
   const imageBottomZ = slabBottomZ + backing;
   const bodyBottomZ = socketBB.min[2] - params.floorThickness;
-  // The MX stem defines the seating plane of the cap. Some switch assets are
-  // taller than the configured lower-base height, so using only
-  // `bodyBottomZ + baseHeight` leaves a visible air gap below dome/cone caps.
-  // Keep the requested height as a minimum, then raise the body to overlap the
-  // cap by a small printable amount. The cap is seated by the support bridge
-  // below, so the outer body remains at this level instead of being pushed
-  // through the profile.
-  const capBodyOverlap = 0.2;
-  const bodyTopZ = Math.max(bodyBottomZ + baseHeight, slabBottomZ + capBodyOverlap);
+  const bodyTopZ = bodyBottomZ + baseHeight;
   const wellFloorZ = Math.min(cavityFloorZ, slabBottomZ - Math.max(0, params.travel));
 
   const parts: ClickerPart[] = [];
@@ -211,42 +203,30 @@ export function buildClicker(
       }
       if (!hasArea || maxRadius <= 0 || flatHeight < 0 || profileHeight <= 0) return makeEmpty();
       const centered = ctx.track(cs.translate([-cx, -cy]));
-      const coneTipScale = 0.12;
+      const totalHeight = flatHeight + profileHeight;
+      const coneTipScale = 0.01;
       const domeTipScale = 0.01;
       const place = (solid: any, zOffset: number) => ctx.track(solid.translate([cx, cy, z + zOffset]));
 
-      // Keep the backing/image layer vertical. The profile must begin at its
-      // top surface; tapering from z=0 made a cone narrow through the plate
-      // itself and left an overhanging/coplanar edge where it met the base.
-      const flatLayerCount = flatHeight > 0.001
-        ? Math.max(1, Math.min(16, Math.ceil(flatHeight * 4)))
-        : 0;
-      const profileLayerCount = Math.max(14, Math.min(36, Math.ceil(profileHeight * 4)));
-      const layerBoundaries = [0];
-      for (let index = 1; index <= flatLayerCount; index++) {
-        layerBoundaries.push(flatHeight * index / flatLayerCount);
-      }
-      for (let index = 1; index <= profileLayerCount; index++) {
-        layerBoundaries.push(flatHeight + profileHeight * index / profileLayerCount);
-      }
-
+      const sliceCount = Math.max(14, Math.min(36, Math.ceil(totalHeight * 4)));
       let volume: any = null;
       const radialScaleAtHeight = (height: number): number => {
-        if (height <= flatHeight + 1e-6) return 1;
-        const profileT = Math.max(0, Math.min(1, (height - flatHeight) / Math.max(1e-6, profileHeight)));
         if (profileType === 'cone') {
-          // A near-zero cone tip creates microscopic triangles and open/sliver
-          // faces in slicers. Keep a small, printable flat at the apex.
-          const sharpened = Math.pow(profileT, 1.18);
-          return Math.max(coneTipScale, 1 - (1 - coneTipScale) * sharpened);
+          const coneT = Math.max(0, Math.min(1, height / Math.max(1e-6, totalHeight)));
+          const sharpened = Math.pow(coneT, 1.18);
+          const baseOverlapScale = 1.01;
+          const safeConeTipScale = 0.12;
+          return Math.max(safeConeTipScale, baseOverlapScale - (baseOverlapScale - safeConeTipScale) * sharpened);
         }
-        const t = profileT;
+        const t = Math.max(0, Math.min(1, height / Math.max(1e-6, totalHeight)));
         return Math.max(0.08, Math.sqrt(Math.max(0, 1 - t * t)));
       };
 
-      for (let sliceIndex = 0; sliceIndex < layerBoundaries.length - 1; sliceIndex++) {
-        const z0 = layerBoundaries[sliceIndex];
-        const z1 = layerBoundaries[sliceIndex + 1];
+      for (let sliceIndex = 0; sliceIndex < sliceCount; sliceIndex++) {
+        const t0 = sliceIndex / sliceCount;
+        const t1 = (sliceIndex + 1) / sliceCount;
+        const z0 = totalHeight * t0;
+        const z1 = totalHeight * t1;
         const scale0 = radialScaleAtHeight(z0);
         const scale1 = radialScaleAtHeight(z1);
         const layerHeight = Math.max(0.001, z1 - z0);
@@ -280,26 +260,6 @@ export function buildClicker(
       console.warn('buildClicker: profile generation failed, falling back to flat', err);
       warnings.push(`profile-generation-failed err=${String(err)}`);
       capVolume = ctx.extrudeAt(plate, backing + imageDepth, slabBottomZ, sectionIsEmpty);
-    }
-  }
-
-  // Dome/cone profiles need a small perimeter seat to meet the lower body.
-  // Keep this seat on the cap instead of adding a deck to the base: it moves
-  // with the cap in Exploded mode and leaves the switch well unchanged. The
-  // inner cut preserves the open center, while the outer band overlaps the
-  // body ring by a small printable amount.
-  if (!isFlatKeychain && profile !== 'flat') {
-    try {
-      const outerRim = ctx.grow(plate, Math.max(0.6, params.tolerance + 0.2));
-      const innerRim = ctx.shrink(plate, 0.05, plate, sectionIsEmpty);
-      const rimFootprint = ctx.simp(ctx.track(outerRim.subtract(innerRim)));
-      const rimBottomZ = slabBottomZ - capBodyOverlap;
-      const rimTopZ = slabBottomZ + 0.12;
-      if (!sectionIsEmpty(rimFootprint)) {
-        capVolume = ctx.track(capVolume.add(ctx.extrudeAt(rimFootprint, rimTopZ - rimBottomZ, rimBottomZ, sectionIsEmpty)));
-      }
-    } catch (err) {
-      warnings.push(`profile-seat-fallback err=${String(err)}`);
     }
   }
 
