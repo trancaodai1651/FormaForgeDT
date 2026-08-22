@@ -282,6 +282,27 @@ export function buildClicker(
       capVolume = ctx.extrudeAt(plate, backing + imageDepth, slabBottomZ, sectionIsEmpty);
     }
   }
+
+  // Dome/cone profiles need a small perimeter seat to meet the lower body.
+  // Keep this seat on the cap instead of adding a deck to the base: it moves
+  // with the cap in Exploded mode and leaves the switch well unchanged. The
+  // inner cut preserves the open center, while the outer band overlaps the
+  // body ring by a small printable amount.
+  if (!isFlatKeychain && profile !== 'flat') {
+    try {
+      const outerRim = ctx.grow(plate, Math.max(0.6, params.tolerance + 0.2));
+      const innerRim = ctx.shrink(plate, 0.05, plate, sectionIsEmpty);
+      const rimFootprint = ctx.simp(ctx.track(outerRim.subtract(innerRim)));
+      const rimBottomZ = slabBottomZ - capBodyOverlap;
+      const rimTopZ = slabBottomZ + 0.12;
+      if (!sectionIsEmpty(rimFootprint)) {
+        capVolume = ctx.track(capVolume.add(ctx.extrudeAt(rimFootprint, rimTopZ - rimBottomZ, rimBottomZ, sectionIsEmpty)));
+      }
+    } catch (err) {
+      warnings.push(`profile-seat-fallback err=${String(err)}`);
+    }
+  }
+
   let capSurfaceShell = capVolume;
   if (profile !== 'flat') {
     try {
@@ -392,34 +413,6 @@ export function buildClicker(
   let body = applyEdges(ctx, ctx.extrudeAt(bodyFootprint, bodyTopZ - bodyBottomZ, bodyBottomZ, sectionIsEmpty), params.edgeSettings, bodyFootprint, bodyBottomZ, bodyTopZ);
 
   body = ctx.track(body.subtract(ctx.extrudeAt(wellFootprint, bodyTopZ - wellFloorZ + 1, wellFloorZ, sectionIsEmpty)));
-
-  // The well is intentionally wider than the cap to leave clearance around
-  // it. Without a small seat at the well mouth, a dome/cone has no printable
-  // material connecting its lower rim to the surrounding base and appears to
-  // float or leave a slicer-visible gap. Add only a thin internal bridge:
-  // - it stays inside the base silhouette;
-  // - it overlaps the cap's flat seating layer by 0.12 mm;
-  // - it keeps one switch-clear opening per switch, while the real socket cut
-  //   below still removes the exact MX geometry.
-  if (!isFlatKeychain) {
-    let seatOpenings: any = null;
-    for (const sw of applied) {
-      const opening = Math.abs(sw.rotation) > 0.001
-        ? ctx.track(socketColumnBase.rotate(sw.rotation))
-        : socketColumnBase;
-      const placedOpening = ctx.track(opening.translate([sw.x, sw.y]));
-      seatOpenings = seatOpenings ? ctx.track(seatOpenings.add(placedOpening)) : placedOpening;
-    }
-
-    const seatFootprint = seatOpenings
-      ? ctx.simp(ctx.track(styledBase.subtract(seatOpenings)))
-      : styledBase;
-    const seatBottomZ = slabBottomZ - 0.12;
-    const seatTopZ = slabBottomZ + 0.12;
-    if (!sectionIsEmpty(seatFootprint) && seatTopZ > seatBottomZ + 0.001) {
-      body = ctx.track(body.add(ctx.extrudeAt(seatFootprint, seatTopZ - seatBottomZ, seatBottomZ, sectionIsEmpty)));
-    }
-  }
 
   // --- 6. Đúc Mảng Màu Hạt Cà Phê ---
   if (params.bottomRegions && params.bottomRegions.length > 0 && customBasePlate) {
