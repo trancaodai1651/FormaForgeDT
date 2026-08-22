@@ -63,7 +63,9 @@ export const store = createStore<UiState>({
   photoFlatten: false,
   keychain: { enabled: false, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0, hybridPosition: 'top' },
   removeBg: true,
-  view: 'exploded',
+  // A new model should open assembled. Exploded is an inspection mode and
+  // must only be enabled when the user explicitly selects it.
+  view: 'assembled',
   showSwitch: true,
   importMode: 'image',
   currentIconName: 'circle',

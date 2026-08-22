@@ -178,8 +178,9 @@ export function buildClicker(
   // taller than the configured lower-base height, so using only
   // `bodyBottomZ + baseHeight` leaves a visible air gap below dome/cone caps.
   // Keep the requested height as a minimum, then raise the body to overlap the
-  // cap by a small printable amount. This joins the parts without changing the
-  // profile shape or cutting it through the base.
+  // cap by a small printable amount. The cap is seated by the support bridge
+  // below, so the outer body remains at this level instead of being pushed
+  // through the profile.
   const capBodyOverlap = 0.2;
   const bodyTopZ = Math.max(bodyBottomZ + baseHeight, slabBottomZ + capBodyOverlap);
   const wellFloorZ = Math.min(cavityFloorZ, slabBottomZ - Math.max(0, params.travel));
@@ -391,6 +392,34 @@ export function buildClicker(
   let body = applyEdges(ctx, ctx.extrudeAt(bodyFootprint, bodyTopZ - bodyBottomZ, bodyBottomZ, sectionIsEmpty), params.edgeSettings, bodyFootprint, bodyBottomZ, bodyTopZ);
 
   body = ctx.track(body.subtract(ctx.extrudeAt(wellFootprint, bodyTopZ - wellFloorZ + 1, wellFloorZ, sectionIsEmpty)));
+
+  // The well is intentionally wider than the cap to leave clearance around
+  // it. Without a small seat at the well mouth, a dome/cone has no printable
+  // material connecting its lower rim to the surrounding base and appears to
+  // float or leave a slicer-visible gap. Add only a thin internal bridge:
+  // - it stays inside the base silhouette;
+  // - it overlaps the cap's flat seating layer by 0.12 mm;
+  // - it keeps one switch-clear opening per switch, while the real socket cut
+  //   below still removes the exact MX geometry.
+  if (!isFlatKeychain) {
+    let seatOpenings: any = null;
+    for (const sw of applied) {
+      const opening = Math.abs(sw.rotation) > 0.001
+        ? ctx.track(socketColumnBase.rotate(sw.rotation))
+        : socketColumnBase;
+      const placedOpening = ctx.track(opening.translate([sw.x, sw.y]));
+      seatOpenings = seatOpenings ? ctx.track(seatOpenings.add(placedOpening)) : placedOpening;
+    }
+
+    const seatFootprint = seatOpenings
+      ? ctx.simp(ctx.track(styledBase.subtract(seatOpenings)))
+      : styledBase;
+    const seatBottomZ = slabBottomZ - 0.12;
+    const seatTopZ = slabBottomZ + 0.12;
+    if (!sectionIsEmpty(seatFootprint) && seatTopZ > seatBottomZ + 0.001) {
+      body = ctx.track(body.add(ctx.extrudeAt(seatFootprint, seatTopZ - seatBottomZ, seatBottomZ, sectionIsEmpty)));
+    }
+  }
 
   // --- 6. Đúc Mảng Màu Hạt Cà Phê ---
   if (params.bottomRegions && params.bottomRegions.length > 0 && customBasePlate) {
