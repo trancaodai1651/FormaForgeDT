@@ -204,9 +204,16 @@ export function buildHybridClicker(
   // Match Image mode's Flat keychain construction: the imported silhouette is
   // inset from a separately adjustable outer plate instead of using the
   // generic border-width setting from the regular clicker.
-  const badgeSection = imagePadding > 0.001
-    ? ctx.simp(ctx.track(imageSection.offset(imagePadding, 'Round', 2, 48)))
-    : imageSection;
+  let badgeSection = imageSection;
+  if (imagePadding > 0.001) {
+    try {
+      badgeSection = ctx.simp(ctx.track(imageSection.offset(imagePadding, 'Round', 2, 32)));
+    } catch (error) {
+      // A malformed/self-touching imported contour must not turn the top into
+      // a cone/sliver. Keep the original simplified silhouette as fallback.
+      warnings.push(`image-padding-fallback err=${String(error)}`);
+    }
+  }
   const badgeBounds = badgeSection.bounds();
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
@@ -333,7 +340,10 @@ export function buildHybridClicker(
   // layer below the imported head so it cannot change the head thickness or
   // bury the carrier. The union with badgeSection guarantees full coverage
   // even when the uploaded bottom image is slightly smaller than the top.
-  let mergedBody = ctx.track(badgeBody.add(carrier));
+  // Keep the carrier separate while image inlays are carved. Otherwise an
+  // image region that overlaps the neck would also cut a hole through the
+  // white base.
+  let lowerBody = carrier;
   if (params.bottomOutline?.length) {
     const bottomBounds = ringBounds(params.bottomOutline);
     if (bottomBounds.width > 0.01 && bottomBounds.height > 0.01) {
@@ -373,7 +383,7 @@ export function buildHybridClicker(
         const bottomThickness = Math.max(0.8, Math.min(6, baseThickness * 0.45));
         const lowerBase = ctx.track(wasm.Manifold.extrude(bottomSection, bottomThickness)
           .translate([0, 0, -baseThickness - bottomThickness]));
-        mergedBody = ctx.track(mergedBody.add(lowerBase));
+        lowerBody = ctx.track(lowerBody.add(lowerBase));
       }
     }
   }
@@ -392,10 +402,7 @@ export function buildHybridClicker(
     const target = slotIndex === null ? null : shiftedPlacements[slotIndex];
     shiftPart(part, target && original ? target.x - original.x : shiftX, target && original ? target.y - original.y : shiftY);
   }
-  const parts: ClickerPart[] = [
-    ...movableParts,
-    toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'),
-  ];
+  const parts: ClickerPart[] = [...movableParts];
 
   // Palette regions can share a traced boundary (and anti-aliased source
   // pixels can make them overlap by a fraction). Remove already placed image
@@ -429,13 +436,18 @@ export function buildHybridClicker(
         6,
         0,
       );
-      // A microscopic coplanar skin is not slicer-safe: it produces duplicate
-      // top faces, white rays and acne. Keep the default visually flush but use
-      // a small printable layer; explicit Extrude values remain unchanged.
-      const imageLayerHeight = Math.max(0.08, imageExtrude);
+      // Make the default image flush with the badge while giving it a shallow
+      // real inlay. When Extrude is increased, only the coloured layer rises;
+      // the badge is carved first so the meshes never overlap coplanarly.
+      const inlayDepth = 0.28;
+      const imageLayerHeight = inlayDepth + imageExtrude;
+      const imageLayerBottom = imageTop - inlayDepth;
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageLayerHeight)
-        .translate([0, 0, imageTop]));
+        .translate([0, 0, imageLayerBottom]));
       if (!layer.isEmpty()) {
+        const cavity = ctx.track(wasm.Manifold.extrude(topLayer, inlayDepth + 0.02)
+          .translate([0, 0, imageLayerBottom]));
+        badgeBody = ctx.track(badgeBody.subtract(cavity));
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
         placedImage2D = placedImage2D
           ? ctx.simp(ctx.track(placedImage2D.add(section)))
@@ -445,6 +457,9 @@ export function buildHybridClicker(
       warnings.push(`Image region ${index + 1} could not be printed.`);
     }
   }
+
+  const mergedBody = ctx.track(badgeBody.add(lowerBody));
+  parts.push(toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'));
 
   ctx.cleanup();
   return { parts, switchPlacements: shiftedPlacements, warnings };

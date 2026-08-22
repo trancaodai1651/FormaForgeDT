@@ -1,5 +1,6 @@
 ﻿import { getClickerDocument } from '../runtime';
 // src/export/stlExport.ts
+import { zipSync } from 'fflate';
 import type { ClickerPart } from '../types';
 import { sanitizeMesh, groupBBox } from './meshUtils';
 
@@ -201,15 +202,22 @@ export function downloadSTL(parts: ClickerPart[], fileName = 'clicker.stl') {
   downloadStlBytes(buildSTL(parts), fileName);
 }
 
-/** Download the base and top as separate STL files. */
+/** Download the base and top as one archive with exactly two printable files. */
 export function downloadSTLSplit(parts: ClickerPart[], fileName = 'clicker.stl') {
   const stem = fileName.replace(/\.stl$/i, '') || 'clicker';
-  const groups: StlGroup[] = ['base', 'top'];
-
-  for (const group of groups) {
-    if (!parts.some((part) => part.group === group)) continue;
-    downloadStlBytes(buildSTLPart(parts, group), `${stem}-${group}.stl`);
-  }
+  const archive = zipSync({
+    'base.stl': buildSTLPart(parts, 'base'),
+    'top.stl': buildSTLPart(parts, 'top'),
+  }, { level: 6 });
+  const blob = new Blob([archive as unknown as BlobPart], { type: 'application/zip' });
+  const url = URL.createObjectURL(blob);
+  const a = getClickerDocument().createElement('a');
+  a.href = url;
+  a.download = `${stem}-stl.zip`;
+  getClickerDocument().body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 

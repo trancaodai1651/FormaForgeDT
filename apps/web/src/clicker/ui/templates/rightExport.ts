@@ -2,7 +2,7 @@ export const renderRightExport = () => `
   <div class="sidebar-sticky-footer">
     <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 8px;">
       <button class="primary" id="export" style="flex: 1; padding: 10px 4px; font-size: 13px;">Download 3MF</button>
-      <button class="primary" id="exportStl" style="flex: 1; padding: 10px 4px; font-size: 13px; background-color: #10b981; color: #ffffff; border: none;">Download STL (2 files)</button>
+      <button class="primary" id="exportStl" style="flex: 1; padding: 10px 4px; font-size: 13px; background-color: #10b981; color: #ffffff; border: none;">Download STL ZIP</button>
     </div>
     <div id="projectSettingsContainer">
       <div class="btn-row">

@@ -53,10 +53,76 @@ export function makeEgg(ctx: BuildContext, r: number) {
 }
 
 /**
- * Build a printable carrier with a continuous centre spine and repeated
- * vase/rib bands. The spine keeps the result one connected solid even when a
- * gap is requested; the bands control the visible side-to-side profile.
+ * Add connected, rounded ribs around an arbitrary 2D footprint.
+ *
+ * The old implementation built a row of transverse rectangles. That made a
+ * vase profile look like a fence and, when it was applied to the image plate,
+ * it replaced the artwork silhouette with a bounding rectangle. Ribs are now
+ * sampled from the actual outside contour, so the image/top footprint stays
+ * independent and only the lower carrier gets the scalloped edge.
  */
+export function ribbedProfile(
+  ctx: BuildContext,
+  source: any,
+  bandThickness: number,
+  bandGap: number,
+  waviness = 0,
+) {
+  const polygons = typeof source.toPolygons === 'function' ? source.toPolygons() : [];
+  const outer = polygons
+    .filter((ring: [number, number][]) => ring.length >= 3)
+    .sort((a: [number, number][], b: [number, number][]) => Math.abs(polygonArea(b)) - Math.abs(polygonArea(a)))[0];
+  if (!outer) return source;
+
+  const thickness = Math.max(0.8, Math.min(12, bandThickness));
+  const gap = Math.max(0, Math.min(16, bandGap));
+  const pitch = Math.max(0.8, thickness + gap);
+  const radius = thickness / 2;
+  const bounds = source.bounds();
+  const centerX = (bounds.min[0] + bounds.max[0]) / 2;
+  const centerY = (bounds.min[1] + bounds.max[1]) / 2;
+  const amplitude = Math.max(0, Math.min(Math.abs(waviness) * 0.24, radius * 0.8));
+
+  let result = source;
+  let distance = 0;
+  let ribCount = 0;
+  for (let index = 0; index < outer.length && ribCount < 320; index++) {
+    const a = outer[index];
+    const b = outer[(index + 1) % outer.length];
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const length = Math.hypot(dx, dy);
+    if (length < 0.001) continue;
+    const count = Math.max(1, Math.ceil(length / pitch));
+    const nx0 = a[0] - centerX;
+    const ny0 = a[1] - centerY;
+    const normalLength = Math.hypot(nx0, ny0) || 1;
+    const nx = nx0 / normalLength;
+    const ny = ny0 / normalLength;
+    for (let step = 0; step < count && ribCount < 320; step++) {
+      const t = (step + 0.5) / count;
+      const phase = (distance + length * t) / pitch;
+      const wobble = amplitude * Math.sin(phase * Math.PI * 2);
+      const cx = a[0] + dx * t + nx * wobble;
+      const cy = a[1] + dy * t + ny * wobble;
+      const rib = ctx.track(ctx.wasm.CrossSection.circle(radius, 24).translate([cx, cy]));
+      result = ctx.track(result.add(rib));
+      ribCount++;
+    }
+    distance += length;
+  }
+  return ctx.simp(ctx.track(result));
+}
+
+function polygonArea(ring: [number, number][]) {
+  let area = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    area += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+  }
+  return area / 2;
+}
+
+/** Build a rounded carrier with optional contour ribs. */
 export function vaseCarrier(
   ctx: BuildContext,
   width: number,
@@ -69,42 +135,11 @@ export function vaseCarrier(
   center: [number, number] = [0, 0],
   vertical = false,
 ) {
-  const safeWidth = Math.max(4, width);
-  const safeDepth = Math.max(4, depth);
-  const crossLength = vertical ? safeWidth : safeDepth;
-  const axisLength = vertical ? safeDepth : safeWidth;
-  const amplitude = profile === 'wavy'
-    ? Math.min(Math.max(0, waviness), Math.max(0, crossLength * 0.32))
-    : 0;
-  const bandCross = Math.max(4, crossLength - amplitude * 2);
-  const spineCross = Math.max(3, bandCross - Math.max(0.6, amplitude * 0.55));
-  const spine = roundedRect(
-    ctx,
-    vertical ? spineCross : axisLength,
-    vertical ? axisLength : spineCross,
-    Math.min(cornerRadius, spineCross / 2 - 0.05),
-  ).translate(center);
-
-  const thickness = Math.max(0.5, Math.min(axisLength, bandThickness));
-  const gap = Math.max(0, Math.min(axisLength, bandGap));
-  const pitch = Math.max(0.5, thickness + gap);
-  const count = Math.max(1, Math.ceil((axisLength + gap) / pitch));
-  let result = spine;
-  for (let index = 0; index < count; index++) {
-    const axis = -axisLength / 2 + thickness / 2 + index * pitch;
-    if (axis > axisLength / 2 + thickness / 2) break;
-    const normalized = count <= 1 ? 0.5 : index / Math.max(1, count - 1);
-    const crossOffset = amplitude * Math.sin(normalized * Math.PI * 2);
-    const band = roundedRect(
-      ctx,
-      vertical ? bandCross : thickness,
-      vertical ? thickness : bandCross,
-      Math.min(cornerRadius, thickness / 2 - 0.05, bandCross / 2 - 0.05),
-    ).translate([
-      center[0] + (vertical ? crossOffset : axis),
-      center[1] + (vertical ? axis : crossOffset),
-    ]);
-    result = ctx.track(result.add(band));
-  }
-  return ctx.track(result);
+  void vertical;
+  const core = roundedRect(ctx, Math.max(4, width), Math.max(4, depth), cornerRadius).translate(center);
+  return profile === 'wavy'
+    ? ribbedProfile(ctx, core, bandThickness, bandGap, waviness)
+    : profile === 'straight'
+      ? ribbedProfile(ctx, core, bandThickness, bandGap, 0)
+      : core;
 }

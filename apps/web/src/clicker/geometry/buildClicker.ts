@@ -1,7 +1,7 @@
 import type { BuildParams, BuildRegion, ClickerPart, PartGroup, Ring, RGB, SwitchPlacement } from '../types';
 import { BuildContext } from './buildContext';
 import { sectionIsEmpty, getRingArea, removeHoles, edgePointAt } from './geometry/sectionUtils';
-import { roundedRect, vaseCarrier, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
+import { roundedRect, ribbedProfile, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
 import { resolveSwitches } from './sizing/switchPlacement';
 import { createEdgeBevelBlock, applyEdges } from './modifiers/edgeBuilder';
 
@@ -62,39 +62,9 @@ export function buildClicker(
     plate = genShape(hi);
   }
 
-  // The image page uses the same base profile controls as Image + Blocks.
-  // Keep the straight option faithful to the source silhouette, make the
-  // rounded option adjustable, and use a connected ribbed carrier for Vase.
-  const baseStyle = params.hybridBaseStyle ?? 'rounded';
-  const baseRadius = Math.max(0.15, Math.min(14, params.hybridBaseCornerRadiusMm ?? 5));
-  if (baseStyle === 'rounded') {
-    plate = ctx.simp(ctx.track(plate
-      .offset(baseRadius, 'Round', 2, 48)
-      .offset(-baseRadius, 'Round', 2, 48)));
-  } else if (baseStyle === 'vase') {
-    const bounds = plate.bounds();
-    const width = Math.max(4, bounds.max[0] - bounds.min[0]);
-    const depth = Math.max(4, bounds.max[1] - bounds.min[1]);
-    const cx = (bounds.min[0] + bounds.max[0]) / 2;
-    const cy = (bounds.min[1] + bounds.max[1]) / 2;
-    const waviness = Math.max(0, Math.min(12, params.hybridVaseWavinessMm ?? 2.5));
-    const amplitude = params.hybridVaseProfile === 'wavy'
-      ? Math.min(waviness, Math.min(width, depth) * 0.32)
-      : 0;
-    plate = vaseCarrier(
-      ctx,
-      width + amplitude * 2,
-      depth + amplitude * 2,
-      baseRadius,
-      params.hybridVaseProfile === 'wavy' ? 'wavy' : 'straight',
-      amplitude,
-      Math.max(1, Math.min(12, params.hybridVaseThicknessMm ?? 3)),
-      Math.max(0, Math.min(16, params.hybridVaseGapMm ?? 2)),
-      [cx, cy],
-      false,
-    );
-  }
-
+  // `plate` is the top/image silhouette and must never be replaced by a
+  // bounding-box vase carrier. Base styling is applied later to the lower
+  // white body only; this keeps the imported artwork stable and printable.
   const imageArea = ctx.shrink(plate, border, plate, sectionIsEmpty);
   const fatImageArea = params.colorBleed > 0.001 ? ctx.grow(imageArea, params.colorBleed) : imageArea;
 
@@ -158,7 +128,35 @@ export function buildClicker(
     customBasePlate = ctx.simp(ctx.track(scaledBase.add(requiredCover)));
   }
 
-  const bodyFootprint = customBasePlate ? ctx.simp(customBasePlate) : ctx.simp(ctx.grow(wellFootprint, Math.max(0.4, params.borderWidth)));
+  const baseStyle = params.hybridBaseStyle ?? 'rounded';
+  const baseRadius = Math.max(0.15, Math.min(14, params.hybridBaseCornerRadiusMm ?? 5));
+  const baseSource = customBasePlate
+    ? ctx.simp(customBasePlate)
+    : ctx.simp(ctx.grow(plate, Math.max(0.4, params.borderWidth)));
+  let styledBase = baseSource;
+  try {
+    if (baseStyle === 'rounded') {
+      // Round only the lower white body. The imported top plate above remains
+      // the original traced silhouette and is never replaced by this profile.
+      styledBase = ctx.simp(ctx.track(baseSource
+        .offset(baseRadius, 'Round', 2, 32)
+        .offset(-baseRadius, 'Round', 2, 32)));
+    } else if (baseStyle === 'vase') {
+      styledBase = ribbedProfile(
+        ctx,
+        baseSource,
+        Math.max(1, Math.min(12, params.hybridVaseThicknessMm ?? 3)),
+        Math.max(0, Math.min(16, params.hybridVaseGapMm ?? 2)),
+        params.hybridVaseProfile === 'wavy' ? Math.max(0, Math.min(12, params.hybridVaseWavinessMm ?? 2.5)) : 0,
+      );
+    }
+  } catch (err) {
+    warnings.push(`base-profile-fallback err=${String(err)}`);
+    styledBase = baseSource;
+  }
+  // Switch wells remain covered even for concave/irregular artwork and for a
+  // custom lower-image footprint.
+  const bodyFootprint = ctx.simp(ctx.track(styledBase.add(wellFootprint)));
 
   // Tính toán Z Bound
   const cavityFloorZ = socketBB.max[2], slabBottomZ = stemBB.max[2];
@@ -214,16 +212,16 @@ export function buildClicker(
       let volume: any = null;
       const radialScaleAtHeight = (height: number): number => {
         if (profileType === 'cone') {
-        if (profileType === 'cone') {
           const coneT = Math.max(0, Math.min(1, height / Math.max(1e-6, totalHeight)));
           const sharpened = Math.pow(coneT, 1.18);
           const baseOverlapScale = 1.01;
-          const sharpConeTipScale = 0.02;
-          return Math.max(sharpConeTipScale, baseOverlapScale - (baseOverlapScale - sharpConeTipScale) * sharpened);
-        }
+          // A near-zero cone tip creates microscopic triangles and open/sliver
+          // faces in slicers. Keep a small, printable flat at the apex.
+          const safeConeTipScale = 0.12;
+          return Math.max(safeConeTipScale, baseOverlapScale - (baseOverlapScale - safeConeTipScale) * sharpened);
         }
         const t = Math.max(0, Math.min(1, height / Math.max(1e-6, totalHeight)));
-        return Math.max(domeTipScale, Math.sqrt(Math.max(0, 1 - t * t)));
+        return Math.max(0.08, Math.sqrt(Math.max(0, 1 - t * t)));
       };
 
       for (let sliceIndex = 0; sliceIndex < sliceCount; sliceIndex++) {
