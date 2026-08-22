@@ -203,32 +203,42 @@ export function buildClicker(
       }
       if (!hasArea || maxRadius <= 0 || flatHeight < 0 || profileHeight <= 0) return makeEmpty();
       const centered = ctx.track(cs.translate([-cx, -cy]));
-      const totalHeight = flatHeight + profileHeight;
-      const coneTipScale = 0.01;
+      const coneTipScale = 0.12;
       const domeTipScale = 0.01;
       const place = (solid: any, zOffset: number) => ctx.track(solid.translate([cx, cy, z + zOffset]));
 
-      const sliceCount = Math.max(14, Math.min(36, Math.ceil(totalHeight * 4)));
+      // Keep the backing/image layer vertical. The profile must begin at its
+      // top surface; tapering from z=0 made a cone narrow through the plate
+      // itself and left an overhanging/coplanar edge where it met the base.
+      const flatLayerCount = flatHeight > 0.001
+        ? Math.max(1, Math.min(16, Math.ceil(flatHeight * 4)))
+        : 0;
+      const profileLayerCount = Math.max(14, Math.min(36, Math.ceil(profileHeight * 4)));
+      const layerBoundaries = [0];
+      for (let index = 1; index <= flatLayerCount; index++) {
+        layerBoundaries.push(flatHeight * index / flatLayerCount);
+      }
+      for (let index = 1; index <= profileLayerCount; index++) {
+        layerBoundaries.push(flatHeight + profileHeight * index / profileLayerCount);
+      }
+
       let volume: any = null;
       const radialScaleAtHeight = (height: number): number => {
+        if (height <= flatHeight + 1e-6) return 1;
+        const profileT = Math.max(0, Math.min(1, (height - flatHeight) / Math.max(1e-6, profileHeight)));
         if (profileType === 'cone') {
-          const coneT = Math.max(0, Math.min(1, height / Math.max(1e-6, totalHeight)));
-          const sharpened = Math.pow(coneT, 1.18);
-          const baseOverlapScale = 1.01;
           // A near-zero cone tip creates microscopic triangles and open/sliver
           // faces in slicers. Keep a small, printable flat at the apex.
-          const safeConeTipScale = 0.12;
-          return Math.max(safeConeTipScale, baseOverlapScale - (baseOverlapScale - safeConeTipScale) * sharpened);
+          const sharpened = Math.pow(profileT, 1.18);
+          return Math.max(coneTipScale, 1 - (1 - coneTipScale) * sharpened);
         }
-        const t = Math.max(0, Math.min(1, height / Math.max(1e-6, totalHeight)));
+        const t = profileT;
         return Math.max(0.08, Math.sqrt(Math.max(0, 1 - t * t)));
       };
 
-      for (let sliceIndex = 0; sliceIndex < sliceCount; sliceIndex++) {
-        const t0 = sliceIndex / sliceCount;
-        const t1 = (sliceIndex + 1) / sliceCount;
-        const z0 = totalHeight * t0;
-        const z1 = totalHeight * t1;
+      for (let sliceIndex = 0; sliceIndex < layerBoundaries.length - 1; sliceIndex++) {
+        const z0 = layerBoundaries[sliceIndex];
+        const z1 = layerBoundaries[sliceIndex + 1];
         const scale0 = radialScaleAtHeight(z0);
         const scale1 = radialScaleAtHeight(z1);
         const layerHeight = Math.max(0.001, z1 - z0);
