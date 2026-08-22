@@ -1,6 +1,24 @@
 import { ASSET_BASE } from '../constants';
 import { tip } from '../helpers';
-import { clickerText as tx } from '../../i18n';
+import { clickerText } from '../../i18n';
+
+const tx = (english: string, vietnamese: string): string => {
+  const viOverrides: Record<string, string> = {
+    'Base profile': 'Ki\u1ec3u d\u00e1ng base',
+    'Straight': 'Th\u1eb3ng',
+    'Rounded': 'Bo tr\u00f2n',
+    'Vase / ribbed': 'Vase / g\u00e2n',
+    'Image base profile': 'Ki\u1ec3u base h\u00ecnh \u1ea3nh',
+    'Base corner radius': 'B\u00e1n k\u00ednh bo g\u00f3c base',
+    'Vase path': 'Ki\u1ec3u vase',
+    'Straight bands': 'Vase th\u1eb3ng',
+    'Wavy bands': 'Vase u\u1ed1n l\u01b0\u1ee3n',
+    'Vase waviness': 'M\u1ee9c \u0111\u1ed9 u\u01b0\u1ee3n l\u01b0\u1ee3n',
+    'Vase thickness': '\u0110\u1ed9 d\u00e0y vase',
+    'Vase gap': 'Kho\u1ea3ng c\u00e1ch gi\u1eefa vase',
+  };
+  return clickerText(english, viOverrides[english] ?? vietnamese);
+};
 
 export const renderLeftSidebar = () => `
   <div class="app-header">
