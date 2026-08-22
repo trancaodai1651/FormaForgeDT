@@ -283,15 +283,52 @@ export function buildClicker(
   let placedFootprint2D: any = null;
   const holesByLevel = new Map<number, any>();
 
+  // A single-material image should be one continuous solid. Anti-aliased
+  // source pixels can otherwise become many tiny traced regions; intersecting
+  // and subtracting those regions one by one creates coplanar seams that show
+  // up as white/yellow "acne" in the viewer and in slicers. Collapse only
+  // regions that resolve to the same material and the same extrusion level so
+  // intentional multi-colour or multi-height artwork stays untouched.
+  const colorDistanceSq = (a: RGB, b: RGB) => (
+    (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+  );
+  const componentLevel = (r: BuildRegion) => params.componentHeights?.[r.partName] ?? 0;
+  const monoReference = regions.length > 0
+    ? regions.reduce((best, current) => (current.coverage > best.coverage ? current : best))
+    : null;
+  const monoLevel = monoReference ? componentLevel(monoReference) : 0;
+  const useSolidMonochromeTop = Boolean(
+    monoReference
+    && regions.every((r) => (
+      colorDistanceSq(r.filamentRgb, monoReference.filamentRgb) <= 9
+      && Math.abs(componentLevel(r) - monoLevel) <= 0.0001
+    )),
+  );
+  const geometryRegions: BuildRegion[] = useSolidMonochromeTop && monoReference
+    ? [{
+        filamentRgb: monoReference.filamentRgb,
+        coverage: 1,
+        rings: [],
+        partName: 'top-color-mono',
+      }]
+    : regions;
+
   // --- Tạo Các Mảng Màu (Inlays) ---
-  for (const { r } of regions.map(r => ({ r })).sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1))) {
-    const validRings = scaleRings(r.rings).filter(ring => ring.length >= 3 && Math.abs(getRingArea(ring)) > MIN_AREA);
-    if (validRings.length === 0) continue;
+  for (const { r } of geometryRegions.map(r => ({ r })).sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1))) {
+    let fp: any;
+    if (useSolidMonochromeTop) {
+      // Use the already-clean silhouette instead of re-tracing its individual
+      // colour components. This produces one watertight top and one matching
+      // cavity, with no coincident internal walls.
+      fp = ctx.simp(ctx.track(fatImageArea.intersect(plate)));
+    } else {
+      const validRings = scaleRings(r.rings).filter(ring => ring.length >= 3 && Math.abs(getRingArea(ring)) > MIN_AREA);
+      if (validRings.length === 0) continue;
 
-    let baseCs = ctx.simp(ctx.track(new ctx.wasm.CrossSection(validRings, 'NonZero')));
-    let fatCs = params.colorBleed > 0.001 ? ctx.grow(baseCs, params.colorBleed) : baseCs;
-
-    let fp = ctx.simp(ctx.track(fatCs.intersect(fatImageArea)));
+      const baseCs = ctx.simp(ctx.track(new ctx.wasm.CrossSection(validRings, 'NonZero')));
+      const fatCs = params.colorBleed > 0.001 ? ctx.grow(baseCs, params.colorBleed) : baseCs;
+      fp = ctx.simp(ctx.track(fatCs.intersect(fatImageArea)));
+    }
 
     if (sectionIsEmpty(fp)) continue;
 
@@ -309,7 +346,7 @@ export function buildClicker(
       ? ctx.simp(ctx.track(placedFootprint2D.add(cutFp)))
       : cutFp;
 
-    const level = params.componentHeights?.[r.partName] ?? 0;
+    const level = useSolidMonochromeTop ? monoLevel : componentLevel(r);
     const heightShift = level * params.stepHeight;
     const bottomZ = imageBottomZ + Math.min(0, heightShift);
 

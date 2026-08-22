@@ -17,8 +17,10 @@ export function sanitizeMesh(part: ClickerPart): ClickerPart {
 
   let vertCount = 0;
 
-  // Làm tròn tuyệt đối 3 chữ số thập phân (0.001 mm)
-  const r = (val: number) => Math.round(val * 1000) / 1000;
+  // Keep sub-micron geometry details while still coalescing the tiny floating
+  // point differences produced by boolean operations. The previous 0.001 mm
+  // rounding visibly flattened fine image contours in exported meshes.
+  const r = (val: number) => Math.round(val * 1e5) / 1e5;
   const sourceVertexCount = Math.floor(vp.length / np);
   const MIN_CROSS_LENGTH_SQ = 1e-12;
 

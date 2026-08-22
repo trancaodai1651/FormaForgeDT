@@ -4,7 +4,9 @@ import { zipSync, strToU8 } from 'fflate';
 import type { ClickerPart, PartGroup, RGB } from '../types';
 import { sanitizeMesh, groupBBox } from './meshUtils';
 
-const f = (n: number): string => String(Math.round(n * 1e4) / 1e4);
+// 3MF stores coordinates as text. Keep the same high precision as the mesh
+// sanitizer instead of reducing every vertex to 0.0001 mm on export.
+const f = (n: number): string => String(Math.round(n * 1e5) / 1e5);
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
