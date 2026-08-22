@@ -8,27 +8,35 @@ import type { ClickerPart, PartGroup } from '../types';
 export function sanitizeMesh(part: ClickerPart): ClickerPart {
   const vp = part.vertProperties;
   const tv = part.triVerts;
-  const np = part.numProp;
+  const np = Math.max(3, part.numProp);
 
   const newVp: number[] = [];
   const newTv: number[] = [];
   const vertexMap = new Map<string, number>();
+  const faceMap = new Set<string>();
 
   let vertCount = 0;
 
   // Làm tròn tuyệt đối 3 chữ số thập phân (0.001 mm)
   const r = (val: number) => Math.round(val * 1000) / 1000;
+  const sourceVertexCount = Math.floor(vp.length / np);
+  const MIN_CROSS_LENGTH_SQ = 1e-12;
 
-  for (let i = 0; i < tv.length; i += 3) {
-    const i1 = tv[i] * np;
-    const i2 = tv[i + 1] * np;
-    const i3 = tv[i + 2] * np;
+  for (let i = 0; i + 2 < tv.length; i += 3) {
+    const sourceIndices = [tv[i], tv[i + 1], tv[i + 2]];
+    if (!sourceIndices.every((index) => Number.isInteger(index) && index >= 0 && index < sourceVertexCount)) continue;
 
-    if (i1 >= vp.length || i2 >= vp.length || i3 >= vp.length) continue;
+    const i1 = sourceIndices[0] * np;
+    const i2 = sourceIndices[1] * np;
+    const i3 = sourceIndices[2] * np;
+
+    if (i1 + 2 >= vp.length || i2 + 2 >= vp.length || i3 + 2 >= vp.length) continue;
 
     const v1 = [r(vp[i1]), r(vp[i1 + 1]), r(vp[i1 + 2])];
     const v2 = [r(vp[i2]), r(vp[i2 + 1]), r(vp[i2 + 2])];
     const v3 = [r(vp[i3]), r(vp[i3 + 1]), r(vp[i3 + 2])];
+
+    if (![...v1, ...v2, ...v3].every(Number.isFinite)) continue;
 
     const key1 = `${v1[0]},${v1[1]},${v1[2]}`;
     const key2 = `${v2[0]},${v2[1]},${v2[2]}`;
@@ -36,6 +44,21 @@ export function sanitizeMesh(part: ClickerPart): ClickerPart {
 
     // Bỏ qua các tam giác lỗi, diện tích bằng 0
     if (key1 === key2 || key2 === key3 || key3 === key1) continue;
+
+    const abx = v2[0] - v1[0];
+    const aby = v2[1] - v1[1];
+    const abz = v2[2] - v1[2];
+    const acx = v3[0] - v1[0];
+    const acy = v3[1] - v1[1];
+    const acz = v3[2] - v1[2];
+    const crossX = aby * acz - abz * acy;
+    const crossY = abz * acx - abx * acz;
+    const crossZ = abx * acy - aby * acx;
+    if (crossX * crossX + crossY * crossY + crossZ * crossZ < MIN_CROSS_LENGTH_SQ) continue;
+
+    const faceKey = [key1, key2, key3].sort().join('|');
+    if (faceMap.has(faceKey)) continue;
+    faceMap.add(faceKey);
 
     let newIdx1 = vertexMap.get(key1);
     if (newIdx1 === undefined) {

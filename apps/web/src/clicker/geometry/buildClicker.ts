@@ -278,7 +278,10 @@ export function buildClicker(
   }
 
   const capTopZ = slabTopZ + (profile === 'flat' ? 0 : pHeight);
-  let placedHole2D: any = null; 
+  // Track the footprint actually used by the inlay. The previous version
+  // tracked the unexpanded source region while rendering the color-bleed
+  // region, leaving overlapping walls between each inlay and top-base.
+  let placedFootprint2D: any = null;
   const holesByLevel = new Map<number, any>();
 
   // --- Tạo Các Mảng Màu (Inlays) ---
@@ -290,17 +293,22 @@ export function buildClicker(
     let fatCs = params.colorBleed > 0.001 ? ctx.grow(baseCs, params.colorBleed) : baseCs;
 
     let fp = ctx.simp(ctx.track(fatCs.intersect(fatImageArea)));
-    let holeFp = ctx.simp(ctx.track(baseCs.intersect(imageArea)));
 
     if (sectionIsEmpty(fp)) continue;
 
-    if (placedHole2D) {
-      fp = ctx.simp(ctx.track(fp.subtract(placedHole2D)));
-      holeFp = ctx.simp(ctx.track(holeFp.subtract(placedHole2D)));
+    if (placedFootprint2D) {
+      fp = ctx.simp(ctx.track(fp.subtract(placedFootprint2D)));
     }
     if (sectionIsEmpty(fp)) continue;
 
-    placedHole2D = placedHole2D ? ctx.simp(ctx.track(placedHole2D.add(holeFp))) : holeFp;
+    // A small clearance makes the exported base cut robust against coplanar
+    // boolean faces. It is below normal printer resolution and avoids the
+    // duplicate-wall/spike artifacts seen in slicer previews.
+    const cutFp = ctx.simp(ctx.track(ctx.grow(fp, 0.02).intersect(plate)));
+    if (sectionIsEmpty(cutFp)) continue;
+    placedFootprint2D = placedFootprint2D
+      ? ctx.simp(ctx.track(placedFootprint2D.add(cutFp)))
+      : cutFp;
 
     const level = params.componentHeights?.[r.partName] ?? 0;
     const heightShift = level * params.stepHeight;
@@ -329,7 +337,7 @@ export function buildClicker(
       if (radius >= 0.05) { const modBlock = createEdgeBevelBlock(ctx, fp, radius, eStyle, topZ, false); if (modBlock) inlay = ctx.track(inlay.subtract(modBlock)); }
     }
     parts.push(toPart(inlay, 'cap', 'top', r.filamentRgb, r.partName));
-    holesByLevel.set(level, holesByLevel.get(level) ? ctx.track(holesByLevel.get(level).add(holeFp)) : holeFp);
+    holesByLevel.set(level, holesByLevel.get(level) ? ctx.track(holesByLevel.get(level).add(cutFp)) : cutFp);
   }
 
   // --- Khắc rãnh trên khối nền chính ---
@@ -369,7 +377,7 @@ export function buildClicker(
 
   // --- 6. Đúc Mảng Màu Hạt Cà Phê ---
   if (params.bottomRegions && params.bottomRegions.length > 0 && customBasePlate) {
-    let placedBottomHole2D: any = null;
+    let placedBottomFootprint2D: any = null;
 
     for (const { r } of params.bottomRegions.map(r => ({ r })).sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1))) {
       const validRings = scaleRings(r.rings).filter(ring => ring.length >= 3 && Math.abs(getRingArea(ring)) > MIN_AREA);
@@ -396,17 +404,19 @@ export function buildClicker(
       }
 
       let fp = ctx.track(fatCs.subtract(wellFootprint));
-      let holeFp = ctx.track(baseCs.subtract(wellFootprint));
 
       if (sectionIsEmpty(fp)) continue;
 
-      if (placedBottomHole2D) {
-        fp = ctx.track(fp.subtract(placedBottomHole2D));
-        holeFp = ctx.track(holeFp.subtract(placedBottomHole2D));
+      if (placedBottomFootprint2D) {
+        fp = ctx.track(fp.subtract(placedBottomFootprint2D));
       }
       if (sectionIsEmpty(fp)) continue;
 
-      placedBottomHole2D = placedBottomHole2D ? ctx.track(placedBottomHole2D.add(holeFp)) : holeFp;
+      const cutFp = ctx.simp(ctx.track(ctx.grow(fp, 0.02).intersect(bodyFootprint)));
+      if (sectionIsEmpty(cutFp)) continue;
+      placedBottomFootprint2D = placedBottomFootprint2D
+        ? ctx.track(placedBottomFootprint2D.add(cutFp))
+        : cutFp;
 
       const level = params.componentHeights?.[r.partName] ?? 0;
       const heightShift = level * params.stepHeight;
@@ -416,7 +426,7 @@ export function buildClicker(
       let inlay = ctx.extrudeAt(fp, topZ - bottomZ, bottomZ, sectionIsEmpty);
       if (!inlay.isEmpty()) {
         parts.push(toPart(inlay, 'body', 'base', r.filamentRgb, r.partName));
-        body = ctx.track(body.subtract(ctx.extrudeAt(holeFp, topZ - bottomZ + 0.01, bottomZ - 0.01, sectionIsEmpty)));
+        body = ctx.track(body.subtract(ctx.extrudeAt(cutFp, topZ - bottomZ + 0.01, bottomZ - 0.01, sectionIsEmpty)));
       }
     }
   }

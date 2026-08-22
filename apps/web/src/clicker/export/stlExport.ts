@@ -5,6 +5,36 @@ import type { ClickerPart } from '../types';
 import { sanitizeMesh, groupBBox } from './meshUtils';
 
 export type StlGroup = 'base' | 'top';
+type StlVertex = [number, number, number];
+
+function writeStlTriangle(view: DataView, offset: number, v1: StlVertex, v2: StlVertex, v3: StlVertex) {
+  const abx = v2[0] - v1[0];
+  const aby = v2[1] - v1[1];
+  const abz = v2[2] - v1[2];
+  const acx = v3[0] - v1[0];
+  const acy = v3[1] - v1[1];
+  const acz = v3[2] - v1[2];
+  const nx = aby * acz - abz * acy;
+  const ny = abz * acx - abx * acz;
+  const nz = abx * acy - aby * acx;
+  const length = Math.hypot(nx, ny, nz);
+  const normal = length > 1e-12 ? [nx / length, ny / length, nz / length] : [0, 0, 0];
+
+  view.setFloat32(offset, normal[0], true);
+  view.setFloat32(offset + 4, normal[1], true);
+  view.setFloat32(offset + 8, normal[2], true);
+  offset += 12;
+
+  for (const vertex of [v1, v2, v3]) {
+    view.setFloat32(offset, vertex[0], true);
+    view.setFloat32(offset + 4, vertex[1], true);
+    view.setFloat32(offset + 8, vertex[2], true);
+    offset += 12;
+  }
+
+  view.setUint16(offset, 0, true);
+  return offset + 2;
+}
 
 export function buildSTL(rawParts: ClickerPart[]): Uint8Array {
   // Äi qua bá»™ lá»c lÃ m sáº¡ch lÆ°á»›i 3D
@@ -62,7 +92,7 @@ export function buildSTL(rawParts: ClickerPart[]): Uint8Array {
       const idx2 = tv[i + 1] * np;
       const idx3 = tv[i + 2] * np;
 
-      const getVertex = (idx: number) => {
+      const getVertex = (idx: number): StlVertex => {
         let x = vp[idx];
         let y = vp[idx + 1];
         let z = vp[idx + 2] - minZ;
@@ -79,28 +109,7 @@ export function buildSTL(rawParts: ClickerPart[]): Uint8Array {
       const v2 = getVertex(idx2);
       const v3 = getVertex(idx3);
 
-      view.setFloat32(offset, 0, true);
-      view.setFloat32(offset + 4, 0, true);
-      view.setFloat32(offset + 8, 0, true);
-      offset += 12;
-
-      view.setFloat32(offset, v1[0], true);
-      view.setFloat32(offset + 4, v1[1], true);
-      view.setFloat32(offset + 8, v1[2], true);
-      offset += 12;
-
-      view.setFloat32(offset, v2[0], true);
-      view.setFloat32(offset + 4, v2[1], true);
-      view.setFloat32(offset + 8, v2[2], true);
-      offset += 12;
-
-      view.setFloat32(offset, v3[0], true);
-      view.setFloat32(offset + 4, v3[1], true);
-      view.setFloat32(offset + 8, v3[2], true);
-      offset += 12;
-
-      view.setUint16(offset, 0, true);
-      offset += 2;
+      offset = writeStlTriangle(view, offset, v1, v2, v3);
     }
   }
 
@@ -146,7 +155,7 @@ export function buildSTLPart(rawParts: ClickerPart[], group: StlGroup): Uint8Arr
     const tv = part.triVerts;
     const np = part.numProp;
 
-    const getVertex = (vertexIndex: number) => {
+    const getVertex = (vertexIndex: number): StlVertex => {
       const index = vertexIndex * np;
       const sourceX = vp[index];
       const sourceY = vp[index + 1];
@@ -166,20 +175,7 @@ export function buildSTLPart(rawParts: ClickerPart[], group: StlGroup): Uint8Arr
       const v2 = getVertex(tv[i + 1]);
       const v3 = getVertex(tv[i + 2]);
 
-      view.setFloat32(offset, 0, true);
-      view.setFloat32(offset + 4, 0, true);
-      view.setFloat32(offset + 8, 0, true);
-      offset += 12;
-
-      for (const vertex of [v1, v2, v3]) {
-        view.setFloat32(offset, vertex[0], true);
-        view.setFloat32(offset + 4, vertex[1], true);
-        view.setFloat32(offset + 8, vertex[2], true);
-        offset += 12;
-      }
-
-      view.setUint16(offset, 0, true);
-      offset += 2;
+      offset = writeStlTriangle(view, offset, v1, v2, v3);
     }
   }
 
