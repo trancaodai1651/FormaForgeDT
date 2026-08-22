@@ -21,4 +21,4 @@ $env:HUNYUAN3D_PYTHON = 'python'
 corepack pnpm dev:desktop
 ```
 
-The Hunyuan3D page checks for `gradio_app.py`, the `hy3dshape` folder and the configured Python executable, then starts the upstream Gradio workspace with its documented model arguments. The model files and GPU workload stay on the desktop machine.
+The Hunyuan3D page checks for `gradio_app.py`, the `hy3dshape` folder, the configured Python executable and detected GPU memory before launch. FormaForge blocks detected GPUs below 4 GB VRAM to avoid an out-of-memory crash. Between 4 and 8 GB it starts the upstream Gradio workspace with `--low_vram_mode`, conservative PyTorch allocator settings and reduced CPU thread limits; this is intentionally slower but safer. The model files and GPU workload stay on the desktop machine.

@@ -305,7 +305,56 @@ export function buildHybridClicker(
       .translate([0, 0, keychainBottomZ - 1]));
     badgeBody = ctx.track(badgeBody.add(tabSolid).subtract(hole));
   }
-  const mergedBody = ctx.track(badgeBody.add(carrier));
+
+  // Optional lower image base. Image + Blocks uses the same bottom-image
+  // workflow as Image mode, but the lower silhouette is built as a separate
+  // layer below the imported head so it cannot change the head thickness or
+  // bury the carrier. The union with badgeSection guarantees full coverage
+  // even when the uploaded bottom image is slightly smaller than the top.
+  let mergedBody = ctx.track(badgeBody.add(carrier));
+  if (params.bottomOutline?.length) {
+    const bottomBounds = ringBounds(params.bottomOutline);
+    if (bottomBounds.width > 0.01 && bottomBounds.height > 0.01) {
+      const bottomScale = imageSize / Math.max(bottomBounds.width, bottomBounds.height);
+      const bottomCenterX = (bottomBounds.minX + bottomBounds.maxX) / 2;
+      const bottomCenterY = (bottomBounds.minY + bottomBounds.maxY) / 2;
+      const bottomRings = params.bottomOutline
+        .filter((ring) => ring.length >= 3 && Math.abs(getRingArea(ring)) > 0.0001)
+        .map((ring) => ring.map(([x, y]) => [
+          (x - bottomCenterX) * bottomScale,
+          (y - bottomCenterY) * bottomScale,
+        ] as [number, number]));
+      if (bottomRings.length) {
+        let bottomSection = ctx.track(new wasm.CrossSection(bottomRings, 'NonZero'));
+        const expandPercent = clamp(params.bottomExpandPercent, 0, 100, 22);
+        if (expandPercent > 0.001) {
+          const factor = 1 + expandPercent / 100;
+          bottomSection = ctx.track(bottomSection.scale([factor, factor]));
+        }
+        if (Math.abs(params.bottomRotation ?? 0) > 0.001) {
+          bottomSection = ctx.track(bottomSection.rotate(params.bottomRotation));
+        }
+        if (Math.abs(params.bottomOffsetX ?? 0) > 0.001 || Math.abs(params.bottomOffsetY ?? 0) > 0.001) {
+          bottomSection = ctx.track(bottomSection.translate([
+            params.bottomOffsetX ?? 0,
+            params.bottomOffsetY ?? 0,
+          ]));
+        }
+        const bottomPadding = clamp(params.bottomPaddingMm, 0, 12, 1.2);
+        if (bottomPadding > 0.001) {
+          // Keep this as a real silhouette offset, independent from the
+          // percentage expansion control, so Image + Blocks has its own base
+          // margin just like the top image plate.
+          bottomSection = ctx.track(bottomSection.offset(bottomPadding, 'Round', 2, 32));
+        }
+        bottomSection = ctx.simp(ctx.track(bottomSection.add(badgeSection)));
+        const bottomThickness = Math.max(0.8, Math.min(6, baseThickness * 0.45));
+        const lowerBase = ctx.track(wasm.Manifold.extrude(bottomSection, bottomThickness)
+          .translate([0, 0, -baseThickness - bottomThickness]));
+        mergedBody = ctx.track(mergedBody.add(lowerBase));
+      }
+    }
+  }
   const imageHeadTop = imageTopZ;
   // The imported image is the flat-keychain plate in Image + Blocks mode.
   // Keep the plate itself flat and switch-free. Image colour layers start at

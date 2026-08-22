@@ -72,7 +72,8 @@ export const renderRightImport = () => `
       </div>
 
       <div class="section" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-        <span class="label">${tx('Custom Base Shape (optional)', 'Hình dạng base tùy chỉnh (không bắt buộc)')}</span>
+        <span class="label">${tx('Lower image base (Image + Blocks)', 'Base dạng ảnh phía dưới (Image + Blocks)')}</span>
+        <p class="hint-text" style="margin: 4px 0 10px;">${tx('Use the same silhouette workflow in Image and Image + Blocks. The lower base automatically wraps the top image.', 'Dùng chung cho Image và Image + Blocks. Base dưới sẽ tự động bao phủ hình ảnh phía trên.')}</p>
         <div class="tabs" style="margin-bottom: 12px;">
           <button id="tab-base-match" class="tab active" type="button">${tx('Match Top', 'Theo hình phía trên')}</button>
           <button id="tab-base-custom" class="tab" type="button">${tx('Custom Image', 'Hình tùy chỉnh')}</button>
@@ -85,7 +86,7 @@ export const renderRightImport = () => `
           </div>
           <input type="file" id="file-bottom" accept="image/*" hidden />
 
-          <div class="switch-row" style="margin-top: 10px;">
+          <div class="switch-row" id="bottom-solid-row" style="margin-top: 10px;">
             <span class="switch-label" style="font-size: 12px;">${tx('Solid Base', 'Base đặc')} ${tip(tx('Keep only the base silhouette and remove the colored artwork regions on the base.', 'Chỉ giữ silhouette của base và loại bỏ các mảng màu hình ảnh trên base.'))}</span>
             <label class="toggle"><input id="bottomSolidOnly" type="checkbox" /><span class="slider"></span></label>
           </div>
@@ -96,6 +97,14 @@ export const renderRightImport = () => `
               <input type="text" class="val" id="baseExpandVal" value="22%" />
             </div>
             <input type="range" id="baseExpand" min="0" max="100" step="1" value="22" />
+          </div>
+
+          <div class="prow-stacked" style="margin-top:12px;">
+            <div class="prow-header">
+              <label for="basePadding">${tx('Base image padding', 'Độ đệm ảnh base')} ${tip(tx('Add a separate printable margin around the lower image. This is independent from the top image margin.', 'Thêm viền in riêng quanh ảnh base phía dưới, độc lập với độ đệm ảnh phía trên.'))}</label>
+              <input type="text" class="val" id="basePaddingVal" value="1.2 mm" />
+            </div>
+            <input type="range" id="basePadding" min="0" max="12" step="0.1" value="1.2" />
           </div>
 
           <div style="margin-top:12px;">

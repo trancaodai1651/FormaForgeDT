@@ -1,0 +1,82 @@
+/* FormaForge readability baseline.
+   Keep the visual system intact while giving labels and utility text enough
+   size for normal desktop, tablet, and mobile reading distances. */
+html { font-size: 17px; }
+body { font-size: 1rem; }
+
+.tahoe-ui :where(.eyebrow, .studio-status, .admin-badge, .admin-tool-session,
+  .admin-tool-status, .admin-studio-kicker, .admin-studio-session,
+  .price-reader-back, .price-reader-source-badge, .price-reader-live) {
+  font-size: 11px;
+}
+
+.tahoe-ui :where(.wordmark, .cart-link) { font-size: 12px; }
+.tahoe-ui :where(.wordmark em) { font-size: 9px; }
+.tahoe-ui :where(.nav-links a, .glass-button, .text-link, .filter) { font-size: 13px; }
+.tahoe-ui :where(.muted) { font-size: .9rem; }
+.tahoe-ui :where(.product-card p, .collection-row p, .detail-copy > p,
+  .detail-notes p, .panel-section > label, .toggle-row,
+  .admin-tool-title-row p, .admin-tool-directory-heading p,
+  .price-reader-extension-card > p, .price-reader-import-card input,
+  .price-reader-muted, .price-reader-warning, .price-reader-empty p,
+  .price-reader-error p) {
+  font-size: 14px;
+}
+
+.tahoe-ui :where(.card-index, .detail-facts span, .admin-tool-directory-copy small,
+  .price-reader-error small, .price-reader-supported) {
+  font-size: 11px;
+}
+
+.tahoe-ui :where(.admin-tool-switcher a, .admin-tool-directory-copy strong,
+  .price-reader-extension-download, .price-reader-section-heading h3) {
+  font-size: 13px;
+}
+
+.tahoe-ui :where(.price-reader-product-facts, .price-reader-table-head,
+  .price-reader-table-row small, .price-reader-promotions p) {
+  font-size: 11px;
+}
+
+.tahoe-ui :where(.flex-lamp-panel-brand small, .flex-lamp-select > span,
+  .flex-lamp-chooser-brand span, .flex-lamp-chooser-session,
+  .flex-lamp-chooser-content > p, .flex-lamp-upload small,
+  .flex-lamp-image-card small, .flex-lamp-range > span,
+  .flex-lamp-imported-state, .flex-lamp-model-callout,
+  .flex-lamp-result-hint, .flex-lamp-material-select > span,
+  .flex-lamp-color-field > span) {
+  font-size: 12px;
+}
+
+.tahoe-ui :where(.flex-lamp-confirm, .flex-lamp-view-tabs button,
+  .flex-lamp-pattern-grid button, .flex-lamp-upload b,
+  .flex-lamp-export button) {
+  font-size: 13px;
+}
+
+.tahoe-ui :where(.module-section-title > div > span, .module-live,
+  .module-sketch-card > p, .module-hardware-note, .module-viewport-top span,
+  .module-viewport-toolbar button, .module-drag-hint, .module-text-field > span,
+  .module-two-fields span, .module-range > span, .module-validation p) {
+  font-size: 11px;
+}
+
+.tahoe-ui :where(.module-section-title strong, .module-open-sketch,
+  .module-preset-row button, .module-library-grid button,
+  .module-library-open strong, .module-list-copy strong,
+  .module-hardware-options strong, .module-text-field input,
+  .module-two-fields select, .module-mobile-tabs button) {
+  font-size: 12px;
+}
+
+.tahoe-ui :where(.admin-order-grid small, .admin-product-grid small,
+  .admin-order-grid select, .admin-product-grid > span,
+  .admin-metric span, .admin-tool-page-meta .eyebrow,
+  .admin-tool-page-meta small) {
+  font-size: 11px;
+}
+
+@media (max-width: 680px) {
+  html { font-size: 16px; }
+  .tahoe-ui :where(.nav-links a, .glass-button, .text-link, .filter) { font-size: 14px; }
+}

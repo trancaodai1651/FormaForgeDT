@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Cpu, Download, ExternalLink, Info, Play, RefreshCw, ShieldCheck, Terminal, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Cpu, Download, ExternalLink, Gauge, Info, Play, RefreshCw, ShieldCheck, Terminal, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminGuard } from './AdminGuard';
@@ -13,6 +13,11 @@ type HunyuanStatus = {
   repositoryFound: boolean;
   home: string | null;
   pythonVersion: string | null;
+  vramMb: number | null;
+  vramSource: string | null;
+  vramOk: boolean;
+  safeMode: boolean;
+  minimumVramMb: number;
   message: string;
 };
 
@@ -90,8 +95,9 @@ function Hunyuan3DWorkspace() {
         <article className="hunyuan3d-status-card"><span><Cpu size={15} />{t('admin.hunyuan3dEngineStatus')}</span><strong className={status?.configured ? 'ready' : 'warning'}>{status?.configured ? t('admin.hunyuan3dReady') : t('admin.hunyuan3dNeedsSetup')}</strong><small>{status?.message || t('admin.hunyuan3dChecking')}</small></article>
         <article className="hunyuan3d-status-card"><span><Terminal size={15} />{t('admin.hunyuan3dPython')}</span><strong className={status?.pythonFound ? 'ready' : 'warning'}>{status?.pythonFound ? (status.pythonVersion || t('admin.hunyuan3dDetected')) : t('admin.hunyuan3dNotDetected')}</strong><small>{t('admin.hunyuan3dPythonHint')}</small></article>
         <article className="hunyuan3d-status-card"><span><CheckCircle2 size={15} />{t('admin.hunyuan3dRepository')}</span><strong className={status?.repositoryFound ? 'ready' : 'warning'}>{status?.repositoryFound ? t('admin.hunyuan3dDetected') : t('admin.hunyuan3dNotDetected')}</strong><small>{status?.home || t('admin.hunyuan3dHomeHint')}</small></article>
+        <article className="hunyuan3d-status-card"><span><Gauge size={15} />{t('admin.hunyuan3dVram')}</span><strong className={status?.vramOk === false ? 'warning' : status ? 'ready' : 'warning'}>{status?.vramMb == null ? t('admin.hunyuan3dVramUnknown') : `${(status.vramMb / 1024).toFixed(1)} GB`}</strong><small>{status ? (status.vramOk === false ? t('admin.hunyuan3dVramTooLow') : status.safeMode ? t('admin.hunyuan3dVramSafeMode') : t('admin.hunyuan3dVramReady')) : t('admin.hunyuan3dChecking')}</small></article>
       </section>
-      <section className="hunyuan3d-workspace-card"><div className="hunyuan3d-section-heading"><div><span className="eyebrow">{t('admin.hunyuan3dLocalBridge')}</span><h2>{t('admin.hunyuan3dLaunchTitle')}</h2></div><button className="hunyuan3d-secondary-action" type="button" onClick={() => void checkEngine()} disabled={checking}><RefreshCw size={15} />{checking ? t('admin.hunyuan3dChecking') : t('admin.hunyuan3dCheck')}</button></div><p>{t('admin.hunyuan3dLaunchText')}</p><button className="hunyuan3d-primary-action" type="button" onClick={() => void launchEngine()} disabled={launching || !status?.configured}><Play size={16} />{launching ? t('admin.hunyuan3dLaunching') : t('admin.hunyuan3dLaunch')}</button>{!status?.configured && <small className="hunyuan3d-inline-hint"><Info size={14} />{t('admin.hunyuan3dConfigHint')}</small>}</section>
+      <section className="hunyuan3d-workspace-card"><div className="hunyuan3d-section-heading"><div><span className="eyebrow">{t('admin.hunyuan3dLocalBridge')}</span><h2>{t('admin.hunyuan3dLaunchTitle')}</h2></div><button className="hunyuan3d-secondary-action" type="button" onClick={() => void checkEngine()} disabled={checking}><RefreshCw size={15} />{checking ? t('admin.hunyuan3dChecking') : t('admin.hunyuan3dCheck')}</button></div><p>{t('admin.hunyuan3dLaunchText')}</p><button className="hunyuan3d-primary-action" type="button" onClick={() => void launchEngine()} disabled={launching || !status?.configured || status.vramOk === false}><Play size={16} />{launching ? t('admin.hunyuan3dLaunching') : t('admin.hunyuan3dLaunch')}</button>{status?.vramOk === false ? <small className="hunyuan3d-inline-hint"><Info size={14} />{t('admin.hunyuan3dVramBlocked')}</small> : !status?.configured && <small className="hunyuan3d-inline-hint"><Info size={14} />{t('admin.hunyuan3dConfigHint')}</small>}</section>
     </>}
     {error && <div className="error-box hunyuan3d-error"><XCircle size={15} />{error}</div>}
     <section className="hunyuan3d-info-grid"><article><span className="eyebrow">{t('admin.hunyuan3dSetupEyebrow')}</span><h2>{t('admin.hunyuan3dSetupTitle')}</h2><ol><li>{t('admin.hunyuan3dStepOne')}</li><li>{t('admin.hunyuan3dStepTwo')}</li><li>{t('admin.hunyuan3dStepThree')}</li></ol></article><article><span className="eyebrow">{t('admin.hunyuan3dHardwareEyebrow')}</span><h2>{t('admin.hunyuan3dHardwareTitle')}</h2><p>{t('admin.hunyuan3dHardwareText')}</p><a className="hunyuan3d-text-link" href={HUNYUAN_REPO_URL} target="_blank" rel="noreferrer">{t('admin.hunyuan3dReadDocs')} <ExternalLink size={14} /></a></article></section>

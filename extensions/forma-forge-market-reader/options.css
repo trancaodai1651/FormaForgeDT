@@ -18,3 +18,17 @@ button { margin-top: 18px; min-height: 40px; padding: 0 17px; border: 0; border-
 h2 { margin-top: 0; font-size: 17px; }
 li, .note { color: #abb4c0; font-size: 13px; line-height: 1.65; }
 .note { margin-bottom: 0; color: #9fc3ff; }
+
+/* Match the larger, more legible type used by the Market Reader sidebar. */
+:root { font-size: 17px; }
+body { font-size: 17px; }
+header strong { font-size: 22px; }
+header p { font-size: 14px; }
+.connection-card strong { font-size: 16px; }
+.connection-card span, label span { font-size: 13px; }
+label { font-size: 15px; }
+input { font-size: 14px; }
+button { font-size: 14px; }
+#saved { font-size: 14px; }
+h2 { font-size: 19px; }
+li, .note { font-size: 15px; }

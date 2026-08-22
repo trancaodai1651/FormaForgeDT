@@ -162,6 +162,14 @@ export function bindGlobalEvents(cb: UiCallbacks) {
     debouncedRebuild();
   });
 
+  const basePadding = $<HTMLInputElement>('basePadding');
+  basePadding?.addEventListener('input', () => {
+    const val = Math.max(0, Math.min(12, +basePadding.value));
+    if ($('basePaddingVal')) $('basePaddingVal').textContent = `${val.toFixed(1)} mm`;
+    store.set({ bottomPaddingMm: val } as any);
+    debouncedRebuild();
+  });
+
   $('baseRotLeft')?.addEventListener('click', () => {
     const s = store.get() as any;
     store.set({ bottomRotation: ((s.bottomRotation ?? 0) - 15) } as any);

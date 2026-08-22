@@ -29,9 +29,12 @@ export function dataUrlToImage(url: string): Promise<RgbaImage> {
 export function saveProject() {
   const s = store.get();
   const proj = {
-    version: 4,
+    version: 6,
     settings: {
       colorCount: s.colorCount, baseShape: s.baseShape, capWidthMm: s.capWidthMm,
+      bottomBaseMode: s.bottomBaseMode, bottomExpandPercent: s.bottomExpandPercent, bottomPaddingMm: s.bottomPaddingMm,
+      bottomSolidOnly: s.bottomSolidOnly, bottomOffsetX: s.bottomOffsetX,
+      bottomOffsetY: s.bottomOffsetY, bottomRotation: s.bottomRotation,
       topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
       hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
       hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm, hybridTextExtrudeMm: s.hybridTextExtrudeMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
@@ -72,6 +75,8 @@ export function saveProject() {
     },
     palette: s.palette,
     image: appData.originalImage ? imageToDataUrl(appData.originalImage) : null,
+    bottomImage: appData.bottomImage ? imageToDataUrl(appData.bottomImage) : null,
+    bottomRegionSet: appData.bottomRegionSet,
     keycapImageRegionSet: appData.keycapImageRegionSet,
     keycapLogoAssets: appData.keycapLogoAssets,
   };
@@ -109,7 +114,15 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
     store.set({
       importMode: set.importMode ?? 'image', colorCount: set.colorCount ?? store.get().colorCount,
       baseShape: set.baseShape ?? store.get().baseShape, capWidthMm: set.capWidthMm ?? store.get().capWidthMm,
+      bottomBaseMode: set.bottomBaseMode === 'custom' ? 'custom' : 'match',
+      bottomExpandPercent: Math.max(0, Math.min(100, set.bottomExpandPercent ?? store.get().bottomExpandPercent)),
+      bottomPaddingMm: Math.max(0, Math.min(12, set.bottomPaddingMm ?? store.get().bottomPaddingMm)),
+      bottomSolidOnly: !!set.bottomSolidOnly,
+      bottomOffsetX: set.bottomOffsetX ?? store.get().bottomOffsetX,
+      bottomOffsetY: set.bottomOffsetY ?? store.get().bottomOffsetY,
+      bottomRotation: set.bottomRotation ?? store.get().bottomRotation,
       topThickness: set.topThickness ?? store.get().topThickness, imageDepth: set.imageDepth ?? store.get().imageDepth,
+      baseHeight: Math.max(0, Math.min(40, set.baseHeight ?? store.get().baseHeight)),
       flatKeychainThicknessMm: set.flatKeychainThicknessMm ?? store.get().flatKeychainThicknessMm,
       hybridImageSizeMm: set.hybridImageSizeMm ?? store.get().hybridImageSizeMm,
       hybridImageThicknessMm: set.hybridImageThicknessMm ?? store.get().hybridImageThicknessMm,
@@ -173,6 +186,11 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
     });
 
     if ((set.importMode === 'image' || set.importMode === 'hybrid') && proj.image) appData.originalImage = await dataUrlToImage(proj.image);
+    appData.bottomImage = null;
+    appData.bottomRegionSet = proj.bottomRegionSet ?? null;
+    if ((set.importMode === 'image' || set.importMode === 'hybrid') && proj.bottomImage) {
+      appData.bottomImage = await dataUrlToImage(proj.bottomImage);
+    }
 
     reprocessFn();
 

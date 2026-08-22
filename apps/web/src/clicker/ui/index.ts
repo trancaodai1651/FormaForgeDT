@@ -91,7 +91,7 @@ export function createUi(
     // Cáº­p nháº­t giÃ¡ trá»‹ Input & Range
     if ($('smooth')) $<HTMLInputElement>('smooth').value = String(state.smoothing); setVal('smoothVal', Math.round(state.smoothing * 100) + '%');
     if ($('width')) $<HTMLInputElement>('width').value = String(state.capWidthMm); setVal('widthVal', state.capWidthMm + ' mm');
-    if ($('baseHeight')) $<HTMLInputElement>('baseHeight').value = String((state as any).baseHeight ?? 12); setVal('baseHeightVal', ((state as any).baseHeight ?? 12).toFixed(1) + ' mm');
+    if ($('baseHeight')) $<HTMLInputElement>('baseHeight').value = String((state as any).baseHeight ?? 16); setVal('baseHeightVal', ((state as any).baseHeight ?? 16).toFixed(1) + ' mm');
     if ($('topthick')) $<HTMLInputElement>('topthick').value = String(state.topThickness); setVal('topthickVal', state.topThickness.toFixed(1) + ' mm');
     if ($('imgdepth')) $<HTMLInputElement>('imgdepth').value = String(state.imageDepth); setVal('imgdepthVal', state.imageDepth.toFixed(1) + ' mm');
     if ($('flatKeychainThickness')) $<HTMLInputElement>('flatKeychainThickness').value = String(state.flatKeychainThicknessMm);
@@ -175,6 +175,9 @@ export function createUi(
     const expandPercent = (state as any).bottomExpandPercent ?? 22;
     if ($('baseExpand')) $<HTMLInputElement>('baseExpand').value = String(expandPercent);
     setVal('baseExpandVal', `${expandPercent}%`);
+    const basePadding = (state as any).bottomPaddingMm ?? 1.2;
+    if ($('basePadding')) $<HTMLInputElement>('basePadding').value = String(basePadding);
+    setVal('basePaddingVal', `${basePadding.toFixed(1)} mm`);
 
     const fmtSigned = (v: number, dec: number) => (v > 0.0001 ? '+' : v < -0.0001 ? 'âˆ’' : '') + Math.abs(v).toFixed(dec) + ' mm';
     if ($('socketTolVal')) $('socketTolVal').textContent = fmtSigned(state.tolerance - BASE_SOCKET_TOL, 2);
@@ -342,6 +345,7 @@ export function createUi(
     $('tab-base-match')?.classList.toggle('active', !isCustom);
     $('tab-base-custom')?.classList.toggle('active', isCustom);
     if ($('bottom-upload-zone')) $('bottom-upload-zone').style.display = isCustom ? 'block' : 'none';
+    if ($('bottom-solid-row')) ($('bottom-solid-row') as HTMLElement).style.display = state.importMode === 'hybrid' ? 'none' : 'flex';
 
     // ðŸŸ¢ Äá»“ng bá»™ Solid Base (Náº±m ÄÃšNG BÃŠN TRONG hÃ m update)
     if ($('bottomSolidOnly')) $<HTMLInputElement>('bottomSolidOnly').checked = !!(state as any).bottomSolidOnly;

@@ -91,23 +91,38 @@ export function buildClicker(
     const bX = params.bottomOffsetX ?? 0;
     const bY = params.bottomOffsetY ?? 0;
 
+    // Keep scale centred on the traced silhouette. Applying translation before
+    // scaling makes every alignment nudge grow with the auto-fit pass and is
+    // the reason a lower image can drift away from the top image.
     let unitBase = rawBase;
     if (Math.abs(bRot) > 0.001) unitBase = ctx.track(unitBase.rotate(bRot));
-    if (Math.abs(bX) > 0.001 || Math.abs(bY) > 0.001) unitBase = ctx.track(unitBase.translate([bX, bY]));
 
     let scaledBase = unitBase;
     for (let i = 0; i < 30; i++) {
-      const outside = ctx.track(wellFootprint.subtract(scaledBase));
+      let candidate = ctx.track(unitBase.scale([bottomScaleFactor, bottomScaleFactor]));
+      if (Math.abs(bX) > 0.001 || Math.abs(bY) > 0.001) candidate = ctx.track(candidate.translate([bX, bY]));
+      const outside = ctx.track(wellFootprint.subtract(candidate));
       if (sectionIsEmpty(outside)) break;
       bottomScaleFactor += 0.04;
-      scaledBase = ctx.track(unitBase.scale([bottomScaleFactor, bottomScaleFactor]));
+      scaledBase = candidate;
     }
 
     const expandPercent = (params as any).bottomExpandPercent ?? 22;
     bottomScaleFactor *= (1.0 + expandPercent / 100);
     scaledBase = ctx.track(unitBase.scale([bottomScaleFactor, bottomScaleFactor]));
+    if (Math.abs(bX) > 0.001 || Math.abs(bY) > 0.001) scaledBase = ctx.track(scaledBase.translate([bX, bY]));
 
-    customBasePlate = scaledBase;
+    // Padding is an absolute printable margin around the lower image. Apply it
+    // after fitting/expanding the silhouette so it remains visible instead of
+    // being swallowed by the auto-fit scale pass.
+    const bottomPadding = Math.max(0, Math.min(12, (params as any).bottomPaddingMm ?? 1.2));
+    if (bottomPadding > 0.001) scaledBase = ctx.grow(scaledBase, bottomPadding);
+
+    // A custom lower silhouette is a cover, not a second smaller cap. Union
+    // it with the required top footprint so the lower base can never leave the
+    // imported image overhanging at the perimeter.
+    const requiredCover = ctx.grow(wellFootprint, Math.max(0.2, params.tolerance, bottomPadding));
+    customBasePlate = ctx.simp(ctx.track(scaledBase.add(requiredCover)));
   }
 
   const bodyFootprint = customBasePlate ? ctx.simp(customBasePlate) : ctx.simp(ctx.grow(wellFootprint, Math.max(0.4, params.borderWidth)));
@@ -123,7 +138,7 @@ export function buildClicker(
   
   const profile = (params as any).topProfile || 'flat';
   const pHeight = Math.max(0, (params as any).topProfileHeight ?? 5.0);
-  const baseHeight = Math.max(0, (params as any).baseHeight ?? 12);
+  const baseHeight = Math.max(0, (params as any).baseHeight ?? 16);
   
   const slabTopZ = slabBottomZ + backing + imageDepth;
   const imageBottomZ = slabBottomZ + backing;
@@ -340,13 +355,13 @@ export function buildClicker(
         baseCs = ctx.track(baseCs.rotate(bRot));
         fatCs = ctx.track(fatCs.rotate(bRot));
       }
-      if (Math.abs(bX) > 0.001 || Math.abs(bY) > 0.001) {
-        baseCs = ctx.track(baseCs.translate([bX, bY]));
-        fatCs = ctx.track(fatCs.translate([bX, bY]));
-      }
       if (bottomScaleFactor > 1.001) {
         baseCs = ctx.track(baseCs.scale([bottomScaleFactor, bottomScaleFactor]));
         fatCs = ctx.track(fatCs.scale([bottomScaleFactor, bottomScaleFactor]));
+      }
+      if (Math.abs(bX) > 0.001 || Math.abs(bY) > 0.001) {
+        baseCs = ctx.track(baseCs.translate([bX, bY]));
+        fatCs = ctx.track(fatCs.translate([bX, bY]));
       }
 
       let fp = ctx.track(fatCs.subtract(wellFootprint));
@@ -393,7 +408,15 @@ export function buildClicker(
     else { body = ctx.track(body.add(ctx.extrudeAt(loopFootprint, loopTh, loopZb, sectionIsEmpty))); body = ctx.track(body.subtract(hole)); }
   }
 
-  for (const sw of applied) body = ctx.track(body.subtract(Math.abs(sw.rotation) > 0.001 || Math.abs(sw.x) > 0.001 || Math.abs(sw.y) > 0.001 ? ctx.track(ctx.track(socket.rotate([0, 0, sw.rotation])).translate([sw.x, sw.y, 0])) : socket));
+  // The socket asset is normalized with its seating plane at Z=0. The large
+  // image well ends at `wellFloorZ`; place the small MX socket cutout there so
+  // the switch is seated in the small pocket at the bottom, rather than cut
+  // into the upper image cavity or floating through the base.
+  const socketSeatZ = wellFloorZ;
+  for (const sw of applied) {
+    const rotatedSocket = Math.abs(sw.rotation) > 0.001 ? ctx.track(socket.rotate([0, 0, sw.rotation])) : socket;
+    body = ctx.track(body.subtract(ctx.track(rotatedSocket.translate([sw.x, sw.y, socketSeatZ]))));
+  }
 
   if (!isFlatKeychain && !body.isEmpty()) parts.push(toPart(body, 'body', 'base', params.bodyColorRgb, 'base-body'));
 
@@ -409,5 +432,9 @@ export function buildClicker(
 
   ctx.cleanup();
   const finalWarnings = warnings.concat(pinched ? ['Switches pulled together to fit the cap.'] : []);
-  return { parts, switchPlacements: applied, warnings: finalWarnings };
+  return {
+    parts,
+    switchPlacements: applied.map((sw) => ({ ...sw, seatZ: socketSeatZ })),
+    warnings: finalWarnings,
+  };
 }

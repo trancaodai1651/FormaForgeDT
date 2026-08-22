@@ -4,12 +4,16 @@ import { bootstrapClickerWorkspace, unmountClickerWorkspace } from './clicker/bo
 import clickerStyle from './clicker/style.css?inline';
 import flexKeychainStyle from './clicker/features/flexKeychain/styles.css?inline';
 import flexOrganizerStyle from './clicker/features/flexOrganizer/styles.css?inline';
+import svgLayersStyle from './clicker/features/svgLayers/styles.css?inline';
+import imageVectorizerStyle from './clicker/features/imageVectorizer/styles.css?inline';
 import type { ClickerLanguage } from './clicker/i18n';
 
 type ClickerWorkspaceLabels = {
   clicker: string;
   flexKeychain: string;
   flexOrganizer: string;
+  svgLayers: string;
+  imageVectorizer: string;
 };
 
 const runtimeOverrides = `
@@ -24,15 +28,15 @@ const runtimeOverrides = `
 .sidebar.right { border-left-color: rgba(255,255,255,.10); }
 .app-header { gap: 8px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .app-header h1 { font-family: 'Manrope', system-ui, sans-serif; font-size: 22px; letter-spacing: -.045em; }
-.app-subtitle { max-width: 230px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.app-subtitle { max-width: 230px; color: var(--muted); font-size: 13px; line-height: 1.55; }
 .btn-back-home { align-self: flex-start; min-height: 34px; padding: 0 12px; border-radius: 11px; background: rgba(255,255,255,.045); color: var(--muted); font-size: 11px; }
 .btn-back-home:hover { background: rgba(240,185,103,.11); color: var(--accent); }
 .section { padding: 18px 0; }
-.label, details.section-collapsible > summary { color: var(--muted); font: 600 10px/1.35 'DM Mono', monospace; letter-spacing: .10em; text-transform: uppercase; }
-.field label, .prow-header > label, .switch-row .switch-label { font-size: 11px; }
+.label, details.section-collapsible > summary { color: var(--muted); font: 600 12px/1.35 'DM Mono', monospace; letter-spacing: .10em; text-transform: uppercase; }
+.field label, .prow-header > label, .switch-row .switch-label { font-size: 13px; }
 .prow-stacked { gap: 8px; margin-bottom: 16px; }
 .prow-stacked .val, .field input, .field select, textarea, input { border-color: rgba(255,255,255,.12); border-radius: 10px; background: #1d2124; font-size: 12px; }
-button { border-radius: 10px; font-size: 12px; }
+button { border-radius: 10px; font-size: 14px; }
 button.primary, .tab.active, .shape-group button.active, .btn.primary { border-color: var(--accent); border-radius: 11px; background: var(--accent); color: var(--accent-text); }
 button.secondary, .utility-btn { border-color: rgba(255,255,255,.14); border-radius: 11px; background: rgba(255,255,255,.035); color: var(--text); }
 button.secondary:hover, .utility-btn:hover { border-color: rgba(240,185,103,.65); background: rgba(240,185,103,.10); color: var(--accent); }
@@ -85,7 +89,7 @@ function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: Click
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
     shadow.replaceChildren();
     const style = document.createElement('style');
-    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${runtimeOverrides}`;
+    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${svgLayersStyle}\n${imageVectorizerStyle}\n${runtimeOverrides}`;
     const surface = document.createElement('div');
     surface.className = 'clicker-surface';
     shadow.append(style, surface);
@@ -107,6 +111,6 @@ function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: Click
 
 export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true, language = 'en' }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean; language?: ClickerLanguage }) {
   const [mode, setMode] = useState<ClickerMode>(initialMode);
-  const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer]];
+  const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer], ['svg-layers', labels.svgLayers], ['image-vectorizer', labels.imageVectorizer]];
   return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={`${mode}-${language}`} mode={mode} language={language} /></div>;
 }

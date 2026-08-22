@@ -10,7 +10,9 @@ import type { SectionAxis } from '../viewer/viewer';
 
 export interface UiState {
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
-  baseShape: BaseShapeKind; bottomBaseMode?: 'match' | 'custom';
+  baseShape: BaseShapeKind; bottomBaseMode: 'match' | 'custom';
+  bottomExpandPercent: number; bottomPaddingMm: number; bottomSolidOnly: boolean;
+  bottomOffsetX: number; bottomOffsetY: number; bottomRotation: number;
   capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageThicknessMm: number; hybridImagePaddingMm: number; hybridKeychainHeightMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;

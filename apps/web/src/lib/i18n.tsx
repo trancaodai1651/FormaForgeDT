@@ -332,8 +332,14 @@ Object.assign(en, {
   'admin.hunyuan3dStepThree': 'Check the engine here, then launch the local generator to create and preview the mesh.',
   'admin.hunyuan3dHardwareEyebrow': 'HARDWARE',
   'admin.hunyuan3dHardwareTitle': 'GPU memory matters.',
-  'admin.hunyuan3dHardwareText': 'The upstream project reports about 10 GB VRAM for shape generation, 21 GB for texture generation and 29 GB for both together. The model runs locally and is not bundled into the web build.',
+  'admin.hunyuan3dHardwareText': 'FormaForge blocks launch below 4 GB detected VRAM to avoid an out-of-memory crash. Between 4 and 8 GB it automatically enables low-VRAM safe mode; the upstream project still recommends about 10 GB for shape generation, 21 GB for texture and 29 GB for both.',
   'admin.hunyuan3dReadDocs': 'Read installation requirements',
+  'admin.hunyuan3dVram': 'Detected VRAM',
+  'admin.hunyuan3dVramUnknown': 'UNKNOWN',
+  'admin.hunyuan3dVramTooLow': 'Below the 4 GB minimum; launch is blocked.',
+  'admin.hunyuan3dVramSafeMode': 'Low-VRAM safe mode will be used.',
+  'admin.hunyuan3dVramReady': 'Safe to launch with standard mode.',
+  'admin.hunyuan3dVramBlocked': 'This GPU is below 4 GB. Launch is disabled to protect the desktop app.',
 });
 Object.assign(vi, {
   'admin.hunyuan3d': 'Hunyuan3D',
@@ -376,9 +382,20 @@ Object.assign(vi, {
   'admin.hunyuan3dStepThree': 'Kiểm tra engine tại đây, sau đó khởi chạy trình tạo cục bộ để tạo và xem mesh.',
   'admin.hunyuan3dHardwareEyebrow': 'PHẦN CỨNG',
   'admin.hunyuan3dHardwareTitle': 'VRAM là yếu tố quan trọng.',
-  'admin.hunyuan3dHardwareText': 'Dự án gốc nêu khoảng 10 GB VRAM cho shape, 21 GB cho texture và 29 GB cho cả hai. Model chạy cục bộ và không được nhúng vào web.',
+  'admin.hunyuan3dHardwareText': 'FormaForge chặn khởi chạy khi phát hiện dưới 4 GB VRAM để tránh lỗi hết bộ nhớ. Từ 4 đến 8 GB, ứng dụng tự bật chế độ an toàn VRAM thấp; dự án gốc vẫn khuyến nghị khoảng 10 GB cho shape, 21 GB cho texture và 29 GB cho cả hai.',
   'admin.hunyuan3dReadDocs': 'Đọc yêu cầu cài đặt',
+  'admin.hunyuan3dVram': 'VRAM phát hiện được',
+  'admin.hunyuan3dVramUnknown': 'CHƯA NHẬN DIỆN',
+  'admin.hunyuan3dVramTooLow': 'Dưới mức tối thiểu 4 GB; đã chặn khởi chạy.',
+  'admin.hunyuan3dVramSafeMode': 'Sẽ chạy chế độ an toàn VRAM thấp.',
+  'admin.hunyuan3dVramReady': 'Có thể khởi chạy chế độ tiêu chuẩn.',
+  'admin.hunyuan3dVramBlocked': 'GPU dưới 4 GB. Đã khóa khởi chạy để bảo vệ ứng dụng desktop.',
 });
+
+Object.assign(en, { 'admin.clickerSvgLayers': 'SVG Layers', 'admin.clickerSvgLayersPageDescription': 'Separate SVG regions into a printable Top and Base.' });
+Object.assign(en, { 'admin.clickerImageVectorizer': 'Image Vectorizer', 'admin.clickerImageVectorizerPageDescription': 'Convert raster images into clean, editable SVG artwork.' });
+Object.assign(vi, { 'admin.clickerImageVectorizer': 'Chuyển ảnh thành SVG', 'admin.clickerImageVectorizerPageDescription': 'Chuyển ảnh raster thành SVG sạch, có thể chỉnh sửa.' });
+Object.assign(vi, { 'admin.clickerSvgLayers': 'Tách lớp SVG', 'admin.clickerSvgLayersPageDescription': 'Tách các vùng SVG thành Top và Base có thể in.' });
 
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);

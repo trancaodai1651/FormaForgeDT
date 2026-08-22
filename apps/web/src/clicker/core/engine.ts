@@ -210,6 +210,9 @@ export function rebuild(quiet = false) {
   const isIcon = s.importMode === 'icon';
   const effectiveBaseShape = isIcon && s.baseShape === 'outline' ? 'circle' : s.baseShape;
   const capBaseColor: RGB = s.baseColorOverride ?? deriveFrameColor(s);
+  const bottomOutline = s.bottomBaseMode === 'custom' && appData.bottomRegionSet
+    ? appData.bottomRegionSet.outline
+    : undefined;
 
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
@@ -231,17 +234,18 @@ export function rebuild(quiet = false) {
     edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights: s.componentHeights,
     
     // ðŸŸ¢ 2. TRUYá»€N THÃ”NG Sá» CÄ‚N CHá»ˆNH & DANH SÃCH MÃ€U Äáº¾ SANG WORKER
-    bottomOffsetX: (s as any).bottomOffsetX ?? 0,
-    bottomOffsetY: (s as any).bottomOffsetY ?? 0,
-    bottomRotation: (s as any).bottomRotation ?? 0,
-    bottomExpandPercent: (s as any).bottomExpandPercent ?? 22, // ðŸŸ¢ Máº·c Ä‘á»‹nh 22%
+    bottomOffsetX: s.bottomOffsetX ?? 0,
+    bottomOffsetY: s.bottomOffsetY ?? 0,
+    bottomRotation: s.bottomRotation ?? 0,
+    bottomExpandPercent: s.bottomExpandPercent ?? 22,
+    bottomPaddingMm: s.bottomPaddingMm ?? 1.2,
     bottomRegions,
+    bottomOutline,
     topProfile: (s as any).topProfile || 'flat',
     topProfileHeight: (s as any).topProfileHeight || 5.0,
     
   };
 
-  const bottomOutline = appData.bottomRegionSet ? appData.bottomRegionSet.outline : undefined;
   const regionSetToBuildRegions = (regionSet: typeof appData.keycapImageRegionSet, sourceIndex: number): BuildRegion[] =>
     regionSet?.regions.flatMap((region, regionIndex) =>
       region.components.map((component, componentIndex) => ({

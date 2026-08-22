@@ -225,7 +225,7 @@
 .hunyuan3d-primary-action:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
 .hunyuan3d-primary-action:disabled, .hunyuan3d-secondary-action:disabled { cursor: not-allowed; opacity: .45; }
 .hunyuan3d-secondary-action { border: 1px solid var(--line-strong); background: transparent; color: var(--text); }
-.hunyuan3d-status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+.hunyuan3d-status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
 .hunyuan3d-status-card { display: grid; gap: 12px; min-height: 148px; padding: 20px; }
 .hunyuan3d-status-card > span { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font: 500 9px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
 .hunyuan3d-status-card strong { font-size: 18px; font-weight: 600; }
@@ -245,6 +245,9 @@
   .hunyuan3d-hero { align-items: start; flex-direction: column; }
   .hunyuan3d-status-grid, .hunyuan3d-info-grid { grid-template-columns: 1fr; }
   .hunyuan3d-section-heading { align-items: start; flex-direction: column; }
+}
+@media (min-width: 761px) and (max-width: 1120px) {
+  .hunyuan3d-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .price-reader-page { min-height: 100dvh; overflow: auto; background: radial-gradient(circle at 72% -12%, rgba(240,185,103,.13), transparent 32%), #0a0c0f; color: var(--text); }

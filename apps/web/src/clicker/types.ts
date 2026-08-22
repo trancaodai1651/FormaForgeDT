@@ -194,6 +194,10 @@ export interface BuildParams {
   bottomRotation?: number;
   bottomRegions?: BuildRegion[];
   bottomExpandPercent?: number;
+  /** Extra millimetres around the lower imported-image silhouette. */
+  bottomPaddingMm?: number;
+  /** Optional traced silhouette used as a lower image-shaped base in Image + Blocks. */
+  bottomOutline?: Ring[];
   // 🟢 THÊM 3 DÒNG NÀY: Cấu hình Khối 3D
   topProfile?: 'flat' | 'dome' | 'cone';
   topProfileHeight?: number;
