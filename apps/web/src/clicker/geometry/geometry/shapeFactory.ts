@@ -77,41 +77,95 @@ export function ribbedProfile(
   const thickness = Math.max(0.8, Math.min(12, bandThickness));
   const gap = Math.max(0, Math.min(16, bandGap));
   const pitch = Math.max(0.8, thickness + gap);
-  const radius = thickness / 2;
   const bounds = source.bounds();
   const centerX = (bounds.min[0] + bounds.max[0]) / 2;
   const centerY = (bounds.min[1] + bounds.max[1]) / 2;
-  const amplitude = Math.max(0, Math.min(Math.abs(waviness) * 0.24, radius * 0.8));
+  const segments = outer.map((start: [number, number], index: number) => {
+    const end = outer[(index + 1) % outer.length];
+    return { start, end, length: Math.hypot(end[0] - start[0], end[1] - start[1]) };
+  });
+  const perimeter = segments.reduce((sum: number, segment: { length: number }) => sum + segment.length, 0);
+  if (perimeter < 0.01) return source;
 
-  let result = source;
-  let distance = 0;
-  let ribCount = 0;
-  for (let index = 0; index < outer.length && ribCount < 320; index++) {
-    const a = outer[index];
-    const b = outer[(index + 1) % outer.length];
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const length = Math.hypot(dx, dy);
-    if (length < 0.001) continue;
-    const count = Math.max(1, Math.ceil(length / pitch));
-    const nx0 = a[0] - centerX;
-    const ny0 = a[1] - centerY;
-    const normalLength = Math.hypot(nx0, ny0) || 1;
-    const nx = nx0 / normalLength;
-    const ny = ny0 / normalLength;
-    for (let step = 0; step < count && ribCount < 320; step++) {
-      const t = (step + 0.5) / count;
-      const phase = (distance + length * t) / pitch;
-      const wobble = amplitude * Math.sin(phase * Math.PI * 2);
-      const cx = a[0] + dx * t + nx * wobble;
-      const cy = a[1] + dy * t + ny * wobble;
-      const rib = ctx.track(ctx.wasm.CrossSection.circle(radius, 24).translate([cx, cy]));
-      result = ctx.track(result.add(rib));
-      ribCount++;
+  // Build one continuous, uniformly sampled outer contour. The previous
+  // implementation placed independent circles per source segment, so rounded
+  // corners received different spacing and the source's straight edge showed
+  // between ribs. A continuous contour removes both artefacts.
+  const sampleStep = Math.max(0.3, Math.min(0.9, pitch / 8));
+  const sampleCount = Math.max(96, Math.min(2048, Math.ceil(perimeter / sampleStep)));
+  const samples: Array<{ x: number; y: number; distance: number }> = [];
+  let segmentIndex = 0;
+  let segmentStartDistance = 0;
+  for (let index = 0; index < sampleCount; index++) {
+    const distance = (index / sampleCount) * perimeter;
+    while (
+      segmentIndex < segments.length - 1
+      && distance >= segmentStartDistance + segments[segmentIndex].length
+    ) {
+      segmentStartDistance += segments[segmentIndex].length;
+      segmentIndex++;
     }
-    distance += length;
+    const segment = segments[segmentIndex];
+    const t = segment.length > 0
+      ? (distance - segmentStartDistance) / segment.length
+      : 0;
+    samples.push({
+      x: segment.start[0] + (segment.end[0] - segment.start[0]) * t,
+      y: segment.start[1] + (segment.end[1] - segment.start[1]) * t,
+      distance,
+    });
   }
-  return ctx.simp(ctx.track(result));
+
+  const ribHeight = Math.max(0.35, Math.min(5, thickness * 0.62));
+  const baseClearance = Math.max(0.12, Math.min(0.45, ribHeight * 0.2));
+  const waveAmplitude = Math.min(Math.max(0, Math.abs(waviness) * 0.45), ribHeight * 1.15);
+  // Keep the winding decision global. Flipping the normal independently at a
+  // concave point makes the ribs turn inward and creates the uneven spikes
+  // seen in the old vase preview.
+  let normalSign = polygonArea(outer) >= 0 ? 1 : -1;
+  let normalRadialScore = 0;
+  for (let index = 0; index < samples.length; index++) {
+    const previous = samples[(index + samples.length - 1) % samples.length];
+    const current = samples[index];
+    const next = samples[(index + 1) % samples.length];
+    const tangentX = next.x - previous.x;
+    const tangentY = next.y - previous.y;
+    const tangentLength = Math.hypot(tangentX, tangentY) || 1;
+    const normalX = normalSign * tangentY / tangentLength;
+    const normalY = -normalSign * tangentX / tangentLength;
+    normalRadialScore += normalX * (current.x - centerX) + normalY * (current.y - centerY);
+  }
+  if (normalRadialScore < 0) normalSign *= -1;
+
+  const ring: [number, number][] = [];
+  for (let index = 0; index < samples.length; index++) {
+    const previous = samples[(index + samples.length - 1) % samples.length];
+    const current = samples[index];
+    const next = samples[(index + 1) % samples.length];
+    const tangentX = next.x - previous.x;
+    const tangentY = next.y - previous.y;
+    const tangentLength = Math.hypot(tangentX, tangentY) || 1;
+    const normalX = normalSign * tangentY / tangentLength;
+    const normalY = -normalSign * tangentX / tangentLength;
+
+    const phase = (current.distance / pitch) * Math.PI * 2;
+    // Never return to the source contour: Vase always has a continuous
+    // rounded/ribbed edge, even when the requested gap is large.
+    const rib = baseClearance + ribHeight * (0.5 + 0.5 * Math.cos(phase));
+    // Wavy vase changes the actual contour height over two broad cycles. This
+    // is intentionally stronger than the old sub-millimetre wobble so it is
+    // visible in both the preview and the exported STL.
+    const wave = waveAmplitude > 0
+      ? waveAmplitude * Math.sin((current.distance / perimeter) * Math.PI * 4)
+      : 0;
+    const offset = Math.max(0.08, rib + wave);
+    ring.push([current.x + normalX * offset, current.y + normalY * offset]);
+  }
+
+  const ribbedContour = ctx.track(new ctx.wasm.CrossSection([ring], 'NonZero'));
+  // Keep the source as the solid interior, but make the outer boundary come
+  // from the continuous contour so there are no flat sections between ribs.
+  return ctx.simp(ctx.track(source.add(ribbedContour)));
 }
 
 function polygonArea(ring: [number, number][]) {

@@ -11,7 +11,7 @@ import type {
 import { BuildContext } from './buildContext';
 import { buildBlocks, type KeycapAsset, type PreparedBlockAssets } from './buildBlocks';
 import { getRingArea, sectionIsEmpty } from './geometry/sectionUtils';
-import { roundedRect, vaseCarrier } from './geometry/shapeFactory';
+import { ribbedProfile, roundedRect, vaseCarrier } from './geometry/shapeFactory';
 
 const DEFAULT_BODY: RGB = [238, 238, 240];
 
@@ -247,12 +247,21 @@ export function buildHybridClicker(
   // inside the image badge, so there is no separate neck that can protrude or
   // create a pointed intersection at the first keycap.
   const squareHeadDepth = Math.min(carrierLength, cornerRadius + overlap + 1);
-  const squareHeadProfile = ctx.track(wasm.CrossSection.square(
+  const squareHeadCore = ctx.track(wasm.CrossSection.square(
     vertical ? [carrierWidth, squareHeadDepth] : [squareHeadDepth, carrierDepth],
     true,
   ).translate(vertical
     ? [0, carrierHeadEdge - squareHeadDepth / 2]
     : [carrierHeadEdge + squareHeadDepth / 2, 0]));
+  const squareHeadProfile = baseStyle === 'vase'
+    ? ribbedProfile(
+      ctx,
+      squareHeadCore,
+      clamp(params.hybridVaseThicknessMm, 1, 12, 3),
+      clamp(params.hybridVaseGapMm, 0, 16, 2),
+      params.hybridVaseProfile === 'wavy' ? clamp(params.hybridVaseWavinessMm, 0, 12, 2.5) : 0,
+    )
+    : squareHeadCore;
   const squareHead = ctx.track(wasm.Manifold.extrude(squareHeadProfile, baseThickness + baseWallHeight)
     .translate([0, 0, -baseThickness]));
   carrier = ctx.track(carrier.add(squareHead));
