@@ -174,7 +174,14 @@ export function buildClicker(
   const slabTopZ = slabBottomZ + backing + imageDepth;
   const imageBottomZ = slabBottomZ + backing;
   const bodyBottomZ = socketBB.min[2] - params.floorThickness;
-  const bodyTopZ = bodyBottomZ + baseHeight;
+  // The MX stem defines the seating plane of the cap. Some switch assets are
+  // taller than the configured lower-base height, so using only
+  // `bodyBottomZ + baseHeight` leaves a visible air gap below dome/cone caps.
+  // Keep the requested height as a minimum, then raise the body to overlap the
+  // cap by a small printable amount. This joins the parts without changing the
+  // profile shape or cutting it through the base.
+  const capBodyOverlap = 0.2;
+  const bodyTopZ = Math.max(bodyBottomZ + baseHeight, slabBottomZ + capBodyOverlap);
   const wellFloorZ = Math.min(cavityFloorZ, slabBottomZ - Math.max(0, params.travel));
 
   const parts: ClickerPart[] = [];
