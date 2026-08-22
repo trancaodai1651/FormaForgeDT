@@ -26,7 +26,9 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       store.set({ bottomBaseMode: mode });
       if (mode === 'match') {
         appData.bottomRegionSet = null;
-        debouncedRebuild();
+        // Restore the normal top-image pipeline when leaving the custom base
+        // mode; a rebuild alone would keep the shared 2-colour region set.
+        debouncedReprocess();
       } else if (mode === 'custom' && appData.bottomImage) {
         processBottomImage();
       }

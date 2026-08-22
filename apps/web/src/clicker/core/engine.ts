@@ -6,6 +6,7 @@ import { parseLetter } from '../image/letter';
 import { buildSvg, LUCIDE_ICONS } from '../image/lucideIcons';
 import { setPendingHistoryReset } from '../store/historyManager';
 import { rgbToHex, firstLine, debounce } from '../utils/helpers';
+import type { RgbaImage } from '../image/decode';
 import type { BuildParams, BuildRegion, GeometryResponse, PaletteEntry, RGB, ColorTarget, ClickerPart } from '../types';
 
 export const worker = new Worker(new URL('../workers/geometry.worker.ts', import.meta.url), { type: 'module' });
@@ -134,13 +135,29 @@ export function reprocess() {
     } else {
       if (!appData.originalImage) return;
       store.set({ building: true, status: 'Removing background & tracing...' });
-      const imgClone = { data: new Uint8ClampedArray(appData.originalImage.data), width: appData.originalImage.width, height: appData.originalImage.height };
-      appData.regionSet = processImage(imgClone, s.colorCount, {
-        removeBg: s.removeBg,
-        smoothing: s.smoothing,
-        customColors: s.colorMode === 'limited' ? s.limitedColors : undefined,
-        photoFlatten: s.photoFlatten,
-      });
+      // When the same raster is used for the Image + Blocks top and its custom
+      // image base, both layers must pass through the same cleanup pipeline.
+      // The lower image already uses the stable 512px / 2-colour path below;
+      // tracing the top at full resolution with the normal palette count creates
+      // extra anti-aliased islands that later become visible as top-surface acne.
+      const sameImageAsCustomBase = s.importMode === 'hybrid'
+        && s.bottomBaseMode === 'custom'
+        && appData.bottomImage
+        && sameImagePixels(appData.originalImage, appData.bottomImage);
+      const sourceImage = sameImageAsCustomBase ? downscaleImage(appData.originalImage, 512) : appData.originalImage;
+      const imgClone = {
+        data: new Uint8ClampedArray(sourceImage.data),
+        width: sourceImage.width,
+        height: sourceImage.height,
+      };
+      appData.regionSet = sameImageAsCustomBase
+        ? processImage(imgClone, 2, { removeBg: true, smoothing: s.smoothing })
+        : processImage(imgClone, s.colorCount, {
+            removeBg: s.removeBg,
+            smoothing: s.smoothing,
+            customColors: s.colorMode === 'limited' ? s.limitedColors : undefined,
+            photoFlatten: s.photoFlatten,
+          });
     }
   } else if (s.importMode === 'svg') {
     if (!appData.currentSvgText) { store.set({ status: 'Upload an SVG file first.' }); return; }
@@ -511,6 +528,30 @@ function downscaleImage(img: { data: Uint8ClampedArray; width: number; height: n
   };
 }
 
+/**
+ * Detect whether two decoded uploads contain the same raster without comparing
+ * every pixel. Uploading the same file twice normally produces byte-identical
+ * ImageData; a sparse comparison keeps rebuilds cheap for large images while
+ * still avoiding accidental coupling between two different base images.
+ */
+function sameImagePixels(a: RgbaImage, b: RgbaImage): boolean {
+  if (a.width !== b.width || a.height !== b.height || a.data.length !== b.data.length) return false;
+  if (a.data.length === 0) return true;
+
+  const sampleCount = Math.min(4096, a.data.length / 4);
+  const step = Math.max(1, Math.floor((a.data.length / 4) / sampleCount));
+  for (let pixel = 0; pixel < a.data.length / 4; pixel += step) {
+    const offset = pixel * 4;
+    if (
+      a.data[offset] !== b.data[offset]
+      || a.data[offset + 1] !== b.data[offset + 1]
+      || a.data[offset + 2] !== b.data[offset + 2]
+      || a.data[offset + 3] !== b.data[offset + 3]
+    ) return false;
+  }
+  return true;
+}
+
 export function processBottomImage() {
   if (!appData.bottomImage) return;
   store.set({ building: true, status: 'Tracing bottom baseâ€¦' });
@@ -529,7 +570,11 @@ export function processBottomImage() {
     smoothing: store.get().smoothing 
   });
   
-  rebuild();
+  // Re-run the top pipeline as well. This is important when the user uploads
+  // the same raster for both layers after the top has already been traced;
+  // otherwise the base would use the clean 512px/2-colour result while the
+  // existing top would keep its noisier full-resolution region set.
+  reprocess();
 }
 
 
