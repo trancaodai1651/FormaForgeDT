@@ -289,6 +289,12 @@ export function buildClicker(
   // up as white/yellow "acne" in the viewer and in slicers. Collapse only
   // regions that resolve to the same material and the same extrusion level so
   // intentional multi-colour or multi-height artwork stays untouched.
+  // Keep a small vertical overlap between an image inlay and the top backing.
+  // The overlap is intentional: an inlay that only touches the backing at one
+  // coplanar face can be exported as two solids with a seam or a tiny gap by a
+  // slicer. The base cavity still starts at the image plane, leaving the
+  // overlap embedded in the backing instead of removing it.
+  const topMeshOverlap = Math.min(0.2, Math.max(0.05, backing * 0.25));
   const colorDistanceSq = (a: RGB, b: RGB) => (
     (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
   );
@@ -337,10 +343,11 @@ export function buildClicker(
     }
     if (sectionIsEmpty(fp)) continue;
 
-    // A small clearance makes the exported base cut robust against coplanar
-    // boolean faces. It is below normal printer resolution and avoids the
-    // duplicate-wall/spike artifacts seen in slicer previews.
-    const cutFp = ctx.simp(ctx.track(ctx.grow(fp, 0.02).intersect(plate)));
+    // Keep the cavity footprint identical to the inlay footprint. The old
+    // 0.02 mm expansion created a real perimeter gap; the vertical overlap
+    // below is the robust way to avoid coplanar seams without shrinking the
+    // printed artwork.
+    const cutFp = ctx.simp(ctx.track(fp.intersect(plate)));
     if (sectionIsEmpty(cutFp)) continue;
     placedFootprint2D = placedFootprint2D
       ? ctx.simp(ctx.track(placedFootprint2D.add(cutFp)))
@@ -348,7 +355,8 @@ export function buildClicker(
 
     const level = useSolidMonochromeTop ? monoLevel : componentLevel(r);
     const heightShift = level * params.stepHeight;
-    const bottomZ = imageBottomZ + Math.min(0, heightShift);
+    const imagePlaneZ = imageBottomZ + Math.min(0, heightShift);
+    const bottomZ = imagePlaneZ - topMeshOverlap;
 
     const inlayVolume = ctx.extrudeAt(fp, (capTopZ - bottomZ) + Math.max(0, heightShift) + 1.0, bottomZ, sectionIsEmpty);
     if (inlayVolume.isEmpty()) continue;
@@ -358,6 +366,19 @@ export function buildClicker(
       boundingVolume = ctx.track(capSurfaceShell.translate([0, 0, heightShift]));
     }
     let inlay = ctx.simp(ctx.track(inlayVolume.intersect(boundingVolume)));
+
+    // Profiled caps use a surface shell whose lower face starts exactly at
+    // imageBottomZ. Add a short connector from the same footprint into the
+    // translated cap solid so flat, cone and dome tops all share printable
+    // volume with top-base instead of merely touching it.
+    const levelCapVolume = Math.abs(heightShift) > 0.001
+      ? ctx.track(capVolume.translate([0, 0, heightShift]))
+      : capVolume;
+    const connectorColumn = ctx.extrudeAt(fp, topMeshOverlap, bottomZ, sectionIsEmpty);
+    const connector = ctx.simp(ctx.track(connectorColumn.intersect(levelCapVolume)));
+    if (!connector.isEmpty()) {
+      inlay = ctx.simp(ctx.track(inlay.add(connector)));
+    }
 
     if (inlay.isEmpty()) continue;
 
