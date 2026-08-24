@@ -3,17 +3,16 @@ import { useEffect, useState } from 'react';
 import { CartProvider, useCart } from './components/CartContext';
 import { CatalogProvider } from './components/CatalogContext';
 import { Footer, Navbar, PageTransition } from './components/Shell';
-import { AboutPage, CartPage, CheckoutPage, CollectionPage, CollectionsPage, ContactPage, CustomizePage, HomePage, OrderPage, ProductPage, ProductsPage, ShowcasePage } from './pages';
-import { AdminWorkspacePage } from './AdminWorkspacePage';
-import { AdminToolPage } from './AdminToolPage';
-import { AdminFlexLampPage } from './FlexLampWorkspacePage';
+import { AboutPage, CartPage, CheckoutPage, CollectionPage, CollectionsPage, ContactPage, CustomizePage, HomePage, OrderPage, ProductPage, ProductsPage, ShowcasePage } from './pages/storefront';
+import { AdminWorkspacePage, AdminToolPage } from './pages/admin';
+import { AdminFlexLampPage } from './pages/flex-lamp';
 import { AccountPage } from './AccountPage';
 import { LanguageProvider } from './lib/i18n';
-import { ModuleLampStudioPage } from './ModuleLampStudioPage';
-import { ModuleSketchPage } from './ModuleSketchPage';
-import { PriceReaderPage } from './PriceReaderPage';
-import { Hunyuan3DPage } from './Hunyuan3DPage';
-import { ParamacraftPage } from './ParamacraftPage';
+import { ModuleLampStudioPage, ModuleSketchPage } from './pages/module-studio';
+import { PriceReaderPage } from './pages/price-reader';
+import { Hunyuan3DPage } from './pages/hunyuan-3d';
+import { ParamacraftPage } from './pages/paramacraft';
+import { DownloadsPage } from './pages/downloads';
 
 function AppFrame() {
   const { items } = useCart(); const location = useLocation(); const navigate = useNavigate(); const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('hometown-theme') as 'dark' | 'light' | null) ?? 'dark');
@@ -27,7 +26,7 @@ function AppFrame() {
     if ('__TAURI_INTERNALS__' in window && location.pathname === '/') navigate('/module-studio', { replace: true });
   }, [location.pathname, navigate]);
   if (location.pathname === '/admin/image-vectorizer') return <AdminToolPage mode="image-vectorizer" />;
-  return <div className={`app-shell tahoe-ui ${isWorkspace ? 'app-shell-admin-tool tahoe-workspace' : 'tahoe-storefront'}`}>{!isWorkspace && <Navbar cartCount={items.reduce((sum, item) => sum + item.quantity, 0)} theme={theme} onTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} />}<PageTransition><Routes><Route path="/" element={<HomePage />} /><Route path="/products" element={<ProductsPage />} /><Route path="/products/:slug" element={<ProductPage />} /><Route path="/collections" element={<CollectionsPage />} /><Route path="/collections/:slug" element={<CollectionPage />} /><Route path="/customize/:productId" element={<CustomizePage />} /><Route path="/module-studio" element={<ModuleLampStudioPage />} /><Route path="/module-studio/sketch" element={<ModuleSketchPage />} /><Route path="/cart" element={<CartPage />} /><Route path="/checkout" element={<CheckoutPage />} /><Route path="/order/:id" element={<OrderPage />} /><Route path="/account" element={<AccountPage />} /><Route path="/about" element={<AboutPage />} /><Route path="/contact" element={<ContactPage />} /><Route path="/3d-showcase" element={<ShowcasePage />} /><Route path="/paramacraft/viewer/:presetId" element={<ParamacraftPage />} /><Route path="/paramacraft" element={<ParamacraftPage />} /><Route path="/admin" element={<AdminWorkspacePage />} /><Route path="/admin/clicker" element={<AdminToolPage mode="clicker" />} /><Route path="/admin/flex-keychain" element={<AdminToolPage mode="flex-keychain" />} /><Route path="/admin/flex-organizer" element={<AdminToolPage mode="flex-organizer" />} /><Route path="/admin/svg-layers" element={<AdminToolPage mode="svg-layers" />} /><Route path="/admin/flex-lamp" element={<AdminFlexLampPage />} /><Route path="/admin/hunyuan-3d" element={<Hunyuan3DPage />} /><Route path="/admin/paramacraft" element={<ParamacraftPage />} /><Route path="/price-reader" element={<PriceReaderPage />} /><Route path="/admin/price-reader" element={<PriceReaderPage />} /><Route path="*" element={<HomePage />} /></Routes></PageTransition>{!isWorkspace && <Footer />}</div>;
+  return <div className={`app-shell tahoe-ui ${isWorkspace ? 'app-shell-admin-tool tahoe-workspace' : 'tahoe-storefront'}`}>{!isWorkspace && <Navbar cartCount={items.reduce((sum, item) => sum + item.quantity, 0)} theme={theme} onTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} />}<PageTransition><Routes><Route path="/" element={<HomePage />} /><Route path="/products" element={<ProductsPage />} /><Route path="/products/:slug" element={<ProductPage />} /><Route path="/collections" element={<CollectionsPage />} /><Route path="/collections/:slug" element={<CollectionPage />} /><Route path="/customize/:productId" element={<CustomizePage />} /><Route path="/module-studio" element={<ModuleLampStudioPage />} /><Route path="/module-studio/sketch" element={<ModuleSketchPage />} /><Route path="/cart" element={<CartPage />} /><Route path="/checkout" element={<CheckoutPage />} /><Route path="/order/:id" element={<OrderPage />} /><Route path="/account" element={<AccountPage />} /><Route path="/about" element={<AboutPage />} /><Route path="/contact" element={<ContactPage />} /><Route path="/3d-showcase" element={<ShowcasePage />} /><Route path="/downloads" element={<DownloadsPage />} /><Route path="/paramacraft/viewer/:presetId" element={<ParamacraftPage />} /><Route path="/paramacraft" element={<ParamacraftPage />} /><Route path="/admin" element={<AdminWorkspacePage />} /><Route path="/admin/clicker" element={<AdminToolPage mode="clicker" />} /><Route path="/admin/flex-keychain" element={<AdminToolPage mode="flex-keychain" />} /><Route path="/admin/flex-organizer" element={<AdminToolPage mode="flex-organizer" />} /><Route path="/admin/svg-layers" element={<AdminToolPage mode="svg-layers" />} /><Route path="/admin/flex-lamp" element={<AdminFlexLampPage />} /><Route path="/admin/hunyuan-3d" element={<Hunyuan3DPage />} /><Route path="/admin/paramacraft" element={<ParamacraftPage />} /><Route path="/price-reader" element={<PriceReaderPage />} /><Route path="/admin/price-reader" element={<PriceReaderPage />} /><Route path="*" element={<HomePage />} /></Routes></PageTransition>{!isWorkspace && <Footer />}</div>;
 }
 
 export default function App() { return <HashRouter><LanguageProvider><CatalogProvider><CartProvider><AppFrame /></CartProvider></CatalogProvider></LanguageProvider></HashRouter>; }

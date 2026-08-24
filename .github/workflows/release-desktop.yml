@@ -1,0 +1,115 @@
+name: Build FormaForgeDT release assets
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to use when manually dispatching'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    name: Desktop ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            bundle: nsis
+            source: 'apps/desktop/src-tauri/target/release/bundle/nsis/*.exe'
+            asset: FormaForgeDT-Windows-x64.exe
+          - os: macos-latest
+            bundle: dmg
+            source: 'apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg'
+            asset: FormaForgeDT-macOS.dmg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+      - name: Build Tauri bundle
+        run: pnpm --filter @hometown/desktop exec tauri build --bundles ${{ matrix.bundle }}
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+      - name: Collect Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $artifact = Get-ChildItem -Path 'apps/desktop/src-tauri/target/release/bundle/nsis' -Filter '*.exe' | Select-Object -First 1
+          if (-not $artifact) { throw 'Windows NSIS artifact not found.' }
+          Copy-Item $artifact.FullName 'release-assets/FormaForgeDT-Windows-x64.exe'
+      - name: Collect macOS installer
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release-assets
+          artifact="$(find apps/desktop/src-tauri/target/release/bundle/dmg -name '*.dmg' -print -quit)"
+          test -n "$artifact"
+          cp "$artifact" release-assets/FormaForgeDT-macOS.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.bundle }}
+          path: release-assets/${{ matrix.asset }}
+          if-no-files-found: error
+
+  extension:
+    name: Package Chrome extension
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:market-reader
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      - run: pnpm validate:market-reader
+      - shell: pwsh
+        run: Copy-Item 'apps/web/public/downloads/forma-forge-market-reader.zip' 'FormaForgeDT-Market-Reader.zip'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-reader
+          path: FormaForgeDT-Market-Reader.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [desktop, extension]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false

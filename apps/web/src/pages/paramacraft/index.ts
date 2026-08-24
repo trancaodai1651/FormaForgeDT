@@ -1,0 +1,1 @@
+export { ParamacraftPage } from '../../ParamacraftPage';

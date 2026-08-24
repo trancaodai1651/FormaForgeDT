@@ -1,0 +1,1 @@
+export { PriceReaderPage } from '../../PriceReaderPage';

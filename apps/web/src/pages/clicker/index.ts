@@ -1,0 +1,1 @@
+export { AdminToolPage } from '../../AdminToolPage';

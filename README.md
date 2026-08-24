@@ -70,3 +70,12 @@ Authenticated price reader routes (records are scoped to the signed-in user):
 - `GET /api/orders/:id` — retrieves an order confirmation payload.
 - `GET /api/admin/orders` — ADMIN-only order queue.
 - `PATCH /api/admin/orders/:id` — ADMIN-only status update.
+# FormaForgeDT
+
+Hometown Modular Lamp platform: storefront, Clicker tools, Paramacraft editor, Price Reader, Module Studio và desktop Tauri.
+
+## Tải ứng dụng
+
+Mở trang [`/#/downloads`](https://trancaodai1651.github.io/FormaForgeDT/#/downloads) để tải web companion, Windows installer, macOS DMG và Chrome Market Reader. Installer/extension được đính kèm trong [GitHub Releases](https://github.com/trancaodai1651/FormaForgeDT/releases/latest), không commit binary nặng vào source.
+
+Push tag `v*` sẽ chạy `.github/workflows/release-desktop.yml` để build NSIS/DMG và package extension.

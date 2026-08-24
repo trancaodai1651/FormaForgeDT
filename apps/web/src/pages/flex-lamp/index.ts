@@ -1,0 +1,1 @@
+export { AdminFlexLampPage } from '../../FlexLampWorkspacePage';
