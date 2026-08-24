@@ -1,0 +1,273 @@
+/* Native ParamaCraft-style workspace. The remote app is used as an interaction reference;
+   this CSS keeps the implementation local to FormaForgeDT and its existing visual system. */
+.paramacraft-library, .paramacraft-editor { --pc-bg: #0a0d11; --pc-surface: #11151b; --pc-surface-2: #171c23; --pc-surface-3: #1d232c; --pc-line: rgba(255,255,255,.11); --pc-line-soft: rgba(255,255,255,.07); --pc-text: #f1f3f6; --pc-muted: #9da7b5; --pc-faint: #657181; --pc-accent: #f0b967; --pc-accent-soft: rgba(240,185,103,.14); --pc-blue: #86aeff; --pc-good: #9fe0b0; min-height: 100dvh; color: var(--pc-text); background: var(--pc-bg); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.paramacraft-library.dark { --pc-bg: #2f3238; --pc-surface: #393d44; --pc-surface-2: #454a52; --pc-surface-3: #292d33; --pc-line: rgba(255,255,255,.15); --pc-line-soft: rgba(255,255,255,.09); --pc-text: #f4f5f6; --pc-muted: #b3b8c0; --pc-faint: #8f969f; }
+.paramacraft-library.light { --pc-bg: #edf1f6; --pc-surface: #fff; --pc-surface-2: #f5f7fa; --pc-surface-3: #e9eef5; --pc-line: rgba(39,54,72,.15); --pc-line-soft: rgba(39,54,72,.08); --pc-text: #1d2a3b; --pc-muted: #68788e; --pc-faint: #8b9aae; --pc-accent: #bd7b2e; --pc-accent-soft: rgba(189,123,46,.12); }
+.paramacraft-library button, .paramacraft-editor button, .paramacraft-editor input, .paramacraft-editor select { font: inherit; }
+.paramacraft-library button, .paramacraft-editor button { cursor: pointer; }
+.paramacraft-library-header { position: sticky; z-index: 5; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 22px; min-height: 74px; padding: 0 clamp(18px, 4vw, 58px); border-bottom: 1px solid var(--pc-line); background: color-mix(in srgb, var(--pc-bg) 91%, transparent); backdrop-filter: blur(18px); }
+.paramacraft-library-brand, .paramacraft-editor-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.paramacraft-brand-mark { display: grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; border: 1px solid color-mix(in srgb, var(--pc-accent) 75%, transparent); border-radius: 11px; background: var(--pc-accent-soft); color: var(--pc-accent); font: 700 19px Georgia, serif; }
+.paramacraft-library-brand > div, .paramacraft-editor-brand > div { display: grid; gap: 3px; min-width: 0; }
+.paramacraft-library-brand strong { font-size: 16px; letter-spacing: -.04em; }
+.paramacraft-library-brand span, .paramacraft-editor-brand span { color: var(--pc-muted); font: 500 9px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.paramacraft-library-brand > div > span { letter-spacing: .02em; text-transform: none; }
+.paramacraft-library-actions, .paramacraft-editor-actions { display: flex; align-items: center; gap: 8px; }
+.paramacraft-support, .paramacraft-language-button, .paramacraft-icon-button, .paramacraft-credit-button, .paramacraft-secondary-button, .paramacraft-primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 35px; padding: 0 12px; border: 1px solid var(--pc-line); border-radius: 9px; background: transparent; color: var(--pc-muted); font-size: 11px; text-decoration: none; transition: .2s ease; }
+.paramacraft-support:hover, .paramacraft-language-button:hover, .paramacraft-icon-button:hover, .paramacraft-secondary-button:hover { border-color: color-mix(in srgb, var(--pc-accent) 65%, transparent); color: var(--pc-text); background: var(--pc-accent-soft); }
+.paramacraft-icon-button { width: 35px; padding: 0; }
+.paramacraft-credit-button { color: var(--pc-accent); border-color: color-mix(in srgb, var(--pc-accent) 55%, transparent); background: var(--pc-accent-soft); font-weight: 700; }
+.paramacraft-credit-button small { color: var(--pc-muted); font-size: 9px; font-weight: 500; }
+.paramacraft-primary-button { border-color: var(--pc-accent); background: var(--pc-accent); color: #17130e; font-weight: 700; }
+.paramacraft-primary-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.paramacraft-library-content { width: min(1380px, calc(100% - 48px)); margin: 0 auto; padding: 18px 0 70px; }
+.paramacraft-library-hero { display: none; }
+.paramacraft-library-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: center; gap: 60px; min-height: 380px; padding: 36px 0 58px; border-bottom: 1px solid var(--pc-line); }
+.paramacraft-section-kicker { color: var(--pc-accent); font: 600 9px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; }
+.paramacraft-library-hero h1 { margin: 16px 0 18px; font-size: clamp(54px, 8vw, 112px); font-weight: 500; letter-spacing: -.085em; line-height: .82; }
+.paramacraft-library-hero h1 em { color: var(--pc-accent); font-family: Georgia, serif; font-weight: 400; }
+.paramacraft-library-hero p { max-width: 545px; margin: 0; color: var(--pc-muted); font-size: 14px; line-height: 1.7; }
+.paramacraft-hero-preview { position: relative; display: grid; place-items: center; min-height: 300px; overflow: hidden; border: 1px solid var(--pc-line); border-radius: 24px; background: radial-gradient(circle at 50% 38%, rgba(240,185,103,.16), transparent 36%), linear-gradient(135deg, var(--pc-surface), var(--pc-surface-2)); }
+.paramacraft-hero-preview > span { position: absolute; right: 18px; bottom: 17px; color: var(--pc-faint); font: 500 9px ui-monospace, monospace; letter-spacing: .12em; }
+.paramacraft-hero-ring { position: absolute; width: 178px; height: 178px; border: 1px solid color-mix(in srgb, var(--pc-accent) 62%, transparent); border-radius: 50%; transform: rotateX(68deg) rotateZ(-18deg); box-shadow: 0 0 0 24px rgba(240,185,103,.04), 0 0 0 52px rgba(240,185,103,.025); }
+.paramacraft-hero-shape { width: 116px; height: 116px; border: 2px solid var(--pc-accent); border-radius: 29% 42% 32% 40%; background: linear-gradient(145deg, #fbdfa0, #b97736); box-shadow: 24px 30px 0 rgba(240,185,103,.11), 0 22px 45px rgba(0,0,0,.35); transform: perspective(240px) rotateX(52deg) rotateZ(-18deg); }
+.paramacraft-recent, .paramacraft-preset-section { padding-top: 46px; }
+.paramacraft-section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.paramacraft-section-head h2 { margin: 10px 0 0; font-size: 25px; font-weight: 500; letter-spacing: -.045em; }
+.paramacraft-text-button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--pc-muted); font-size: 11px; }
+.paramacraft-text-button:hover { color: var(--pc-accent); }
+.paramacraft-recent-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+.paramacraft-recent-card { display: grid; grid-template-columns: 51px minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 80px; padding: 10px; border: 1px solid var(--pc-line); border-radius: 14px; background: var(--pc-surface); color: var(--pc-text); text-align: left; transition: .2s ease; }
+.paramacraft-recent-card:hover, .paramacraft-recent-card.active { border-color: color-mix(in srgb, var(--pc-accent) 62%, transparent); background: var(--pc-accent-soft); transform: translateY(-2px); }
+.paramacraft-recent-card > span:nth-child(2) { display: grid; gap: 5px; min-width: 0; }
+.paramacraft-recent-card strong, .paramacraft-recent-card small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paramacraft-recent-card strong { font-size: 12px; }
+.paramacraft-recent-card small { color: var(--pc-muted); font-size: 9px; }
+.paramacraft-recent-card > svg { color: var(--pc-faint); }
+.paramacraft-recent-art { position: relative; display: grid; place-items: center; height: 58px; overflow: hidden; border-radius: 10px; background: linear-gradient(145deg, #303641, #141922); }
+.paramacraft-recent-art span { width: 28px; height: 34px; border: 2px solid #e3aa64; border-radius: 11px 11px 8px 8px; background: #7f5734; transform: rotate(-13deg) skewY(-5deg); box-shadow: 7px 7px 0 rgba(240,185,103,.28); }
+.paramacraft-recent-art img { display: block; width: 100%; height: 100%; padding: 6px; object-fit: contain; border-radius: inherit; }
+.paramacraft-recent-art-circle span, .paramacraft-recent-art-cylinder span { width: 34px; height: 34px; border-radius: 50%; background: #7cb29e; }
+.paramacraft-preset-section { border-top: 1px solid var(--pc-line); }
+.paramacraft-suggestion-button { display: inline-flex; align-items: center; gap: 8px; min-height: 33px; padding: 0 10px; border: 1px solid var(--pc-line); border-radius: 8px; background: var(--pc-surface); color: var(--pc-muted); font-size: 11px; }
+.paramacraft-suggestion-button:hover { border-color: var(--pc-accent); color: var(--pc-accent); }
+.paramacraft-suggestion-button > span { position: relative; width: 22px; height: 12px; border-radius: 20px; background: var(--pc-surface-3); }
+.paramacraft-suggestion-button > span::after { position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--pc-faint); content: ''; transition: .2s; }
+.paramacraft-suggestion-button > span.on { background: var(--pc-accent-soft); }
+.paramacraft-suggestion-button > span.on::after { left: 12px; background: var(--pc-accent); }
+.paramacraft-discovery-bar { display: flex; align-items: center; gap: 10px; margin-top: 22px; }
+.paramacraft-search { display: flex; flex: 1; align-items: center; gap: 9px; min-height: 39px; padding: 0 12px; border: 1px solid var(--pc-line); border-radius: 9px; background: var(--pc-surface); color: var(--pc-faint); }
+.paramacraft-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--pc-text); font-size: 12px; }
+.paramacraft-discovery-bar select { min-width: 180px; min-height: 39px; padding: 0 10px; border: 1px solid var(--pc-line); border-radius: 9px; outline: 0; background: var(--pc-surface); color: var(--pc-muted); font-size: 11px; }
+.paramacraft-result-count { color: var(--pc-faint); font: 500 9px ui-monospace, monospace; white-space: nowrap; }
+.paramacraft-tag-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.paramacraft-tag-row button { min-height: 26px; padding: 0 9px; border: 1px solid var(--pc-line); border-radius: 999px; background: transparent; color: var(--pc-muted); font: 500 9px ui-monospace, monospace; }
+.paramacraft-tag-row button:hover, .paramacraft-tag-row button.active { border-color: color-mix(in srgb, var(--pc-accent) 65%, transparent); background: var(--pc-accent-soft); color: var(--pc-accent); }
+.paramacraft-gallery-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px; margin-top: 20px; }
+.paramacraft-gallery-card { position: relative; display: flex; flex-direction: column; gap: 0; min-height: 226px; padding: 0; overflow: hidden; border: 1px solid var(--pc-line); border-radius: 10px; background: var(--pc-surface); color: var(--pc-text); text-align: left; transition: .2s ease; }
+.paramacraft-gallery-card:hover { border-color: color-mix(in srgb, var(--pc-accent) 62%, transparent); background: var(--pc-accent-soft); transform: translateY(-3px); }
+.paramacraft-gallery-card:hover .paramacraft-card-open { opacity: 1; transform: translateY(0); }
+.paramacraft-gallery-card-body { display: grid; align-content: center; gap: 5px; min-width: 0; min-height: 75px; padding: 10px 11px 12px; }
+.paramacraft-card-tags { overflow: hidden; color: var(--pc-accent); font: 500 8px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.paramacraft-gallery-card-body strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.paramacraft-gallery-card-body small { color: var(--pc-muted); font-size: 10px; line-height: 1.45; }
+.paramacraft-card-open { position: absolute; right: 12px; bottom: 10px; display: inline-flex; align-items: center; gap: 4px; color: var(--pc-accent); font-size: 9px; opacity: 0; transform: translateY(3px); transition: .2s; }
+.paramacraft-gallery-art { position: relative; display: grid; flex: 1 1 auto; place-items: center; min-height: 150px; overflow: hidden; border-radius: 0; background: radial-gradient(circle at 52% 38%, rgba(255,255,255,.12), transparent 39%), linear-gradient(145deg, #3b4149, #282d35); }
+.paramacraft-gallery-art::before, .paramacraft-gallery-art::after { position: absolute; content: ''; }
+.paramacraft-gallery-art::before { width: 72px; height: 50px; border: 2px solid var(--thumb-accent, #e8ad64); border-radius: 9px; background: var(--thumb-color, #745035); box-shadow: 8px 10px 0 rgba(0,0,0,.25); transform: perspective(120px) rotateX(48deg) rotateZ(-14deg); }
+.paramacraft-gallery-art img { position: relative; z-index: 2; display: block; width: 100%; height: 100%; padding: 10px; object-fit: contain; border-radius: inherit; }
+.paramacraft-gallery-art:has(img)::before, .paramacraft-gallery-art:has(img)::after { opacity: .08; z-index: 1; }
+.paramacraft-paid-badge, .paramacraft-new-badge { position: absolute; z-index: 3; top: 7px; right: 7px; min-height: 18px; padding: 2px 6px; border-radius: 5px; background: var(--pc-accent); color: #17130e; font: 700 8px ui-monospace, monospace; }
+.paramacraft-paid-badge { top: auto; right: auto; bottom: 7px; left: 7px; background: rgba(12,15,20,.78); color: #f5c67e; }
+.paramacraft-bookmark { position: absolute; z-index: 3; right: 7px; bottom: 7px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(12,15,20,.7); color: #d8dee7; font-size: 16px; line-height: 1; }
+.paramacraft-preset-count { margin: 7px 0 0; color: var(--pc-faint); font: 500 9px ui-monospace, monospace; }
+.paramacraft-load-more { display: block; min-height: 40px; margin: 22px auto 0; padding: 0 18px; border: 1px solid color-mix(in srgb, var(--pc-accent) 60%, transparent); border-radius: 9px; background: var(--pc-accent-soft); color: var(--pc-accent); font-size: 11px; }
+.paramacraft-load-more:hover { background: color-mix(in srgb, var(--pc-accent) 22%, transparent); }
+.paramacraft-gallery-art::after { width: 45px; height: 2px; background: var(--thumb-accent, #e8ad64); transform: translateY(19px) rotate(-14deg); opacity: .8; }
+.paramacraft-gallery-art-circle::before, .paramacraft-gallery-art-cylinder::before { width: 64px; height: 64px; border-radius: 50%; }
+.paramacraft-gallery-art-polygon::before { border-radius: 8px; clip-path: polygon(50% 0, 100% 25%, 85% 86%, 18% 100%, 0 38%); }
+.paramacraft-gallery-art-cone::before { clip-path: polygon(19% 12%, 81% 12%, 100% 92%, 0 92%); border-radius: 12px; }
+.paramacraft-gallery-art-flower::before { width: 74px; height: 74px; border-radius: 48% 52% 43% 57%; clip-path: polygon(50% 0, 64% 28%, 100% 25%, 76% 52%, 92% 92%, 50% 70%, 8% 92%, 24% 52%, 0 25%, 36% 28%); }
+.paramacraft-gallery-art-stripes::after, .paramacraft-gallery-art-ribs::after { width: 65px; height: 35px; background: repeating-linear-gradient(0deg, transparent 0 5px, var(--thumb-accent, #f0c078) 6px 7px); transform: perspective(100px) rotateX(45deg) rotateZ(-14deg); }
+.paramacraft-gallery-art-grooves::after { width: 48px; height: 48px; border: 2px solid var(--thumb-accent, #f0c078); border-radius: 50%; box-shadow: 0 0 0 6px transparent, 0 0 0 8px var(--thumb-accent, #f0c078), 0 0 0 14px transparent, 0 0 0 16px var(--thumb-accent, #f0c078); opacity: .65; }
+.paramacraft-gallery-card:nth-child(3n+1) .paramacraft-gallery-art { --thumb-color: #7f5337; --thumb-accent: #e5ad66; }.paramacraft-gallery-card:nth-child(3n+2) .paramacraft-gallery-art { --thumb-color: #63847b; --thumb-accent: #b5e0c0; }.paramacraft-gallery-card:nth-child(3n) .paramacraft-gallery-art { --thumb-color: #875b77; --thumb-accent: #e8a8b8; }
+.paramacraft-library-footer { display: flex; justify-content: space-between; gap: 20px; width: min(1380px, calc(100% - 48px)); margin: 0 auto; padding: 22px 0 32px; border-top: 1px solid var(--pc-line); color: var(--pc-faint); font: 500 9px ui-monospace, monospace; }
+
+/* Editor */
+.paramacraft-editor { display: grid; grid-template-rows: 70px 1fr; height: 100dvh; overflow: hidden; background: #0d1118; }
+.paramacraft-editor-header { display: flex; align-items: center; gap: 14px; padding: 0 17px; border-bottom: 1px solid var(--pc-line); background: #0b0e13; }
+.paramacraft-editor-header .paramacraft-icon-button { flex: 0 0 auto; }
+.paramacraft-editor-brand strong { color: #f3f4f6; font-size: 15px; font-weight: 600; letter-spacing: -.03em; }
+.paramacraft-editor-brand span { color: #848f9e; font-size: 8px; }
+.paramacraft-save-status { display: flex; align-items: center; gap: 7px; margin-left: auto; color: #9faaba; font: 500 9px ui-monospace, monospace; white-space: nowrap; }
+.paramacraft-save-status small { color: #697485; }
+.paramacraft-editor-body { display: grid; grid-template-columns: 306px minmax(0, 1fr) 334px; min-height: 0; }
+.paramacraft-left-panel, .paramacraft-right-panel { min-width: 0; overflow: auto; background: #12161c; }
+.paramacraft-left-panel { border-right: 1px solid var(--pc-line); }.paramacraft-right-panel { border-left: 1px solid var(--pc-line); }
+.paramacraft-panel-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 14px 13px; border-bottom: 1px solid var(--pc-line-soft); }
+.paramacraft-panel-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 33px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #808b9a; font-size: 10px; }.paramacraft-panel-tabs button:hover { color: #fff; }.paramacraft-panel-tabs button.active { border-color: rgba(240,185,103,.46); background: var(--pc-accent-soft); color: var(--pc-accent); }
+.paramacraft-controls { padding: 18px 17px 32px; }.paramacraft-controls section { padding: 0 0 21px; margin-bottom: 19px; border-bottom: 1px solid var(--pc-line-soft); }.paramacraft-controls section:last-child { border-bottom: 0; }
+.paramacraft-section-head { align-items: center; }.paramacraft-live-label, .paramacraft-valid { display: inline-flex; align-items: center; gap: 5px; color: var(--pc-good); font: 500 8px ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }.paramacraft-live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #9ee89e; box-shadow: 0 0 10px #9ee89e; }.paramacraft-controls h2 { margin: 8px 0 13px; color: #f1f3f6; font-size: 17px; font-weight: 600; }
+.paramacraft-shape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }.paramacraft-shape-grid button { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 8px; border: 1px solid var(--pc-line); border-radius: 7px; background: #181d24; color: #9ca7b5; font-size: 10px; text-align: left; }.paramacraft-shape-grid button:hover, .paramacraft-shape-grid button.active { border-color: var(--pc-accent); background: var(--pc-accent-soft); color: #f2d09b; }.paramacraft-mini-shape { display: inline-block; width: 18px; height: 18px; background: currentColor; opacity: .85; }.paramacraft-mini-rounded-box { border-radius: 5px; }.paramacraft-mini-circle, .paramacraft-mini-cylinder { border-radius: 50%; }.paramacraft-mini-polygon { clip-path: polygon(50% 0, 100% 28%, 80% 100%, 18% 100%, 0 28%); }.paramacraft-mini-cone { clip-path: polygon(22% 5%, 78% 5%, 100% 95%, 0 95%); }.paramacraft-mini-flower { border-radius: 50%; clip-path: polygon(50% 0, 65% 32%, 100% 28%, 75% 53%, 94% 100%, 50% 74%, 6% 100%, 25% 53%, 0 28%, 35% 32%); }
+.paramacraft-range { display: grid; gap: 7px; margin-top: 15px; color: #9ba5b4; font-size: 10px; }.paramacraft-range > span { display: flex; justify-content: space-between; gap: 10px; }.paramacraft-range output { color: #e6ebf1; font: 500 10px ui-monospace, monospace; }.paramacraft-range input { width: 100%; height: 4px; accent-color: var(--pc-accent); cursor: pointer; }.paramacraft-text-button { border: 0; background: transparent; color: #8d99a9; font-size: 10px; }.paramacraft-select-label, .paramacraft-color-row label, .paramacraft-name-field { display: grid; gap: 7px; color: #9aa5b4; font-size: 10px; }.paramacraft-select-label select, .paramacraft-name-field input { min-height: 36px; padding: 0 9px; border: 1px solid var(--pc-line); border-radius: 7px; outline: 0; background: #1a2028; color: #e7ebef; font-size: 11px; }.paramacraft-select-label select:focus, .paramacraft-name-field input:focus { border-color: var(--pc-accent); }.paramacraft-checkbox { display: flex; align-items: center; gap: 8px; margin-top: 15px; color: #aab4c2; font-size: 10px; }.paramacraft-checkbox input { accent-color: var(--pc-accent); }.paramacraft-color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }.paramacraft-color-row input { width: 100%; height: 36px; padding: 2px; border: 1px solid var(--pc-line); border-radius: 7px; background: #1a2028; }
+.paramacraft-main { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #0d1118; }.paramacraft-viewport { position: absolute; inset: 0; }.paramacraft-viewport canvas { display: block; width: 100%; height: 100%; }.paramacraft-viewport-badge { position: absolute; top: 17px; left: 18px; display: inline-flex; align-items: center; gap: 7px; max-width: calc(100% - 36px); padding: 8px 10px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(15,20,27,.78); color: #c0c9d5; font: 500 9px ui-monospace, monospace; backdrop-filter: blur(12px); }.paramacraft-viewport-badge span:last-child { color: #738092; }.paramacraft-fit { position: absolute; top: 17px; right: 18px; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid rgba(255,255,255,.13); border-radius: 8px; background: rgba(15,20,27,.78); color: #b3bfcd; }.paramacraft-fit:hover { border-color: var(--pc-accent); color: var(--pc-accent); }.paramacraft-orbit-hint { position: absolute; bottom: 18px; left: 18px; display: inline-flex; align-items: center; gap: 7px; color: #657180; font: 500 9px ui-monospace, monospace; }.paramacraft-view-dock { position: absolute; bottom: 17px; left: 50%; display: flex; align-items: center; gap: 3px; padding: 5px; border: 1px solid rgba(255,255,255,.12); border-radius: 9px; background: rgba(13,17,24,.88); transform: translateX(-50%); }.paramacraft-view-dock button { display: inline-grid; place-items: center; min-width: 36px; min-height: 28px; border: 0; border-radius: 5px; background: transparent; color: #8f9aa9; font: 500 9px ui-monospace, monospace; }.paramacraft-view-dock button:hover, .paramacraft-view-dock button.active { background: rgba(240,185,103,.16); color: var(--pc-accent); }.paramacraft-view-dock span { width: 1px; height: 18px; margin: 0 4px; background: var(--pc-line); }
+.paramacraft-right-panel { padding: 19px 16px 32px; }.paramacraft-inspector-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 18px; }.paramacraft-inspector-header h2 { margin: 7px 0 0; color: #f2f4f7; font-size: 20px; font-weight: 600; letter-spacing: -.04em; }.paramacraft-name-field { margin-bottom: 15px; }.paramacraft-inspector-card { padding: 15px; margin-top: 12px; border: 1px solid var(--pc-line); border-radius: 11px; background: #171c23; }.paramacraft-optional { color: #728091; font: 500 9px ui-monospace, monospace; }.paramacraft-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 7px; margin-top: 15px; }.paramacraft-stat-grid div { display: grid; gap: 3px; }.paramacraft-stat-grid strong { color: #f0c783; font: 500 18px ui-monospace, monospace; }.paramacraft-stat-grid small { color: #8290a1; font-size: 9px; }.paramacraft-dropzone { display: grid; justify-items: center; gap: 7px; min-height: 112px; padding: 17px 10px; margin-top: 13px; border: 1px dashed rgba(240,185,103,.48); border-radius: 9px; background: rgba(240,185,103,.05); color: #c2cad5; text-align: center; cursor: pointer; }.paramacraft-dropzone:hover { background: rgba(240,185,103,.1); }.paramacraft-dropzone svg { color: var(--pc-accent); }.paramacraft-dropzone strong { font-size: 11px; }.paramacraft-dropzone small { color: #7f8a99; font-size: 9px; }.paramacraft-reference-preview { position: relative; margin-top: 10px; overflow: hidden; border: 1px solid var(--pc-line); border-radius: 8px; }.paramacraft-reference-preview img { display: block; width: 100%; max-height: 130px; object-fit: contain; background: #11161d; }.paramacraft-reference-preview button { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid var(--pc-line); border-radius: 6px; background: rgba(10,13,17,.8); color: white; }.paramacraft-inspector-copy { margin: 12px 0 15px; color: #8591a1; font-size: 10px; line-height: 1.55; }.paramacraft-export-large { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 39px; padding: 0 11px; border: 1px solid var(--pc-accent); border-radius: 8px; background: var(--pc-accent); color: #19140e; font-size: 10px; font-weight: 700; }
+.paramacraft-sketch-panel { padding: 17px; }.paramacraft-sketch-toolbar, .paramacraft-sketch-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.paramacraft-sketch-toolbar > div { display: flex; gap: 4px; }.paramacraft-sketch-toolbar button { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--pc-line); border-radius: 6px; background: transparent; color: #8d98a7; }.paramacraft-sketch-toolbar button:hover { color: var(--pc-accent); border-color: var(--pc-accent); }.paramacraft-sketch-tools { display: grid; gap: 5px; margin: 16px 0; }.paramacraft-sketch-tools button { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #8f9aa8; font-size: 10px; text-align: left; }.paramacraft-sketch-tools button:hover, .paramacraft-sketch-tools button.active { border-color: var(--pc-line); background: #1b2129; color: #eef1f5; }.paramacraft-sketch-tools button span { width: 17px; color: var(--pc-accent); text-align: center; }.paramacraft-sketch-tools kbd { margin-left: auto; color: #667384; font-size: 9px; }.paramacraft-sketch-canvas { position: relative; min-height: 220px; overflow: hidden; border: 1px solid var(--pc-line); border-radius: 8px; background-color: #12171e; background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 20px 20px; cursor: crosshair; }.paramacraft-sketch-canvas svg { width: 100%; height: 100%; min-height: 220px; }.paramacraft-sketch-canvas .axis { stroke: rgba(240,185,103,.38); stroke-width: .25; }.paramacraft-sketch-canvas .sketch-line { fill: none; stroke: #f0b967; stroke-width: .7; }.paramacraft-sketch-canvas .sketch-point { fill: #fff; stroke: #f0b967; stroke-width: .55; }.paramacraft-sketch-origin { position: absolute; top: 9px; left: 9px; color: #637081; font: 500 8px ui-monospace, monospace; }.paramacraft-sketch-footer { margin-top: 12px; color: #778494; font: 500 8px ui-monospace, monospace; }.paramacraft-sketch-footer button { display: inline-flex; align-items: center; gap: 5px; min-height: 29px; padding: 0 8px; border: 1px solid var(--pc-accent); border-radius: 6px; background: var(--pc-accent-soft); color: var(--pc-accent); font-size: 9px; }.paramacraft-history { padding: 19px 17px; }.paramacraft-history-row { display: flex; gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--pc-line-soft); }.paramacraft-history-row > span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--pc-accent-soft); color: var(--pc-accent); }.paramacraft-history-row div { display: grid; gap: 4px; }.paramacraft-history-row strong { color: #e2e7ee; font-size: 10px; font-weight: 500; }.paramacraft-history-row small { color: #788596; font-size: 9px; }
+@media (max-width: 1100px) { .paramacraft-editor-body { grid-template-columns: 276px minmax(0, 1fr) 290px; }.paramacraft-gallery-grid { grid-template-columns: repeat(2, 1fr); }.paramacraft-recent-row { grid-template-columns: repeat(2, 1fr); }.paramacraft-save-status { display: none; } }
+@media (max-width: 760px) { .paramacraft-library-header { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 14px; }.paramacraft-library-actions { width: 100%; overflow: auto; padding-bottom: 2px; }.paramacraft-library-content { width: min(100% - 28px, 620px); padding-top: 30px; }.paramacraft-library-hero { grid-template-columns: 1fr; gap: 28px; min-height: 0; }.paramacraft-hero-preview { min-height: 220px; }.paramacraft-gallery-grid, .paramacraft-recent-row { grid-template-columns: 1fr; }.paramacraft-discovery-bar { align-items: stretch; flex-direction: column; }.paramacraft-discovery-bar select { width: 100%; }.paramacraft-library-footer { flex-direction: column; width: calc(100% - 28px); }.paramacraft-editor { height: auto; min-height: 100dvh; overflow: visible; }.paramacraft-editor-header { align-items: flex-start; flex-wrap: wrap; min-height: 0; padding: 12px; }.paramacraft-editor-brand { order: -1; }.paramacraft-editor-actions { width: 100%; overflow: auto; }.paramacraft-editor-body { display: flex; flex-direction: column; }.paramacraft-left-panel, .paramacraft-right-panel { overflow: visible; border: 0; }.paramacraft-main { order: -1; height: 58svh; min-height: 390px; }.paramacraft-right-panel { padding-bottom: 40px; }.paramacraft-orbit-hint { display: none; } }
+
+/* Phase workspace additions */
+.paramacraft-library-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.paramacraft-library-nav button { min-height: 33px; padding: 0 14px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--pc-muted); font-size: 11px; }
+.paramacraft-library-nav button:hover, .paramacraft-library-nav button.active { border-color: var(--pc-line); background: var(--pc-surface); color: var(--pc-text); }
+.paramacraft-avatar { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--pc-line); border-radius: 50%; background: var(--pc-surface-2); color: var(--pc-accent); font-size: 12px; font-weight: 700; }
+.paramacraft-phase-stack { display: grid; gap: 7px; margin-bottom: 14px; }
+.paramacraft-phase-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 43px; padding: 0 11px; border: 1px solid var(--pc-line); border-radius: 9px; background: #171c23; color: #98a4b3; text-align: left; transition: .18s ease; }
+.paramacraft-phase-button:hover { border-color: color-mix(in srgb, var(--pc-accent) 55%, transparent); color: var(--pc-text); }
+.paramacraft-phase-button.active { border-color: color-mix(in srgb, var(--pc-accent) 80%, transparent); background: var(--pc-accent-soft); color: #f3d39f; }
+.paramacraft-phase-button > span { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid currentColor; border-radius: 7px; color: var(--pc-accent); font: 600 10px ui-monospace, monospace; }
+.paramacraft-phase-button strong { flex: 1; font-size: 12px; font-weight: 600; }
+.paramacraft-phase-button svg { color: var(--pc-faint); transition: transform .18s ease; }
+.paramacraft-phase-button.active svg { transform: rotate(180deg); color: var(--pc-accent); }
+.paramacraft-phase-content { padding: 1px 0 0; border: 1px solid var(--pc-line-soft); border-radius: 10px; background: rgba(255,255,255,.015); }
+.paramacraft-phase-content section { padding: 15px 13px 17px; margin: 0; border-bottom: 1px solid var(--pc-line-soft); }
+.paramacraft-phase-content section:last-child { border-bottom: 0; }
+.paramacraft-phase-content h2 { margin: 8px 0 14px; font-size: 16px; }
+.paramacraft-range-row { display: flex; align-items: center; gap: 9px; }
+.paramacraft-range-row input[type='range'] { flex: 1; width: auto; min-width: 0; }
+.paramacraft-number { flex: 0 0 74px; width: 74px; min-height: 29px; padding: 0 6px; border: 1px solid var(--pc-line); border-radius: 6px; outline: 0; background: #1a2028; color: #e6ebf1; font: 500 10px ui-monospace, monospace; text-align: right; }
+.paramacraft-number:focus { border-color: var(--pc-accent); }
+.paramacraft-pattern-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.paramacraft-pattern-grid button { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 44px; padding: 5px 7px; border: 1px solid var(--pc-line); border-radius: 8px; background: #181d24; color: #a0abb9; font-size: 10px; text-align: left; }
+.paramacraft-pattern-grid button:hover, .paramacraft-pattern-grid button.active { border-color: var(--pc-accent); background: var(--pc-accent-soft); color: #f2d09b; }
+.paramacraft-pattern-swatch { display: block; width: 29px; height: 29px; border: 1px solid currentColor; border-radius: 7px; opacity: .85; }
+.paramacraft-pattern-swatch.pattern-plain { background: #657181; }
+.paramacraft-pattern-swatch.pattern-stripes { background: repeating-linear-gradient(0deg, transparent 0 4px, currentColor 5px 7px); }
+.paramacraft-pattern-swatch.pattern-grooves { border-radius: 50%; background: repeating-radial-gradient(circle, currentColor 0 2px, transparent 3px 6px); }
+.paramacraft-pattern-swatch.pattern-ribs { background: repeating-linear-gradient(90deg, currentColor 0 3px, transparent 4px 7px); }
+.paramacraft-pattern-swatch.pattern-wavy { background: repeating-linear-gradient(155deg, transparent 0 4px, currentColor 5px 7px); }
+.paramacraft-pattern-swatch.pattern-kumiko { background: repeating-linear-gradient(45deg, transparent 0 5px, currentColor 6px 7px), repeating-linear-gradient(-45deg, transparent 0 5px, currentColor 6px 7px); }
+.paramacraft-next-phase { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 38px; padding: 0 11px; margin-top: 13px; border: 1px solid color-mix(in srgb, var(--pc-accent) 58%, transparent); border-radius: 8px; background: var(--pc-accent-soft); color: var(--pc-accent); font-size: 10px; font-weight: 600; }
+.paramacraft-next-phase:hover { background: color-mix(in srgb, var(--pc-accent) 24%, transparent); }
+.paramacraft-output-note { padding-top: 13px; color: #7c8999; font: 500 9px ui-monospace, monospace; }
+.paramacraft-export-grid { display: grid; gap: 7px; }
+.paramacraft-export-secondary { border-color: var(--pc-line); background: transparent; color: #d3dae2; }
+.paramacraft-export-secondary:hover { border-color: var(--pc-accent); color: var(--pc-accent); }
+.paramacraft-page-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; padding: 38px 0 28px; border-bottom: 1px solid var(--pc-line); }
+.paramacraft-page-heading h1 { margin: 13px 0 10px; font-size: clamp(42px, 7vw, 78px); font-weight: 500; letter-spacing: -.08em; line-height: .9; }
+.paramacraft-page-heading p { max-width: 530px; margin: 0; color: var(--pc-muted); font-size: 13px; line-height: 1.6; }
+.paramacraft-project-card { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 15px; width: 100%; padding: 12px; margin-top: 24px; border: 1px solid var(--pc-line); border-radius: 14px; background: var(--pc-surface); color: var(--pc-text); text-align: left; }
+.paramacraft-project-card:hover { border-color: color-mix(in srgb, var(--pc-accent) 60%, transparent); background: var(--pc-accent-soft); }
+.paramacraft-project-card > div { display: grid; gap: 6px; }
+.paramacraft-project-card strong { font-size: 13px; }
+.paramacraft-project-card small { color: var(--pc-muted); font-size: 10px; }
+@media (max-width: 1100px) { .paramacraft-library-nav { margin-left: 0; order: 3; width: 100%; justify-content: center; }.paramacraft-pattern-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .paramacraft-page-heading { align-items: flex-start; flex-direction: column; }.paramacraft-library-nav { order: 0; width: auto; }.paramacraft-avatar { display: none; } }
+
+/* Editor state, history, and sketch controls. */
+.paramacraft-history-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--pc-line); }.paramacraft-history-actions > div:last-child { display: flex; gap: 5px; }.paramacraft-history-actions strong { display: block; margin-top: 5px; color: #dfe5ed; font-size: 10px; font-weight: 500; }.paramacraft-history-actions .paramacraft-icon-button { width: 29px; height: 29px; }.paramacraft-history-actions .paramacraft-icon-button:disabled { opacity: .35; cursor: not-allowed; }.paramacraft-history-row { width: 100%; border-top: 0; border-right: 0; border-left: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }.paramacraft-history-row:hover, .paramacraft-history-row.active { background: rgba(240,185,103,.06); }.paramacraft-history-row.active > span { box-shadow: 0 0 0 1px var(--pc-accent); }.paramacraft-sketch-status { display: flex; align-items: center; gap: 7px; min-height: 30px; margin: 12px 0; padding: 0 9px; border: 1px solid var(--pc-line); border-radius: 6px; color: #9aa6b5; font-size: 9px; }.paramacraft-warning { color: #ef9c7b; font-size: 9px; }
+
+/* The reference gallery starts with the recent strip and preset library. */
+.paramacraft-library-hero { display: none !important; }
+
+/* Paramacraft viewer layout: the canvas is the workspace and the controls float on top. */
+@media (min-width: 761px) {
+  .paramacraft-editor-body {
+    position: relative;
+    display: block;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .paramacraft-editor-body > .paramacraft-left-panel {
+    display: none;
+  }
+
+  .paramacraft-editor-body > .paramacraft-main {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .paramacraft-editor-body > .paramacraft-right-panel {
+    position: absolute;
+    z-index: 5;
+    top: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: min(320px, calc(100vw - 32px));
+    padding: 13px 12px 24px;
+    overflow: auto;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 14px;
+    background: rgba(17,21,27,.94);
+    box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    backdrop-filter: blur(18px);
+    scrollbar-width: thin;
+  }
+
+  .paramacraft-official-phase-controls {
+    padding: 2px 1px 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--pc-line);
+  }
+
+  .paramacraft-official-phase-list {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 11px;
+  }
+
+  .paramacraft-official-phase-list .paramacraft-phase-button {
+    min-height: 38px;
+    border-radius: 7px;
+    background: rgba(255,255,255,.025);
+  }
+
+  .paramacraft-official-phase-list .paramacraft-phase-button strong {
+    font-size: 11px;
+  }
+
+  .paramacraft-official-phase-controls .paramacraft-phase-content {
+    border-radius: 8px;
+  }
+
+  .paramacraft-official-phase-controls .paramacraft-phase-content section {
+    padding: 13px 11px 15px;
+  }
+
+  .paramacraft-official-phase-controls .paramacraft-phase-content h2 {
+    font-size: 15px;
+  }
+
+  .paramacraft-official-next {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 36px;
+    padding: 0 10px;
+    margin-top: 10px;
+    border: 1px solid color-mix(in srgb, var(--pc-accent) 58%, transparent);
+    border-radius: 7px;
+    background: var(--pc-accent-soft);
+    color: var(--pc-accent);
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .paramacraft-official-next:hover {
+    background: color-mix(in srgb, var(--pc-accent) 24%, transparent);
+  }
+
+  .paramacraft-right-panel > .paramacraft-inspector-header {
+    padding-top: 2px;
+  }
+}
+
+@media (max-width: 760px) {
+  .paramacraft-official-phase-controls {
+    display: none;
+  }
+}
