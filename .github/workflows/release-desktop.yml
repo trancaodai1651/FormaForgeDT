@@ -27,8 +27,9 @@ jobs:
             asset: FormaForgeDT-Windows-x64.exe
           - os: macos-latest
             bundle: dmg
-            source: 'apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg'
-            asset: FormaForgeDT-macOS.dmg
+            target: universal-apple-darwin
+            source: 'apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg'
+            asset: FormaForgeDT-macOS-universal.dmg
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -39,13 +40,16 @@ jobs:
           node-version: 24
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install macOS universal targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - run: pnpm install --frozen-lockfile
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
       - name: Build Tauri bundle
-        run: pnpm --filter @hometown/desktop exec tauri build --bundles ${{ matrix.bundle }}
+        run: pnpm --filter @hometown/desktop exec tauri build --bundles ${{ matrix.bundle }} ${{ matrix.target && format('--target {0}', matrix.target) || '' }} --ci
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
@@ -62,9 +66,9 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mkdir -p release-assets
-          artifact="$(find apps/desktop/src-tauri/target/release/bundle/dmg -name '*.dmg' -print -quit)"
+          artifact="$(find apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' -print -quit)"
           test -n "$artifact"
-          cp "$artifact" release-assets/FormaForgeDT-macOS.dmg
+          cp "$artifact" 'release-assets/FormaForgeDT-macOS-universal.dmg'
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.bundle }}

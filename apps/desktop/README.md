@@ -1,4 +1,4 @@
-# Hometown Desktop
+# FormaForgeDT Desktop
 
 Tauri 2 shell for the offline designer workflow. It reuses the web viewer and geometry package, while the Rust layer is reserved for local file access, export acceleration, and autosave/recovery commands.
 
@@ -24,7 +24,7 @@ corepack pnpm dev:desktop
 The Hunyuan3D page checks for `gradio_app.py`, the `hy3dshape` folder, the configured Python executable and detected GPU memory before launch. FormaForge blocks detected GPUs below 4 GB VRAM to avoid an out-of-memory crash. Between 4 and 8 GB it starts the upstream Gradio workspace with `--low_vram_mode`, conservative PyTorch allocator settings and reduced CPU thread limits; this is intentionally slower but safer. The model files and GPU workload stay on the desktop machine.
 # Desktop app
 
-FormaForgeDT Desktop dùng Tauri 2, Rust và frontend web hiện tại. Bundle targets gồm Windows NSIS và macOS DMG. Desktop là nơi bắt buộc cho workflow Hunyuan 3D; web chỉ hướng dẫn và tải installer.
+FormaForgeDT Desktop dùng Tauri 2, Rust và frontend web hiện tại. Bundle targets gồm Windows NSIS và macOS DMG universal (chạy được trên Intel và Apple Silicon). Desktop là nơi bắt buộc cho workflow Hunyuan 3D; web chỉ hướng dẫn và tải installer.
 
 ## Build
 
@@ -35,6 +35,6 @@ corepack pnpm --filter @hometown/desktop tauri build
 Artifact tạo trong `src-tauri/target/release/bundle/` và bị Git ignore. Khi push tag `v*`, GitHub Actions build installer và đưa vào GitHub Release với tên ổn định:
 
 - `FormaForgeDT-Windows-x64.exe`
-- `FormaForgeDT-macOS.dmg`
+- `FormaForgeDT-macOS-universal.dmg`
 
 Không commit installer binary lớn vào source. Xem thêm `src-tauri/README.md`.

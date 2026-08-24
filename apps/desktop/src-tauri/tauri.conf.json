@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Hometown Module Lamp Studio",
+  "productName": "FormaForgeDT",
   "version": "0.1.0",
-  "identifier": "com.hometown.modular-lamp",
+  "identifier": "com.formaforge.dt",
   "build": {
     "beforeDevCommand": "corepack pnpm --dir ../web dev --host 127.0.0.1",
-    "beforeBuildCommand": "corepack pnpm --dir ../web build",
+    "beforeBuildCommand": "corepack pnpm --dir ../web build:desktop",
     "devUrl": "http://127.0.0.1:5173",
     "frontendDist": "../../web/dist"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [{
-      "title": "Hometown Module Lamp Studio",
+      "title": "FormaForgeDT",
       "width": 1440,
       "height": 900,
       "minWidth": 760,

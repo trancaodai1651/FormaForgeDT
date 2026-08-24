@@ -255,5 +255,5 @@ pub fn run() {
             hunyuan3d_launch
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Hometown Desktop");
+        .expect("error while running FormaForgeDT Desktop");
 }

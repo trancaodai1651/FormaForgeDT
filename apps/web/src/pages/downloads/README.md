@@ -5,5 +5,5 @@ Trang tải public cho web release, Windows installer, macOS DMG và Chrome exte
 Stable asset names:
 
 - `FormaForgeDT-Windows-x64.exe`
-- `FormaForgeDT-macOS.dmg`
+- `FormaForgeDT-macOS-universal.dmg` (Intel + Apple Silicon)
 - `FormaForgeDT-Market-Reader.zip`

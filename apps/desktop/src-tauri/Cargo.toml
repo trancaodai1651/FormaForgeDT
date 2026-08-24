@@ -1,8 +1,8 @@
 [package]
 name = "hometown-modular-lamp"
 version = "0.1.0"
-description = "Offline designer shell for Hometown Modular Lamp"
-authors = ["Hometown Modular Lamp"]
+description = "Offline designer shell for FormaForgeDT"
+authors = ["FormaForgeDT"]
 edition = "2021"
 
 [lib]

@@ -6,7 +6,7 @@ import './downloads.css';
 const RELEASE_ROOT = 'https://github.com/trancaodai1651/FormaForgeDT/releases/latest';
 const ASSETS = {
   windows: `${RELEASE_ROOT}/download/FormaForgeDT-Windows-x64.exe`,
-  macos: `${RELEASE_ROOT}/download/FormaForgeDT-macOS.dmg`,
+  macos: `${RELEASE_ROOT}/download/FormaForgeDT-macOS-universal.dmg`,
   extension: `${RELEASE_ROOT}/download/FormaForgeDT-Market-Reader.zip`,
 };
 
