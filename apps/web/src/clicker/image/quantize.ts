@@ -13,6 +13,11 @@ export interface QuantizeResult {
   height: number;
 }
 
+export interface QuantizeOptions {
+  /** Reserved for callers that need to preserve rare accent colors. */
+  preserveRareColors?: boolean;
+}
+
 interface Box {
   pixels: number[]; // indices into the foreground arrays
 }
@@ -24,7 +29,12 @@ interface Box {
 const ALPHA_THRESHOLD = 128;
 const KMEANS_ITERS = 6;
 
-export function quantize(img: RgbaImage, colorCount: number, customColors?: RGB[]): QuantizeResult {
+export function quantize(
+  img: RgbaImage,
+  colorCount: number,
+  customColors?: RGB[],
+  _options: QuantizeOptions = {},
+): QuantizeResult {
   const { data, width, height } = img;
   const n = width * height;
 

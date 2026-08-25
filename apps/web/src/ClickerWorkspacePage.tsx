@@ -6,6 +6,7 @@ import flexKeychainStyle from './clicker/features/flexKeychain/styles.css?inline
 import flexOrganizerStyle from './clicker/features/flexOrganizer/styles.css?inline';
 import svgLayersStyle from './clicker/features/svgLayers/styles.css?inline';
 import imageVectorizerStyle from './clicker/features/imageVectorizer/styles.css?inline';
+import multiColorStyle from './clicker/features/multiColor/styles.css?inline';
 import type { ClickerLanguage } from './clicker/i18n';
 
 type ClickerWorkspaceLabels = {
@@ -14,13 +15,14 @@ type ClickerWorkspaceLabels = {
   flexOrganizer: string;
   svgLayers: string;
   imageVectorizer: string;
+  multiColor: string;
 };
 
 const runtimeOverrides = `
 :host { display: block; position: relative; height: 100%; min-height: 0; overflow: hidden; color-scheme: dark; --bg: #0b0c0e; --panel: #16191b; --panel-2: #1d2124; --line: rgba(255,255,255,.12); --text: #f2f0ea; --muted: #a9aba5; --accent: #f0b967; --accent-text: #17130d; --accent-2: #3fc58a; }
 :host([data-theme='light']) { color-scheme: light; --bg: #f3f4f6; --panel: #ffffff; --panel-2: #edf0f5; --line: #d1d5db; --text: #1f2937; --muted: #6b7280; --accent: #b7791f; --accent-text: #ffffff; --accent-2: #10b981; }
 :host, .clicker-surface { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
-.clicker-surface { height: 100%; min-height: 0; overflow: hidden; border-radius: inherit; background: var(--bg); }
+.clicker-surface { position: relative; height: 100%; min-height: 0; overflow: hidden; border-radius: inherit; background: var(--bg); }
 #layout { grid-template-columns: minmax(250px, 294px) minmax(0, 1fr) minmax(340px, 420px); background: #0b0c0e; }
 #viewport { background: radial-gradient(circle at 50% 38%, rgba(240,185,103,.10), transparent 30%), linear-gradient(145deg, #101316 0%, #0d0f11 70%); }
 .sidebar { padding: 22px 18px; background: linear-gradient(180deg, rgba(22,25,27,.98), rgba(15,17,19,.98)); backdrop-filter: blur(18px); }
@@ -89,7 +91,7 @@ function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: Click
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
     shadow.replaceChildren();
     const style = document.createElement('style');
-    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${svgLayersStyle}\n${imageVectorizerStyle}\n${runtimeOverrides}`;
+    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${svgLayersStyle}\n${imageVectorizerStyle}\n${multiColorStyle}\n${runtimeOverrides}`;
     const surface = document.createElement('div');
     surface.className = 'clicker-surface';
     shadow.append(style, surface);
@@ -111,6 +113,6 @@ function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: Click
 
 export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true, language = 'en' }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean; language?: ClickerLanguage }) {
   const [mode, setMode] = useState<ClickerMode>(initialMode);
-  const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer], ['svg-layers', labels.svgLayers], ['image-vectorizer', labels.imageVectorizer]];
+  const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer], ['svg-layers', labels.svgLayers], ['image-vectorizer', labels.imageVectorizer], ['multi-color', labels.multiColor]];
   return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={`${mode}-${language}`} mode={mode} language={language} /></div>;
 }

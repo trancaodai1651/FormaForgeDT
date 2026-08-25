@@ -599,6 +599,7 @@
    own their product chrome inside the runtime, so they must not be wrapped in
    the dashboard header, switcher or a second rounded stage. */
 .admin-native-workspace {
+  --admin-nav-space: 48px;
   position: fixed;
   z-index: 20;
   inset: 16px;
@@ -618,6 +619,8 @@
   min-height: 0;
 }
 .admin-native-workspace .clicker-workspace-shell {
+  height: calc(100% - var(--admin-nav-space));
+  margin-top: var(--admin-nav-space);
   min-width: 0;
   overflow: hidden;
   border-radius: inherit;
@@ -626,12 +629,64 @@
   display: block;
 }
 
+.admin-workspace-nav {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 200;
+  top: 72px;
+  left: 26px;
+  right: 26px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background: rgba(13,16,21,.92);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  backdrop-filter: blur(18px);
+  color: #d7dde8;
+  font-size: 11px;
+}
+.admin-workspace-nav,
+.admin-workspace-nav * { box-sizing: border-box; }
+.admin-workspace-nav-links { display: flex; flex: 1 1 auto; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.admin-workspace-nav-links::-webkit-scrollbar { display: none; }
+.admin-workspace-nav-home,
+.admin-workspace-nav-link,
+.admin-workspace-nav-signout { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 5px 8px; border: 1px solid transparent; border-radius: 9px; color: #a9b3c2; white-space: nowrap; text-decoration: none; background: transparent; cursor: pointer; }
+.admin-workspace-nav-link { flex: 0 0 auto; }
+.admin-workspace-nav-home { flex: 0 0 auto; color: #f0b967; border-color: rgba(240,185,103,.32); }
+.admin-workspace-nav-link:hover,
+.admin-workspace-nav-link.active { color: #fff; background: rgba(240,185,103,.15); border-color: rgba(240,185,103,.38); }
+.admin-workspace-nav-mark { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; background: #252b35; color: #f0b967; font: 700 10px "DM Mono", monospace; }
+.admin-workspace-nav-signout { flex: 0 0 auto; margin-left: auto; color: #a9b3c2; }
+.admin-workspace-nav-signout:hover { color: #fff; background: rgba(255,255,255,.08); }
+.admin-workspace-nav.compact { top: 12px; left: 90px; right: 18px; max-width: calc(100vw - 108px); }
+
+/* The compact switcher belongs to the native workspace. Keep it inside the
+   workspace chrome and reserve its row so it cannot cover the 3D runtime. */
+.admin-native-workspace > .admin-workspace-nav.compact {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  max-width: none;
+}
+
 @media (max-width: 720px) {
   .admin-native-workspace {
+    --admin-nav-space: 46px;
     inset: 8px;
     height: calc(100dvh - 16px);
     border-radius: 18px;
   }
+  .admin-workspace-nav { top: 56px; left: 10px; right: 10px; }
+  .admin-workspace-nav-signout span { display: none; }
+  .admin-workspace-nav.compact { top: 10px; left: 60px; right: 10px; max-width: calc(100vw - 70px); }
+  .admin-native-workspace > .admin-workspace-nav.compact { top: 8px; left: 8px; right: 8px; max-width: none; }
 }
 
 /* Flex Lamp reference parity. The original uses a light neumorphic surface

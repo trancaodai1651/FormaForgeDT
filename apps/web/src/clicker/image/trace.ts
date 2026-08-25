@@ -5,7 +5,18 @@ import { contours } from 'd3-contour';
 import type { QuantizeResult } from './quantize';
 import type { RegionSet, Ring, RGB } from '../types';
 
-export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail = true): RegionSet {
+export interface TraceOptions {
+  preserveSmallComponents?: boolean;
+  minimumComponentPixels?: number;
+  minimumRingAreaFactor?: number;
+}
+
+export function traceRegions(
+  q: QuantizeResult,
+  smoothing = 0.5,
+  preserveDetail = true,
+  _options: TraceOptions = {},
+): RegionSet {
   const { indices, width, height, palette } = q;
 
   // Foreground bbox (pixel space) for normalization.
@@ -185,9 +196,10 @@ export function traceRegions(q: QuantizeResult, smoothing = 0.5, preserveDetail 
   // second halo or tiny detached components at high smoothing.
   const fgMask = new Float64Array(width * height);
   for (let p = 0; p < indices.length; p++) fgMask[p] = indices[p] >= 0 ? 1 : 0;
-  const outline = componentsFromMask(fgMask).flat();
+  const outlineComponents = componentsFromMask(fgMask);
+  const outline = outlineComponents.flat();
 
-  return { regions, outline, aspect: bw / bh };
+  return { regions, outline, outlineComponents, aspect: bw / bh };
 }
 
 /** Signed area of a polyline ring (shoelace). */

@@ -7,7 +7,7 @@ import {
   Ruler, Scissors, Search, Spline, Square, Trash2, Type, Undo2, Unlock, X, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import * as THREE from 'three';
 import { useI18n } from './lib/i18n';
 import {
@@ -91,7 +91,8 @@ function CadEntityShape({ entity, selected, profile }: { entity: CadEntity; sele
 }
 
 export function ModuleSketchPage() {
-  const { t, language, toggleLanguage } = useI18n(); const navigate = useNavigate(); const [searchParams] = useSearchParams();
+  const { t, language, toggleLanguage } = useI18n(); const location = useLocation(); const navigate = useNavigate(); const [searchParams] = useSearchParams();
+  const studioPath = location.pathname.startsWith('/admin/') ? '/admin/module-studio' : '/module-studio';
   const initialProject = useMemo(loadModuleStudioProject, []);
   const initialModule = useMemo(() => initialProject.modules.find((item) => item.id === searchParams.get('module') && item.kind === 'sketch') ?? initialProject.modules.find((item) => item.kind === 'sketch') ?? createLampModule('sketch', initialProject.hardware), [initialProject, searchParams]);
   const initialProfile = useMemo(() => ({ ...profileEntityFromSketch(initialProject.sketch), name: t('moduleSketch.revolveProfile') }), [initialProject.sketch, t]);
@@ -204,7 +205,7 @@ export function ModuleSketchPage() {
 
   const applySketch = () => {
     const moduleExists = initialProject.modules.some((item) => item.id === module.id);
-    saveModuleStudioProject({ ...initialProject, sketch: profilePoints, cadSketch: copyDocument(document), modules: moduleExists ? initialProject.modules.map((item) => item.id === module.id ? module : item) : [...initialProject.modules, module], updatedAt: new Date().toISOString() }); navigate('/module-studio');
+    saveModuleStudioProject({ ...initialProject, sketch: profilePoints, cadSketch: copyDocument(document), modules: moduleExists ? initialProject.modules.map((item) => item.id === module.id ? module : item) : [...initialProject.modules, module], updatedAt: new Date().toISOString() }); navigate(studioPath);
   };
   const exportSvg = () => { const svg = window.document.querySelector('.cad-sketch-svg'); if (!svg) return; const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }); const url = URL.createObjectURL(blob); const anchor = window.document.createElement('a'); anchor.href = url; anchor.download = 'lamp-sketch.svg'; anchor.click(); URL.revokeObjectURL(url); };
   const selectedEntities = document.entities.filter((entity) => selectedIds.includes(entity.id));
@@ -215,7 +216,7 @@ export function ModuleSketchPage() {
 
   return <main className="cad-workspace">
     <header className="cad-topbar">
-      <button className="cad-icon" onClick={() => navigate('/module-studio')} aria-label={t('moduleSketch.back')}><ArrowLeft size={18} /></button>
+      <button className="cad-icon" onClick={() => navigate(studioPath)} aria-label={t('moduleSketch.back')}><ArrowLeft size={18} /></button>
       <div className="cad-brand"><span>FORMAFORGE / PARAMETRIC SKETCH</span><strong>{t('moduleSketch.fullTitle')}</strong></div>
       <div className="cad-command-hint"><b>{t(toolLabelKey(tool))} {geometryTools.find((item) => item.id === tool)?.shortcut ? `(${geometryTools.find((item) => item.id === tool)?.shortcut})` : ''}</b><span>{t(`moduleSketch.hint.${tool}`)}</span></div>
       <div className="cad-top-actions"><button onClick={toggleLanguage} title={language === 'vi' ? 'English' : 'Tiếng Việt'}><Languages size={16} /><span>{language === 'vi' ? 'EN' : 'VI'}</span></button><button disabled={historyIndex === 0} onClick={undo}><Undo2 size={16} /></button><button disabled={historyIndex === history.length - 1} onClick={redo}><Redo2 size={16} /></button><button onClick={exportSvg}><Camera size={16} /><span>SVG</span></button><button className="primary" onClick={applySketch}><Check size={17} /><span>{t('moduleSketch.apply')}</span></button></div>

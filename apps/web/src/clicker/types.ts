@@ -30,6 +30,8 @@ export interface RegionSet {
   regions: { quantRgb: RGB; components: { rings: Ring[]; coverage: number }[]; coverage: number }[];
   /** Union silhouette of all foreground pixels. */
   outline: Ring[];
+  /** Optional contour grouping for consumers that must preserve disconnected silhouettes. */
+  outlineComponents?: Ring[][];
   /** Aspect (width/height) of the source silhouette, for reference. */
   aspect: number;
 }

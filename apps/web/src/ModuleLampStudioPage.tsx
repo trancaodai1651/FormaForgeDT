@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import * as THREE from 'three';
 import { useI18n } from './lib/i18n';
@@ -43,7 +43,7 @@ function RangeControl({ label, value, min, max, step = 1, unit = '', onChange }:
   return <label className="module-range"><span><span>{label}</span><strong>{Number.isInteger(value) ? value : value.toFixed(2)}{unit}</strong></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>;
 }
 
-function SketchCard({ points, moduleId, onOpen }: { points: SketchPoint[]; moduleId?: string; onOpen: () => void }) {
+function SketchCard({ points, moduleId, sketchPath, onOpen }: { points: SketchPoint[]; moduleId?: string; sketchPath: string; onOpen: () => void }) {
   const { t } = useI18n();
   const path = points.map((point, index) => `${index ? 'L' : 'M'} ${28 + point.radius * 226} ${224 - point.height * 192}`).join(' ');
   return <div className="module-sketch-card">
@@ -56,7 +56,7 @@ function SketchCard({ points, moduleId, onOpen }: { points: SketchPoint[]; modul
       {points.map((point, index) => <circle key={`${point.height}-${index}`} cx={28 + point.radius * 226} cy={224 - point.height * 192} r="3.5" />)}
     </svg>
     <p>{t('moduleStudio.sketchHint')}</p>
-    <Link className="module-open-sketch" to={`/module-studio/sketch${moduleId ? `?module=${encodeURIComponent(moduleId)}` : ''}`} onClick={onOpen}><Spline size={15} />{t('moduleStudio.openSketch')}</Link>
+    <Link className="module-open-sketch" to={`${sketchPath}${moduleId ? `?module=${encodeURIComponent(moduleId)}` : ''}`} onClick={onOpen}><Spline size={15} />{t('moduleStudio.openSketch')}</Link>
   </div>;
 }
 
@@ -139,6 +139,9 @@ function ModuleList({ modules, selectedId, onSelect, onMove, onToggle, onDelete,
 
 export function ModuleLampStudioPage() {
   const { t, language, toggleLanguage } = useI18n();
+  const location = useLocation();
+  const isAdminWorkspace = location.pathname.startsWith('/admin/');
+  const sketchPath = isAdminWorkspace ? '/admin/module-studio/sketch' : '/module-studio/sketch';
   const [project, setProject] = useState<ModuleStudioProject>(loadModuleStudioProject);
   const [selectedId, setSelectedId] = useState(() => project.modules.at(-1)?.id ?? '');
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('iso');
@@ -216,7 +219,7 @@ export function ModuleLampStudioPage() {
 
   return <main className="module-studio" data-mobile-panel={mobilePanel}>
     <header className="module-studio-header">
-      <div className="module-studio-brand"><Link to="/" aria-label={t('moduleStudio.back')}><ArrowLeft size={16} /></Link><span className="module-studio-mark">M</span><div><span>FORMAFORGE / MODULE SYSTEM</span><input aria-label={t('moduleStudio.projectName')} value={project.name} onChange={(event) => updateProject({ name: event.target.value })} /></div></div>
+      <div className="module-studio-brand"><Link to={isAdminWorkspace ? '/admin' : '/'} aria-label={t('moduleStudio.back')}><ArrowLeft size={16} /></Link><span className="module-studio-mark">M</span><div><span>FORMAFORGE / MODULE SYSTEM</span><input aria-label={t('moduleStudio.projectName')} value={project.name} onChange={(event) => updateProject({ name: event.target.value })} /></div></div>
       <div className="module-studio-status"><span><i />{t('moduleStudio.autosaved')}</span><span>{project.modules.length} {t('moduleStudio.modules')}</span><span>{dimensions.diameter.toFixed(0)} × {dimensions.height.toFixed(0)} mm</span></div>
       <div className="module-studio-header-actions"><input ref={openInput} type="file" accept=".hometownlamp,.json,application/json" hidden onChange={openProject} /><button type="button" onClick={() => openInput.current?.click()}><FileUp size={15} /><span>{t('moduleStudio.open')}</span></button><button type="button" onClick={saveProject}><Save size={15} /><span>{t('moduleStudio.save')}</span></button><button type="button" onClick={exportStl} className="primary"><Download size={15} /><span>STL</span></button><button type="button" onClick={toggleLanguage} aria-label={t('nav.language')}><Languages size={15} /><span>{language === 'vi' ? 'EN' : 'VI'}</span></button></div>
     </header>
@@ -225,7 +228,7 @@ export function ModuleLampStudioPage() {
 
     <div className="module-studio-layout">
       <aside className="module-studio-sidebar">
-        <SketchCard points={project.sketch} moduleId={selected?.kind === 'sketch' ? selected.id : project.modules.find((module) => module.kind === 'sketch')?.id} onOpen={() => saveModuleStudioProject(project)} />
+        <SketchCard points={project.sketch} moduleId={selected?.kind === 'sketch' ? selected.id : project.modules.find((module) => module.kind === 'sketch')?.id} sketchPath={sketchPath} onOpen={() => saveModuleStudioProject(project)} />
         <section className="module-library"><div className="module-section-title"><div><span>02 / {t('moduleStudio.library').toUpperCase()}</span><strong>{t('moduleLibrary.readyModules')}</strong></div><Library size={16} /></div><button type="button" className="module-library-open" onClick={() => setLibraryOpen(true)}><span><Library size={18} /></span><span><strong>{t('moduleLibrary.openLibrary')}</strong><small>{BUILT_IN_MODULE_PRESETS.length} {t('moduleLibrary.builtIn')} · {customPresets.length} {t('moduleLibrary.saved')}</small></span><Plus size={16} /></button><div className="module-library-summary"><span><b>6</b>{t('moduleLibrary.category.shade')}</span><span><b>5</b>{t('moduleLibrary.category.decor')}</span><span><b>4</b>{t('moduleLibrary.category.base')}</span></div><div className="module-library-actions"><button type="button" disabled={!selected} onClick={saveSelectedToLibrary}><BookmarkPlus size={14} />{t('moduleLibrary.saveCurrent')}</button><button type="button" onClick={() => addModule('spacer')}><Plus size={14} />{t('moduleStudio.kind.spacer')}</button></div></section>
         <section className="module-stack"><div className="module-section-title"><div><span>03 / {t('moduleStudio.assembly').toUpperCase()}</span><strong>{t('moduleStudio.stack')}</strong></div><Move3D size={16} /></div><ModuleList modules={project.modules} selectedId={selectedId} onSelect={setSelectedId} onMove={moveModule} onToggle={(id) => updateModule(id, { visible: !project.modules.find((module) => module.id === id)?.visible })} onDelete={removeModule} onDropModule={reorderModules} /></section>
       </aside>

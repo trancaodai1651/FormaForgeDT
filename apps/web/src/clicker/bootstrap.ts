@@ -3,10 +3,11 @@ import { bootstrapFlexKeychain } from './features/flexKeychain/controller';
 import { bootstrapFlexOrganizer } from './features/flexOrganizer/controller';
 import { bootstrapSvgLayers } from './features/svgLayers/controller';
 import { bootstrapImageVectorizer } from './features/imageVectorizer/controller';
+import { bootstrapMultiColor } from './features/multiColor/controller';
 import { getClickerDocument, resetClickerRoot, setClickerRoot } from './runtime';
 import { setClickerLanguage, type ClickerLanguage } from './i18n';
 
-export type ClickerMode = 'clicker' | 'flex-keychain' | 'flex-organizer' | 'svg-layers' | 'image-vectorizer';
+export type ClickerMode = 'clicker' | 'flex-keychain' | 'flex-organizer' | 'svg-layers' | 'image-vectorizer' | 'multi-color';
 
 function renderClickerShell() {
   return `<section id="dashboard-screen" style="display:none;"><button id="btn-open-clicker" type="button">Clicker</button></section><section id="tool-screen" style="display:block; opacity:1; height:100%;">
@@ -27,6 +28,7 @@ export function bootstrapClickerWorkspace(root: HTMLElement, mode: ClickerMode =
   if (mode === 'flex-organizer') return bootstrapFlexOrganizer();
   if (mode === 'svg-layers') return bootstrapSvgLayers();
   if (mode === 'image-vectorizer') return bootstrapImageVectorizer();
+  if (mode === 'multi-color') return bootstrapMultiColor();
   root.innerHTML = renderClickerShell();
   return bootstrapApp();
 }

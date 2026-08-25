@@ -396,6 +396,8 @@ Object.assign(en, { 'admin.clickerSvgLayers': 'SVG Layers', 'admin.clickerSvgLay
 Object.assign(en, { 'admin.clickerImageVectorizer': 'Image Vectorizer', 'admin.clickerImageVectorizerPageDescription': 'Convert raster images into clean, editable SVG artwork.' });
 Object.assign(vi, { 'admin.clickerImageVectorizer': 'Chuyển ảnh thành SVG', 'admin.clickerImageVectorizerPageDescription': 'Chuyển ảnh raster thành SVG sạch, có thể chỉnh sửa.' });
 Object.assign(vi, { 'admin.clickerSvgLayers': 'Tách lớp SVG', 'admin.clickerSvgLayersPageDescription': 'Tách các vùng SVG thành Top và Base có thể in.' });
+Object.assign(en, { 'admin.clickerMultiColor': 'Multi Color', 'admin.clickerMultiColorPageDescription': 'Split a flat-colour image into printable colour layers.' });
+Object.assign(vi, { 'admin.clickerMultiColor': 'Ảnh đa màu', 'admin.clickerMultiColorPageDescription': 'Tách ảnh màu thành các lớp riêng có thể in.' });
 
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
