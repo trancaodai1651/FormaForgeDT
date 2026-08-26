@@ -15,6 +15,7 @@ const workspaces: WorkspaceLink[] = [
   { to: '/admin/flex-lamp', label: 'Flex Lamp', mark: 'L' },
   { to: '/admin/paramacraft', label: 'ParamaCraft', mark: 'P' },
   { to: '/admin/module-studio', label: 'Module Studio', mark: 'M' },
+  { to: '/admin/cad-studio', label: 'CAD Studio', labelKey: 'admin.cadStudio', mark: 'CAD' },
   { to: '/admin/hunyuan-3d', label: 'Hunyuan 3D', mark: '3D' },
   { to: '/admin/price-reader', label: 'Price Reader', mark: '¥' },
   { to: '/admin/tulip-creator', label: 'Tulip Creator', labelKey: 'admin.tulipCreator', mark: 'TC' },

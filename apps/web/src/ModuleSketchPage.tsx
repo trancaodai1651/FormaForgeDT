@@ -1,7 +1,7 @@
 import { Grid, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
 import {
-  ArrowLeft, Box, Camera, Check, Circle, CircleDot, Construction, Copy, CornerUpRight,
+  ArrowLeft, Box, Camera, Check, Circle, CircleDot, Construction, Copy, CornerUpRight, Download,
   Eye, EyeOff, FlipHorizontal, Focus, Grid3X3, Hexagon, History, Languages, Layers3, Link2Off,
   List, Lock, Minus, MousePointer2, Move, PanelRight, PenTool, Redo2, RotateCw,
   Ruler, Scissors, Search, Spline, Square, Trash2, Type, Undo2, Unlock, X, ZoomIn, ZoomOut,
@@ -9,14 +9,16 @@ import {
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import * as THREE from 'three';
+import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { useI18n } from './lib/i18n';
 import {
-  CAD_VIEW, arcPath, cloneEntity, constrainEntities, createCadEntity, entityToProfile,
+  CAD_VIEW, arcPath, cloneEntity, constrainEntities, createCadEntity, createCadFeature, entityToProfile,
   nearestEntity, offsetEntity, polygonPoints, primitiveClickCount, profileEntityFromSketch, rotateEntity,
-  smoothCadPath, translateEntity, type CadConstraint, type CadDocument, type CadEntity,
-  trimEntityAtPoint, type CadPoint, type CadPrimitive, type CadTool,
+  smoothCadPath, translateEntity, type CadConstraint, type CadDocument, type CadEntity, type CadFeatureParameters,
+  trimEntityAtPoint, type CadModelOperation, type CadPoint, type CadPrimitive, type CadTool,
 } from './moduleStudio/cad';
 import { buildModuleGeometry } from './moduleStudio/geometry';
+import { buildCadPreviewParts, featureSupportsSelection, MODELING_OPERATIONS } from './moduleStudio/modeling';
 import {
   createLampModule, loadModuleStudioProject, sanitizeSketch, saveModuleStudioProject,
   type LampModule, type SketchPoint,
@@ -26,6 +28,7 @@ import './moduleStudio/sketch.css';
 type HistoryEntry = { document: CadDocument; label: string };
 type DisplayMode = 'shaded' | 'wireframe';
 type SidePanel = 'items' | 'history' | null;
+type WorkspaceMode = 'sketch' | 'modeling';
 
 const geometryTools: Array<{ id: CadTool; icon: typeof Minus; shortcut: string }> = [
   { id: 'line', icon: Minus, shortcut: 'L' }, { id: 'arc', icon: CornerUpRight, shortcut: 'A' },
@@ -50,7 +53,11 @@ const toolLabelKey = (tool: CadTool) => `moduleSketch.tool.${tool}`;
 const constraintLabelKey = (constraint: CadConstraint) => `moduleSketch.constraint.${constraint}`;
 
 function copyDocument(document: CadDocument): CadDocument {
-  return { profileEntityId: document.profileEntityId, entities: document.entities.map((entity) => ({ ...entity, points: entity.points.map((point) => ({ ...point })), constraints: [...entity.constraints] })) };
+  return {
+    profileEntityId: document.profileEntityId,
+    entities: document.entities.map((entity) => ({ ...entity, points: entity.points.map((point) => ({ ...point })), constraints: [...entity.constraints] })),
+    features: document.features?.map((feature) => ({ ...feature, sourceIds: [...feature.sourceIds], parameters: { ...feature.parameters } })),
+  };
 }
 
 function ClippingController({ active }: { active: boolean }) {
@@ -59,18 +66,32 @@ function ClippingController({ active }: { active: boolean }) {
   return null;
 }
 
-function SketchPreview3D({ module, points, mode, sectionView }: { module: LampModule; points: SketchPoint[]; mode: DisplayMode; sectionView: boolean }) {
-  const parts = useMemo(() => buildModuleGeometry(module, points, 'BAMBU_LED_KIT_001'), [module, points]);
+function SketchPreview3D({ module, points, cadParts, mode, sectionView }: { module: LampModule; points: SketchPoint[]; cadParts: ReturnType<typeof buildCadPreviewParts>; mode: DisplayMode; sectionView: boolean }) {
+  const moduleParts = useMemo(() => buildModuleGeometry(module, points, 'BAMBU_LED_KIT_001'), [module, points]);
+  const frame = useMemo(() => {
+    if (!cadParts.length) return { target: [0, module.height / 2, 0] as [number, number, number], camera: [250, 150, 250] as [number, number, number], minDistance: 140, maxDistance: 680 };
+    const bounds = new THREE.Box3();
+    cadParts.forEach((part) => {
+      part.geometry.computeBoundingBox();
+      if (!part.geometry.boundingBox) return;
+      const partBounds = part.geometry.boundingBox.clone();
+      if (part.position) partBounds.translate(new THREE.Vector3(part.position[0], part.position[1], part.position[2]));
+      bounds.union(partBounds);
+    });
+    if (bounds.isEmpty()) return { target: [0, 0, 0] as [number, number, number], camera: [250, 150, 250] as [number, number, number], minDistance: 140, maxDistance: 680 };
+    const center = bounds.getCenter(new THREE.Vector3()); const size = bounds.getSize(new THREE.Vector3()); const radius = Math.max(40, size.length() * .65);
+    return { target: [center.x, center.y, center.z] as [number, number, number], camera: [center.x + radius * 1.65, center.y + radius * .85, center.z + radius * 1.65] as [number, number, number], minDistance: Math.max(40, radius * .45), maxDistance: Math.max(680, radius * 5) };
+  }, [cadParts, module.height]);
   const clippingPlanes = useMemo(() => sectionView ? [new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)] : [], [sectionView]);
-  useEffect(() => () => parts.forEach((part) => part.geometry.dispose()), [parts]);
+  useEffect(() => () => { cadParts.forEach((part) => part.geometry.dispose()); moduleParts.forEach((part) => part.geometry.dispose()); }, [cadParts, moduleParts]);
   return <>
     <ClippingController active={sectionView} />
     <color attach="background" args={['#eef1f5']} />
-    <PerspectiveCamera makeDefault fov={38} position={[250, 150, 250]} />
+    <PerspectiveCamera makeDefault fov={38} position={frame.camera} />
     <ambientLight intensity={1.4} /><directionalLight position={[180, 260, 190]} intensity={2.2} /><directionalLight position={[-120, 100, -160]} intensity={.8} />
-    <group position={[0, module.height / 2, 0]}>{parts.filter((part) => part.role === 'body').map((part, index) => <mesh key={index} geometry={part.geometry} position={part.position} rotation={part.rotation} castShadow receiveShadow>{mode === 'wireframe' ? <meshBasicMaterial color="#3478e5" wireframe clippingPlanes={clippingPlanes} /> : <meshPhysicalMaterial color={module.color} roughness={.42} clearcoat={.25} side={THREE.DoubleSide} clippingPlanes={clippingPlanes} />}</mesh>)}</group>
+    {cadParts.length ? <group>{cadParts.map((part, index) => <mesh key={`${part.featureId}-${index}`} geometry={part.geometry} position={part.position} castShadow receiveShadow>{mode === 'wireframe' ? <meshBasicMaterial color="#3478e5" wireframe clippingPlanes={clippingPlanes} /> : <meshPhysicalMaterial color="#c9853e" roughness={.34} clearcoat={.22} side={THREE.DoubleSide} clippingPlanes={clippingPlanes} />}</mesh>)}</group> : <group position={[0, module.height / 2, 0]}>{moduleParts.filter((part) => part.role === 'body').map((part, index) => <mesh key={index} geometry={part.geometry} position={part.position} rotation={part.rotation} castShadow receiveShadow>{mode === 'wireframe' ? <meshBasicMaterial color="#3478e5" wireframe clippingPlanes={clippingPlanes} /> : <meshPhysicalMaterial color={module.color} roughness={.42} clearcoat={.25} side={THREE.DoubleSide} clippingPlanes={clippingPlanes} />}</mesh>)}</group>}
     <Grid position={[0, 0, 0]} args={[520, 520]} cellSize={10} sectionSize={50} cellColor="#c8ced6" sectionColor="#8f9baa" fadeDistance={600} infiniteGrid />
-    <OrbitControls makeDefault target={[0, module.height / 2, 0]} enableDamping minDistance={140} maxDistance={680} />
+    <OrbitControls makeDefault target={frame.target} enableDamping minDistance={frame.minDistance} maxDistance={frame.maxDistance} />
   </>;
 }
 
@@ -92,14 +113,14 @@ function CadEntityShape({ entity, selected, profile }: { entity: CadEntity; sele
 
 export function ModuleSketchPage() {
   const { t, language, toggleLanguage } = useI18n(); const location = useLocation(); const navigate = useNavigate(); const [searchParams] = useSearchParams();
-  const studioPath = location.pathname.startsWith('/admin/') ? '/admin/module-studio' : '/module-studio';
+  const studioPath = location.pathname.startsWith('/admin/') ? '/admin/module-studio' : '/module-studio'; const isAdminWorkspace = location.pathname.startsWith('/admin/');
   const initialProject = useMemo(loadModuleStudioProject, []);
   const initialModule = useMemo(() => initialProject.modules.find((item) => item.id === searchParams.get('module') && item.kind === 'sketch') ?? initialProject.modules.find((item) => item.kind === 'sketch') ?? createLampModule('sketch', initialProject.hardware), [initialProject, searchParams]);
   const initialProfile = useMemo(() => ({ ...profileEntityFromSketch(initialProject.sketch), name: t('moduleSketch.revolveProfile') }), [initialProject.sketch, t]);
   const initialDocument = useMemo<CadDocument>(() => initialProject.cadSketch?.entities?.length ? copyDocument(initialProject.cadSketch) : ({ entities: [initialProfile], profileEntityId: initialProfile.id }), [initialProfile, initialProject.cadSketch]);
   const [document, setDocumentState] = useState(initialDocument); const documentRef = useRef(document);
   const [history, setHistory] = useState<HistoryEntry[]>([{ document: copyDocument(initialDocument), label: t('moduleSketch.history.start') }]); const [historyIndex, setHistoryIndex] = useState(0);
-  const [module, setModule] = useState(initialModule); const [tool, setTool] = useState<CadTool>('select'); const [selectedIds, setSelectedIds] = useState<string[]>([initialProfile.id]);
+  const [module, setModule] = useState(initialModule); const [tool, setTool] = useState<CadTool>('select'); const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('sketch'); const [activeModelTool, setActiveModelTool] = useState<CadModelOperation | null>(null); const [activeFeatureId, setActiveFeatureId] = useState<string | null>(null); const [modelParameters, setModelParameters] = useState<CadFeatureParameters>({ distance: 80, angle: 360, radius: 4, thickness: 3, segments: 48 }); const [selectedIds, setSelectedIds] = useState<string[]>([initialDocument.profileEntityId ?? initialProfile.id]);
   const [draft, setDraft] = useState<CadPoint[]>([]); const [hoverPoint, setHoverPoint] = useState<CadPoint | null>(null); const [snap, setSnap] = useState(true); const [constructionMode, setConstructionMode] = useState(false);
   const [zoom, setZoom] = useState(1); const [pan, setPan] = useState({ x: 0, y: 0 }); const [displayMode, setDisplayMode] = useState<DisplayMode>('shaded'); const [sidePanel, setSidePanel] = useState<SidePanel>(null); const [constraintPanelOpen, setConstraintPanelOpen] = useState(true);
   const [showPreview, setShowPreview] = useState(true); const [sectionView, setSectionView] = useState(false); const [measureMode, setMeasureMode] = useState(false); const [commandSearch, setCommandSearch] = useState(false); const [searchText, setSearchText] = useState('');
@@ -112,9 +133,10 @@ export function ModuleSketchPage() {
     const copy = copyDocument(next); const entries = [...history.slice(0, historyIndex + 1), { document: copy, label }];
     setDocument(copy); setHistory(entries); setHistoryIndex(entries.length - 1);
   };
-  const undo = () => { if (historyIndex <= 0) return; const index = historyIndex - 1; setHistoryIndex(index); setDocument(copyDocument(history[index].document)); setSelectedIds([]); };
-  const redo = () => { if (historyIndex >= history.length - 1) return; const index = historyIndex + 1; setHistoryIndex(index); setDocument(copyDocument(history[index].document)); setSelectedIds([]); };
+  const undo = () => { if (historyIndex <= 0) return; const index = historyIndex - 1; setHistoryIndex(index); setDocument(copyDocument(history[index].document)); setSelectedIds([]); setActiveFeatureId(null); };
+  const redo = () => { if (historyIndex >= history.length - 1) return; const index = historyIndex + 1; setHistoryIndex(index); setDocument(copyDocument(history[index].document)); setSelectedIds([]); setActiveFeatureId(null); };
   const profilePoints = useMemo(() => sanitizeSketch(entityToProfile(document.entities.find((entity) => entity.id === document.profileEntityId), initialProject.sketch)), [document, initialProject.sketch]);
+  const cadPreviewParts = useMemo(() => buildCadPreviewParts(document), [document]);
 
   const eventPoint = (event: ReactPointerEvent<SVGSVGElement>): CadPoint => {
     const rect = event.currentTarget.getBoundingClientRect(); let x = (event.clientX - rect.left) / rect.width * CAD_VIEW.width; let y = (event.clientY - rect.top) / rect.height * CAD_VIEW.height;
@@ -126,8 +148,8 @@ export function ModuleSketchPage() {
     const next = { ...documentRef.current, entities: [...documentRef.current.entities, entity] }; commitDocument(next, `${t('moduleSketch.created')} ${t(toolLabelKey(tool))}`); setDraft([]); setSelectedIds([entity.id]);
   };
   const deleteSelected = () => {
-    if (!selectedIds.length) return; const nextEntities = document.entities.filter((entity) => !selectedIds.includes(entity.id)); const profileRemoved = selectedIds.includes(document.profileEntityId ?? '');
-    commitDocument({ entities: nextEntities, profileEntityId: profileRemoved ? nextEntities.find((entity) => ['line', 'spline'].includes(entity.type))?.id ?? null : document.profileEntityId }, t('moduleSketch.deleted')); setSelectedIds([]);
+    if (!selectedIds.length) return; const nextEntities = document.entities.filter((entity) => !selectedIds.includes(entity.id)); const profileRemoved = selectedIds.includes(document.profileEntityId ?? ''); const nextEntityIds = new Set(nextEntities.map((entity) => entity.id));
+    commitDocument({ ...document, entities: nextEntities, profileEntityId: profileRemoved ? nextEntities.find((entity) => ['line', 'spline'].includes(entity.type))?.id ?? null : document.profileEntityId, features: document.features?.filter((feature) => feature.sourceIds.every((id) => nextEntityIds.has(id))) }, t('moduleSketch.deleted')); setSelectedIds([]); setActiveFeatureId(null);
   };
   const applyOperation = (operation: CadTool) => {
     const selected = document.entities.filter((entity) => selectedIds.includes(entity.id));
@@ -141,6 +163,30 @@ export function ModuleSketchPage() {
     if (additions.length) { commitDocument({ ...document, entities: [...document.entities, ...additions] }, t(toolLabelKey(operation))); setSelectedIds(additions.map((entity) => entity.id)); return; }
     setTool(operation);
   };
+  const createModelFeature = (operation: CadModelOperation) => {
+    const selected = document.entities.filter((entity) => selectedIds.includes(entity.id));
+    if (!featureSupportsSelection(operation, selected)) { setWorkspaceMode('modeling'); setActiveModelTool(operation); return; }
+    const feature = createCadFeature(operation, selected.map((entity) => entity.id), `${t(`moduleSketch.model.${operation}`)} ${document.features?.length ? document.features.length + 1 : 1}`);
+    feature.parameters = { ...modelParameters };
+    const sourceIds = new Set(feature.sourceIds);
+    const features = [...(document.features ?? []).map((item) => sourceIds.has(item.sourceIds[0]) ? { ...item, visible: false } : item), feature];
+    commitDocument({ ...document, features }, `${t('moduleSketch.created')} ${t(`moduleSketch.model.${operation}`)}`);
+    setWorkspaceMode('modeling'); setActiveModelTool(null); setActiveFeatureId(feature.id); setShowPreview(true);
+  };
+  const selectModelTool = (operation: CadModelOperation) => {
+    setActiveFeatureId(null);
+    const selected = document.entities.filter((entity) => selectedIds.includes(entity.id));
+    if (featureSupportsSelection(operation, selected)) { createModelFeature(operation); return; }
+    setWorkspaceMode('modeling'); setTool('select'); setDraft([]); setActiveModelTool(operation);
+  };
+  const activeFeature = document.features?.find((feature) => feature.id === activeFeatureId) ?? null;
+  const operationEditor = activeModelTool ?? activeFeature?.operation ?? null;
+  const operationParameters = activeFeature?.parameters ?? modelParameters;
+  const patchFeatureParameters = (patch: Partial<CadFeatureParameters>) => {
+    if (activeFeature) { setDocument({ ...documentRef.current, features: documentRef.current.features?.map((feature) => feature.id === activeFeature.id ? { ...feature, parameters: { ...feature.parameters, ...patch } } : feature) }); return; }
+    setModelParameters((current) => ({ ...current, ...patch }));
+  };
+  const commitFeatureParameters = () => { if (activeFeature) commitDocument(documentRef.current, t('moduleSketch.model.updated')); };
   const applyConstraint = (constraint: CadConstraint) => { const entities = constrainEntities(document.entities, selectedIds, constraint); commitDocument({ ...document, entities }, t(constraintLabelKey(constraint))); };
   const disconnect = () => { if (!selectedIds.length) return; commitDocument({ ...document, entities: document.entities.map((entity) => selectedIds.includes(entity.id) ? { ...entity, constraints: [] } : entity) }, t('moduleSketch.disconnect')); };
   const rotateSelected = () => { if (!selectedIds.length) return; commitDocument({ ...document, entities: document.entities.map((entity) => selectedIds.includes(entity.id) ? rotateEntity(entity, 15) : entity) }, t('moduleSketch.rotate15')); };
@@ -198,6 +244,8 @@ export function ModuleSketchPage() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') { event.preventDefault(); setCommandSearch(true); return; }
       if (event.key === 'Enter') { finishDraft(); return; } if (event.key === 'Escape') { setDraft([]); setTool('select'); return; } if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSelected(); return; }
       if (event.shiftKey) { const constraint = constraintTools.find((item) => item.shortcut.toLowerCase().endsWith(event.key.toLowerCase())); if (constraint) { event.preventDefault(); applyConstraint(constraint.id); return; } }
+      const modelShortcut = MODELING_OPERATIONS.find((item) => item.shortcut === event.key.toUpperCase() && !event.ctrlKey && !event.metaKey);
+      if (workspaceMode === 'modeling' && modelShortcut) { event.preventDefault(); selectModelTool(modelShortcut.id); return; }
       const shortcut = geometryTools.find((item) => item.shortcut.toLowerCase() === event.key.toLowerCase()); if (shortcut) applyOperation(shortcut.id);
     };
     window.addEventListener('keydown', keydown); return () => window.removeEventListener('keydown', keydown);
@@ -208,27 +256,34 @@ export function ModuleSketchPage() {
     saveModuleStudioProject({ ...initialProject, sketch: profilePoints, cadSketch: copyDocument(document), modules: moduleExists ? initialProject.modules.map((item) => item.id === module.id ? module : item) : [...initialProject.modules, module], updatedAt: new Date().toISOString() }); navigate(studioPath);
   };
   const exportSvg = () => { const svg = window.document.querySelector('.cad-sketch-svg'); if (!svg) return; const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }); const url = URL.createObjectURL(blob); const anchor = window.document.createElement('a'); anchor.href = url; anchor.download = 'lamp-sketch.svg'; anchor.click(); URL.revokeObjectURL(url); };
+  const exportModelStl = () => {
+    const group = new THREE.Group(); const featureParts = buildCadPreviewParts(document);
+    const parts = featureParts.length ? featureParts : buildModuleGeometry(module, profilePoints, 'BAMBU_LED_KIT_001').filter((part) => part.role === 'body').map((part) => ({ geometry: part.geometry, position: part.position, featureId: 'revolve-preview' }));
+    parts.forEach((part) => { const mesh = new THREE.Mesh(part.geometry); if (part.position) mesh.position.set(part.position[0], part.position[1], part.position[2]); group.add(mesh); });
+    group.updateMatrixWorld(true); const output = new STLExporter().parse(group, { binary: false }); const blob = new Blob([output], { type: 'model/stl' }); const url = URL.createObjectURL(blob); const anchor = window.document.createElement('a'); anchor.href = url; anchor.download = 'formaforge-cad-model.stl'; anchor.click(); URL.revokeObjectURL(url);
+    parts.forEach((part) => part.geometry.dispose());
+  };
   const selectedEntities = document.entities.filter((entity) => selectedIds.includes(entity.id));
   const selectedEntity = selectedEntities.length === 1 ? selectedEntities[0] : null;
   const patchSelectedEntity = (patch: Partial<CadEntity>) => { if (!selectedEntity) return; setDocument({ ...documentRef.current, entities: documentRef.current.entities.map((entity) => entity.id === selectedEntity.id ? { ...entity, ...patch } : entity) }); };
   const commitSelectedProperties = () => commitDocument(documentRef.current, t('moduleSketch.history.properties'));
   const draftEntity: CadEntity | null = draft.length ? { id: 'cad-draft', type: ((['line', 'arc', 'spline', 'rectangle', 'circle', 'ellipse', 'polygon', 'text'].includes(tool) ? tool : 'line') as CadPrimitive), name: 'Draft', points: hoverPoint ? [...draft, hoverPoint] : draft, visible: true, construction: constructionMode, locked: false, constraints: [], sides: 6, text: 'TEXT' } : null;
 
-  return <main className="cad-workspace">
+  return <main className={`cad-workspace${isAdminWorkspace ? ' cad-workspace-admin' : ''}`}>
     <header className="cad-topbar">
       <button className="cad-icon" onClick={() => navigate(studioPath)} aria-label={t('moduleSketch.back')}><ArrowLeft size={18} /></button>
       <div className="cad-brand"><span>FORMAFORGE / PARAMETRIC SKETCH</span><strong>{t('moduleSketch.fullTitle')}</strong></div>
-      <div className="cad-command-hint"><b>{t(toolLabelKey(tool))} {geometryTools.find((item) => item.id === tool)?.shortcut ? `(${geometryTools.find((item) => item.id === tool)?.shortcut})` : ''}</b><span>{t(`moduleSketch.hint.${tool}`)}</span></div>
+      <div className="cad-command-hint"><b>{activeModelTool ? t(`moduleSketch.model.${activeModelTool}`) : t(toolLabelKey(tool))} {activeModelTool ? '' : geometryTools.find((item) => item.id === tool)?.shortcut ? `(${geometryTools.find((item) => item.id === tool)?.shortcut})` : ''}</b><span>{activeModelTool ? t('moduleSketch.modelHint') : t(`moduleSketch.hint.${tool}`)}</span></div>
       <div className="cad-top-actions"><button onClick={toggleLanguage} title={language === 'vi' ? 'English' : 'Tiếng Việt'}><Languages size={16} /><span>{language === 'vi' ? 'EN' : 'VI'}</span></button><button disabled={historyIndex === 0} onClick={undo}><Undo2 size={16} /></button><button disabled={historyIndex === history.length - 1} onClick={redo}><Redo2 size={16} /></button><button onClick={exportSvg}><Camera size={16} /><span>SVG</span></button><button className="primary" onClick={applySketch}><Check size={17} /><span>{t('moduleSketch.apply')}</span></button></div>
     </header>
 
     <div className="cad-stage">
-      <div className="cad-mode-dock"><button className="active"><Box size={18} />{t('moduleSketch.modeling')}</button><button className={showPreview ? 'active' : ''} onClick={() => setShowPreview((value) => !value)}><CircleDot size={18} />{t('moduleSketch.visualization')}</button><button onClick={exportSvg}><PenTool size={18} />{t('moduleSketch.drawings')}</button><button className={sidePanel === 'items' ? 'active' : ''} onClick={() => setSidePanel(sidePanel === 'items' ? null : 'items')}><List size={18} />{t('moduleSketch.items')}</button></div>
+      <div className="cad-mode-dock"><button type="button" className={workspaceMode === 'modeling' ? 'active' : ''} onClick={() => { setWorkspaceMode('modeling'); setTool('select'); setDraft([]); }}><Box size={18} />{t('moduleSketch.modeling')}</button><button type="button" className={workspaceMode === 'sketch' ? 'active' : ''} onClick={() => { setWorkspaceMode('sketch'); setActiveModelTool(null); setTool('select'); setDraft([]); }}><PenTool size={18} />{t('moduleSketch.sketch')}</button><button type="button" className={showPreview ? 'active' : ''} onClick={() => setShowPreview((value) => !value)}><CircleDot size={18} />{t('moduleSketch.visualization')}</button><button type="button" onClick={exportSvg}><Camera size={18} />{t('moduleSketch.drawings')}</button><button type="button" className={sidePanel === 'items' ? 'active' : ''} onClick={() => setSidePanel(sidePanel === 'items' ? null : 'items')}><List size={18} />{t('moduleSketch.items')}</button></div>
       <aside className="cad-left-toolbar">
         <button onClick={() => setCommandSearch(true)}><Search size={19} /><span>{t('moduleSketch.search')}</span><kbd>Ctrl F</kbd></button>
         <button className={tool === 'select' ? 'active' : ''} onClick={() => { setTool('select'); setDraft([]); }}><MousePointer2 size={19} /><span>{t('moduleSketch.tool.select')}</span><kbd>V</kbd></button>
         <i />
-        {geometryTools.map(({ id, icon: Icon, shortcut }) => <button key={id} className={tool === id ? 'active' : ''} onClick={() => applyOperation(id)}><Icon size={19} /><span>{t(toolLabelKey(id))}</span><kbd>{shortcut}</kbd></button>)}
+        {workspaceMode === 'sketch' ? geometryTools.map(({ id, icon: Icon, shortcut }) => <button key={id} className={tool === id ? 'active' : ''} onClick={() => applyOperation(id)}><Icon size={19} /><span>{t(toolLabelKey(id))}</span><kbd>{shortcut}</kbd></button>) : <>{MODELING_OPERATIONS.map(({ id, shortcut }) => <button key={id} className={activeModelTool === id ? 'active' : ''} onClick={() => selectModelTool(id)}><Box size={19} /><span>{t(`moduleSketch.model.${id}`)}</span><kbd>{shortcut}</kbd></button>)}</>}
       </aside>
 
       <section className="cad-canvas-wrap">
@@ -260,14 +315,16 @@ export function ModuleSketchPage() {
       <div className="cad-bottom-dock"><button className={snap ? 'active' : ''} onClick={() => setSnap((value) => !value)}><Grid3X3 size={18} /><span>{t('moduleSketch.snap')}</span><b>{snap ? t('moduleSketch.on') : t('moduleSketch.off')}</b></button><button className={constructionMode ? 'active' : ''} onClick={() => setConstructionMode((value) => !value)}><Construction size={18} /><span>{t('moduleSketch.construction')}</span><b>{constructionMode ? t('moduleSketch.on') : t('moduleSketch.off')}</b></button><button className={sectionView ? 'active' : ''} onClick={() => { setSectionView((value) => !value); setShowPreview(true); }}><Layers3 size={18} /><span>{t('moduleSketch.sectionView')}</span></button><button className={measureMode ? 'active' : ''} onClick={() => setMeasureMode((value) => !value)}><Ruler size={18} /><span>{t('moduleSketch.measure')}</span></button></div>
 
       {showPreview && <aside className="cad-preview-panel">
-        <header><div><span>{t('moduleSketch.revolveProfile')}</span><strong>{t('moduleSketch.preview')}</strong></div><button onClick={() => setShowPreview(false)}><X size={16} /></button></header>
-        <div className="cad-preview-canvas"><Canvas dpr={[1, 1.5]}><SketchPreview3D module={module} points={profilePoints} mode={displayMode} sectionView={sectionView} /></Canvas>{sectionView && <span className="cad-section-badge">{t('moduleSketch.sectionAA')}</span>}</div>
+         <header><div><span>{t('moduleSketch.revolveProfile')}</span><strong>{t('moduleSketch.preview')}</strong></div><div className="cad-preview-actions"><button type="button" onClick={exportModelStl} title="STL"><Download size={14} /></button><button onClick={() => setShowPreview(false)}><X size={16} /></button></div></header>
+         <div className="cad-preview-canvas"><Canvas dpr={[1, 1.5]}><SketchPreview3D module={module} points={profilePoints} cadParts={cadPreviewParts} mode={displayMode} sectionView={sectionView} /></Canvas>{sectionView && <span className="cad-section-badge">{t('moduleSketch.sectionAA')}</span>}</div>
         <div className="cad-parameters">
           <label><span>{t('moduleStudio.diameter')}<b>{module.diameter.toFixed(0)} mm</b></span><input type="range" min="80" max="320" value={module.diameter} onChange={(event) => setModule((current) => ({ ...current, diameter: Number(event.target.value) }))} /></label>
           <label><span>{t('moduleStudio.height')}<b>{module.height.toFixed(0)} mm</b></span><input type="range" min="80" max="420" value={module.height} onChange={(event) => setModule((current) => ({ ...current, height: Number(event.target.value) }))} /></label>
-          <label><span>{t('moduleStudio.wall')}<b>{module.wallThickness.toFixed(1)} mm</b></span><input type="range" min="1.2" max="4" step=".1" value={module.wallThickness} onChange={(event) => setModule((current) => ({ ...current, wallThickness: Number(event.target.value) }))} /></label>
-        </div>
-        {selectedEntity && <div className="cad-selection-properties">
+         <label><span>{t('moduleStudio.wall')}<b>{module.wallThickness.toFixed(1)} mm</b></span><input type="range" min="1.2" max="4" step=".1" value={module.wallThickness} onChange={(event) => setModule((current) => ({ ...current, wallThickness: Number(event.target.value) }))} /></label>
+         </div>
+         {workspaceMode === 'modeling' && activeModelTool && <div className="cad-model-operation-card"><strong>{t(`moduleSketch.model.${activeModelTool}`)}</strong><p>{t('moduleSketch.modelHint')}</p><label><span>{t('moduleSketch.model.distance')}<b>{modelParameters.distance.toFixed(0)} mm</b></span><input type="range" min="1" max="300" value={modelParameters.distance} onChange={(event) => setModelParameters((current) => ({ ...current, distance: Number(event.target.value) }))} /></label><label><span>{t('moduleSketch.model.angle')}<b>{modelParameters.angle.toFixed(0)}°</b></span><input type="range" min="1" max="360" value={modelParameters.angle} onChange={(event) => setModelParameters((current) => ({ ...current, angle: Number(event.target.value) }))} /></label><label><span>{t('moduleSketch.model.radius')}<b>{modelParameters.radius.toFixed(1)} mm</b></span><input type="range" min=".2" max="30" step=".2" value={modelParameters.radius} onChange={(event) => setModelParameters((current) => ({ ...current, radius: Number(event.target.value) }))} /></label><label><span>{t('moduleSketch.model.thickness')}<b>{modelParameters.thickness.toFixed(1)} mm</b></span><input type="range" min=".4" max="24" step=".2" value={modelParameters.thickness} onChange={(event) => setModelParameters((current) => ({ ...current, thickness: Number(event.target.value) }))} /></label><button type="button" className="cad-model-create" disabled={!featureSupportsSelection(activeModelTool, selectedEntities)} onClick={() => createModelFeature(activeModelTool)}><Box size={15} />{t('moduleSketch.model.create')}</button></div>}
+          {activeFeature && <div className="cad-model-operation-card"><strong>{t(`moduleSketch.model.${activeFeature.operation}`)}</strong><p>{t('moduleSketch.model.editHint')}</p><label><span>{t('moduleSketch.model.distance')}<b>{activeFeature.parameters.distance.toFixed(0)} mm</b></span><input type="range" min="1" max="300" value={activeFeature.parameters.distance} onChange={(event) => patchFeatureParameters({ distance: Number(event.target.value) })} onBlur={commitFeatureParameters} /></label><label><span>{t('moduleSketch.model.angle')}<b>{activeFeature.parameters.angle.toFixed(0)} deg</b></span><input type="range" min="1" max="360" value={activeFeature.parameters.angle} onChange={(event) => patchFeatureParameters({ angle: Number(event.target.value) })} onBlur={commitFeatureParameters} /></label><label><span>{t('moduleSketch.model.radius')}<b>{activeFeature.parameters.radius.toFixed(1)} mm</b></span><input type="range" min=".2" max="30" step=".2" value={activeFeature.parameters.radius} onChange={(event) => patchFeatureParameters({ radius: Number(event.target.value) })} onBlur={commitFeatureParameters} /></label><label><span>{t('moduleSketch.model.thickness')}<b>{activeFeature.parameters.thickness.toFixed(1)} mm</b></span><input type="range" min=".4" max="24" step=".2" value={activeFeature.parameters.thickness} onChange={(event) => patchFeatureParameters({ thickness: Number(event.target.value) })} onBlur={commitFeatureParameters} /></label><button type="button" className="cad-model-create" onClick={commitFeatureParameters}><Box size={15} />{t('moduleSketch.model.update')}</button></div>}
+          {selectedEntity && <div className="cad-selection-properties">
           <strong>{t('moduleSketch.selectionProperties')}</strong>
           <label><span>{t('moduleSketch.entityName')}</span><input value={selectedEntity.name} onChange={(event) => patchSelectedEntity({ name: event.target.value })} onBlur={commitSelectedProperties} /></label>
           {selectedEntity.type === 'text' && <label><span>{t('moduleSketch.textValue')}</span><input value={selectedEntity.text ?? ''} onChange={(event) => patchSelectedEntity({ text: event.target.value })} onBlur={commitSelectedProperties} /></label>}

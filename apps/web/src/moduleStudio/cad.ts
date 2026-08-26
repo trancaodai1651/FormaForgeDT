@@ -6,6 +6,9 @@ export type CadPoint = { x: number; y: number };
 export type CadPrimitive = 'line' | 'arc' | 'spline' | 'rectangle' | 'circle' | 'ellipse' | 'polygon' | 'text';
 export type CadTool = 'select' | CadPrimitive | 'offset' | 'move' | 'mirror' | 'pattern' | 'project' | 'trim' | 'delete';
 export type CadConstraint = 'parallel' | 'perpendicular' | 'tangent' | 'coincident' | 'midpoint' | 'concentric' | 'horizontalVertical' | 'equal' | 'symmetry' | 'lock' | 'construction';
+export type CadModelOperation = 'extrude' | 'revolve' | 'sweep' | 'loft' | 'shell' | 'fillet' | 'chamfer' | 'union' | 'subtract' | 'intersect' | 'split' | 'offsetFace' | 'offsetEdge';
+export type CadFeatureParameters = { distance: number; angle: number; radius: number; thickness: number; segments: number; };
+export type CadFeature = { id: string; operation: CadModelOperation; name: string; sourceIds: string[]; parameters: CadFeatureParameters; visible: boolean; };
 
 export type CadEntity = {
   id: string;
@@ -20,7 +23,7 @@ export type CadEntity = {
   sides?: number;
 };
 
-export type CadDocument = { entities: CadEntity[]; profileEntityId: string | null };
+export type CadDocument = { entities: CadEntity[]; profileEntityId: string | null; features?: CadFeature[] };
 
 const CAD_PRIMITIVES: CadPrimitive[] = ['line', 'arc', 'spline', 'rectangle', 'circle', 'ellipse', 'polygon', 'text'];
 const CAD_CONSTRAINTS: CadConstraint[] = ['parallel', 'perpendicular', 'tangent', 'coincident', 'midpoint', 'concentric', 'horizontalVertical', 'equal', 'symmetry', 'lock', 'construction'];
@@ -40,11 +43,38 @@ export function sanitizeCadDocument(input: unknown): CadDocument | undefined {
   });
   if (!entities.length) return undefined;
   const profileEntityId = entities.some((entity) => entity.id === candidate.profileEntityId && ['line', 'spline'].includes(entity.type)) ? candidate.profileEntityId! : entities.find((entity) => ['line', 'spline'].includes(entity.type))?.id ?? null;
-  return { entities, profileEntityId };
+  const features = Array.isArray(candidate.features) ? candidate.features.slice(0, 200).flatMap((value) => {
+    if (!value || typeof value !== 'object') return [];
+    const feature = value as Partial<CadFeature>; const operation = feature.operation;
+    if (!operation || !['extrude', 'revolve', 'sweep', 'loft', 'shell', 'fillet', 'chamfer', 'union', 'subtract', 'intersect', 'split', 'offsetFace', 'offsetEdge'].includes(operation) || !Array.isArray(feature.sourceIds)) return [];
+    const sourceIds = feature.sourceIds.slice(0, 100).map(String).filter((id) => entities.some((entity) => entity.id === id));
+    if (!sourceIds.length) return [];
+    const params = feature.parameters && typeof feature.parameters === 'object' ? feature.parameters as Partial<CadFeatureParameters> : {};
+    return [{
+      id: String(feature.id || cadFeatureId()), operation, name: String(feature.name || operation), sourceIds,
+      parameters: {
+        distance: Number.isFinite(Number(params.distance)) ? Math.max(1, Math.min(1000, Number(params.distance))) : 80,
+        angle: Number.isFinite(Number(params.angle)) ? Math.max(1, Math.min(360, Number(params.angle))) : 360,
+        radius: Number.isFinite(Number(params.radius)) ? Math.max(.2, Math.min(100, Number(params.radius))) : 4,
+        thickness: Number.isFinite(Number(params.thickness)) ? Math.max(.4, Math.min(40, Number(params.thickness))) : 3,
+        segments: Number.isFinite(Number(params.segments)) ? Math.max(8, Math.min(128, Math.round(Number(params.segments)))) : 48,
+      },
+      visible: feature.visible !== false,
+    } satisfies CadFeature];
+  }) : undefined;
+  return { entities, profileEntityId, features };
 }
 
 let cadSequence = 0;
 export const cadId = () => `cad-${Date.now()}-${++cadSequence}`;
+export const cadFeatureId = () => `feature-${Date.now()}-${++cadSequence}`;
+
+export function createCadFeature(operation: CadModelOperation, sourceIds: string[], name: string = operation): CadFeature {
+  return {
+    id: cadFeatureId(), operation, name, sourceIds: [...sourceIds], visible: true,
+    parameters: { distance: 80, angle: 360, radius: 4, thickness: 3, segments: 48 },
+  };
+}
 
 export function profileEntityFromSketch(points: SketchPoint[]): CadEntity {
   return {

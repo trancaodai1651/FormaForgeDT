@@ -417,6 +417,20 @@ Object.assign(vi, {
   'admin.homeItemPageDescription': 'Tạo đồ gia dụng tham số với họa tiết nổi, mask, preview 3D và xuất STL.',
 });
 
+Object.assign(en, {
+  'moduleSketch.sketch': 'Sketch', 'moduleSketch.modelHint': 'Select sketch geometry, adjust the operation, then create a real 3D feature.',
+  'moduleSketch.model.create': 'Create 3D feature', 'moduleSketch.model.distance': 'Distance', 'moduleSketch.model.angle': 'Angle', 'moduleSketch.model.radius': 'Radius', 'moduleSketch.model.thickness': 'Wall thickness',
+  'moduleSketch.model.extrude': 'Extrude', 'moduleSketch.model.revolve': 'Revolve', 'moduleSketch.model.sweep': 'Sweep', 'moduleSketch.model.loft': 'Loft', 'moduleSketch.model.shell': 'Shell', 'moduleSketch.model.fillet': 'Fillet', 'moduleSketch.model.chamfer': 'Chamfer', 'moduleSketch.model.union': 'Union', 'moduleSketch.model.subtract': 'Subtract', 'moduleSketch.model.intersect': 'Intersect', 'moduleSketch.model.split': 'Split body', 'moduleSketch.model.offsetFace': 'Offset face', 'moduleSketch.model.offsetEdge': 'Offset edge',
+});
+Object.assign(vi, {
+  'moduleSketch.sketch': 'Sketch', 'moduleSketch.modelHint': 'Chá»n hÃ¬nh sketch, chá»‰nh thÃ´ng sá»‘ thao tÃ¡c, sau Ä‘Ã³ táº¡o feature 3D thá»±c.',
+  'moduleSketch.model.create': 'Táº¡o feature 3D', 'moduleSketch.model.distance': 'Khoáº£ng Ä‘á»™', 'moduleSketch.model.angle': 'GÃ³c', 'moduleSketch.model.radius': 'BÃ¡n kÃ­nh', 'moduleSketch.model.thickness': 'Äá»™ dÃ y thÃ nh',
+  'moduleSketch.model.extrude': 'Äá»©ng khÃ³i', 'moduleSketch.model.revolve': 'Xoay', 'moduleSketch.model.sweep': 'QuÃ©t', 'moduleSketch.model.loft': 'Ná»‘i dáº¡ng', 'moduleSketch.model.shell': 'Vá» mÃ²ng', 'moduleSketch.model.fillet': 'Bo trÃ²n', 'moduleSketch.model.chamfer': 'VÃ¡t mÃ©p', 'moduleSketch.model.union': 'Há»£p', 'moduleSketch.model.subtract': 'Trá»«', 'moduleSketch.model.intersect': 'Giao', 'moduleSketch.model.split': 'Chia khá»‘i', 'moduleSketch.model.offsetFace': 'Offset máº·t', 'moduleSketch.model.offsetEdge': 'Offset cáº¡nh',
+});
+
+Object.assign(en, { 'admin.cadStudio': 'CAD Studio', 'admin.cadStudioDescription': 'Sketch and parametric 3D modeling workspace.', 'moduleSketch.model.update': 'Update feature', 'moduleSketch.model.editHint': 'Adjust this feature and regenerate the preview.' });
+Object.assign(vi, { 'admin.cadStudio': 'Xuong CAD', 'admin.cadStudioDescription': 'Ve sketch va tao mo hinh 3D tham so.', 'moduleSketch.model.update': 'Cap nhat feature', 'moduleSketch.model.editHint': 'Dieu chinh feature nay va cap nhat preview.' });
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 
