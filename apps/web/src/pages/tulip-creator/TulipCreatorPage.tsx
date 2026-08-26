@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Suspense, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
@@ -655,9 +655,10 @@ function TulipCombinedWorkspace({ language, copy, bodyCopy, config, bodyConfig, 
 
 export function TulipCreatorPage() {
   const { language, setLanguage } = useI18n();
+  const location = useLocation();
   const [config, setConfig] = useState<TulipConfig>(DEFAULT_CONFIG);
   const [bodyConfig, setBodyConfig] = useState<LampBodyConfig>(DEFAULT_LAMP_BODY_CONFIG);
-  const [part, setPart] = useState<TulipPart>('shade');
+  const [part, setPart] = useState<TulipPart>(() => location.pathname === '/admin/lamp-body-creator' ? 'body' : 'shade');
   const [bodyTab, setBodyTab] = useState<BodyTab>('profile');
   const [tab, setTab] = useState<TulipTab>('general');
   const [showMesh, setShowMesh] = useState(false);
@@ -666,6 +667,7 @@ export function TulipCreatorPage() {
   const [bodyExportState, setBodyExportState] = useState<'idle' | 'done' | 'error'>('idle');
   const copy = getTulipCopy(language);
   const bodyCopy = getLampBodyCopy(language);
+  useEffect(() => { setPart(location.pathname === '/admin/lamp-body-creator' ? 'body' : 'shade'); }, [location.pathname]);
   const update = (patch: Partial<TulipConfig>) => setConfig((current) => ({ ...current, ...patch }));
   const updateBody: LampBodyUpdate = (key, value) => setBodyConfig((current) => ({ ...current, [key]: value }));
   const exportStl = () => {
