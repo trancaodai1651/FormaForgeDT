@@ -1,10 +1,11 @@
 import { ArrowRight, Box, Check, Circle, Download, Flower2, Hexagon, Info, Layers3, Lightbulb, Rotate3D, Settings2, SlidersHorizontal, Sparkles, Waves } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { useI18n, type Language } from '../../lib/i18n';
+import { createLogoReliefGroup, LampLogoDecal, LogoControls, type LogoConfig, type LogoCopy } from '../lamp-logo';
 import './lamp-body-creator.css';
 
 export type BodyProfile = 'cylinder' | 'taper' | 'hourglass' | 'pedestal' | 'lampshade';
@@ -47,6 +48,7 @@ export type LampBodyConfig = {
   renderStyle: RenderStyle;
   showSimulation: boolean;
   color: string;
+  logo: LogoConfig | null;
 };
 
 export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
@@ -66,8 +68,8 @@ export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
   height: 190,
   bodyRadius: 48,
   topRadius: 34,
-  baseRadius: 78,
-  baseHeight: 18,
+  baseRadius: 58,
+  baseHeight: 22,
   neckRadius: 25,
   neckHeight: 16,
   shadeSeatRadius: 34,
@@ -80,6 +82,7 @@ export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
   renderStyle: 'smooth',
   showSimulation: true,
   color: '#d9d6cf',
+  logo: null,
 };
 
 const COLORS = ['#d9d6cf', '#e7e7e7', '#1b1b1b', '#d23b3b', '#2f6fdd', '#2e9e5b', '#f2b705'];
@@ -106,6 +109,7 @@ const COPY = {
     construction: 'Print construction', wall: 'Wall thickness', segments: 'Radial resolution', resolutionHint: 'Higher resolution creates a smoother round body.',
     appearance: 'Appearance', style: 'Render style', smooth: 'Smooth', lowPoly: 'Low poly', color: 'Body color', simulation: 'Lamp simulation',
     simulationHint: 'Show a socket, bulb and warm light above the body.', on: 'On', off: 'Off',
+    logo: 'Logo on body / base', importLogo: 'Import logo', logoHint: 'Optional logo for the body and base. It appears in preview and is exported as raised relief in the body STL.', chooseFile: 'PNG, JPG, WebP or SVG', replaceLogo: 'Replace logo', removeLogo: 'Remove logo', useLogo: 'Show logo', logoWidth: 'Logo width', logoHeight: 'Logo height', logoDepth: 'Relief depth', logoPosition: 'Vertical position', logoInvalid: 'Could not read this image.',
     exportTitle: 'Ready to fabricate', exportText: 'The body is generated locally as a watertight rotational shell. Preview-only socket and bulb parts are excluded from the STL.',
     exportBody: 'Export lamp body', download: 'Download STL', exported: 'STL download started', exportFailed: 'Export failed. Please try again.',
     summary: 'Model summary', profile: 'Profile', totalHeight: 'Total height', diameter: 'Base diameter', volume: 'Build envelope',
@@ -132,8 +136,12 @@ const COPY = {
 } as const;
 
 export type LampBodyCopy = typeof COPY.en;
+const BODY_LOGO_COPY: Record<'en' | 'vi', LogoCopy> = {
+  en: { logo: 'Logo on body / base', importLogo: 'Import logo', logoHint: 'Optional logo for the body and base. It appears in preview and is exported as raised relief in the body STL.', chooseFile: 'PNG, JPG, WebP or SVG', replaceLogo: 'Replace logo', removeLogo: 'Remove logo', useLogo: 'Show logo', logoWidth: 'Logo width', logoHeight: 'Logo height', logoDepth: 'Relief depth', logoPosition: 'Vertical position', logoInvalid: 'Could not read this image.' },
+  vi: { logo: 'Logo trên thân / đế', importLogo: 'Import logo', logoHint: 'Tùy chọn logo cho thân và đế. Logo hiện trong preview và được xuất nổi trong STL thân.', chooseFile: 'PNG, JPG, WebP hoặc SVG', replaceLogo: 'Đổi logo', removeLogo: 'Xóa logo', useLogo: 'Hiện logo', logoWidth: 'Chiều rộng logo', logoHeight: 'Chiều cao logo', logoDepth: 'Độ nổi logo', logoPosition: 'Vị trí dọc', logoInvalid: 'Không đọc được ảnh logo này.' },
+};
 export function getLampBodyCopy(language: Language): LampBodyCopy {
-  return COPY[language] as LampBodyCopy;
+  return { ...COPY[language], ...BODY_LOGO_COPY[language === 'vi' ? 'vi' : 'en'] } as LampBodyCopy;
 }
 
 function cubicValue(a: number, b: number, c: number, d: number, t: number) {
@@ -228,6 +236,11 @@ function bodyShapeRadius(radius: number, angle: number, config: LampBodyConfig) 
   return Math.max(.2, radius + config.shapeAmplitude * Math.cos(waves * angle));
 }
 
+export function getLampBodySurfaceRadius(config: LampBodyConfig, normalizedHeight: number) {
+  const progress = THREE.MathUtils.clamp(normalizedHeight, 0, 1);
+  return Math.max(2, bodyShapeRadius(bodyRadiusAt(config, progress), 0, config));
+}
+
 export function createLampBodyGeometry(config: LampBodyConfig) {
   const points: THREE.Vector2[] = [];
   const baseHeight = Math.max(8, config.baseHeight);
@@ -245,11 +258,19 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
     ? Math.min(Math.max(2, config.bottomHoleDiameter / 2), maximumHoleRadius)
     : 0;
 
-  const smoothStep = (value: number) => {
-    const t = THREE.MathUtils.clamp(value, 0, 1);
-    return t * t * (3 - 2 * t);
+  const transition = (start: number, end: number, progress: number, startTangent = 0, endTangent = 0) => {
+    const t = THREE.MathUtils.clamp(progress, 0, 1);
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const h00 = 2 * t3 - 3 * t2 + 1;
+    const h10 = t3 - 2 * t2 + t;
+    const h01 = -2 * t3 + 3 * t2;
+    const h11 = t3 - t2;
+    return h00 * start + h10 * startTangent + h01 * end + h11 * endTangent;
   };
-  const transition = (start: number, end: number, progress: number) => start + (end - start) * smoothStep(progress);
+  const bodySlopeAtBottom = (bodyRadiusAt(config, .025) - bodyBottomRadius) / .025;
+  const bodySlopeAtTop = (bodyTopRadius - bodyRadiusAt(config, .975)) / .025;
+  const baseEndTangent = bodySlopeAtBottom * baseHeight / bodyHeight;
   // Keep the neck as a gentle shaping influence. Blending all the way down to
   // the raw neck radius creates a visible collar/ring at the shade joint.
   const neckTarget = THREE.MathUtils.lerp(config.neckRadius, Math.min(bodyTopRadius, seatRadius), .78);
@@ -257,8 +278,8 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   const topOuterRadiusAt = (progress: number) => {
     const t = THREE.MathUtils.clamp(progress, 0, 1);
     return t <= neckBlend
-      ? transition(bodyTopRadius, neckTarget, t / neckBlend)
-      : transition(neckTarget, seatRadius, (t - neckBlend) / (1 - neckBlend));
+      ? transition(bodyTopRadius, neckTarget, t / neckBlend, bodySlopeAtTop * neckBlend, 0)
+      : transition(neckTarget, seatRadius, (t - neckBlend) / (1 - neckBlend), 0, 0);
   };
 
   // Sample the complete outer profile densely. The old profile used a handful
@@ -267,7 +288,7 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   const baseSamples = 10;
   for (let index = 0; index <= baseSamples; index += 1) {
     const progress = index / baseSamples;
-    points.push(new THREE.Vector2(transition(config.baseRadius, bodyBottomRadius, progress), baseHeight * progress));
+    points.push(new THREE.Vector2(transition(config.baseRadius, bodyBottomRadius, progress, 0, baseEndTangent), baseHeight * progress));
   }
   const bodySamples = 32;
   for (let index = 1; index <= bodySamples; index += 1) {
@@ -352,18 +373,20 @@ function ToggleControl({ label, hint, value, onChange, onLabel, offLabel }: { la
   return <div className="lamp-body-toggle-row"><div><strong>{label}</strong><small>{hint}</small></div><button type="button" className={value ? 'lamp-body-toggle on' : 'lamp-body-toggle'} aria-pressed={value} onClick={onChange}><span />{value ? onLabel : offLabel}</button></div>;
 }
 
-function BodyMesh({ geometry, color, lowPoly }: { geometry: THREE.BufferGeometry; color: string; lowPoly: boolean }) {
+function BodyMesh({ geometry, color, lowPoly, logo, logoPosition }: { geometry: THREE.BufferGeometry; color: string; lowPoly: boolean; logo: LogoConfig | null; logoPosition: [number, number, number] }) {
   useEffect(() => () => geometry.dispose(), [geometry]);
-  return <mesh geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.64} metalness={.04} side={THREE.DoubleSide} flatShading={lowPoly} /></mesh>;
+  return <mesh geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.64} metalness={.04} side={THREE.DoubleSide} flatShading={lowPoly} />{logo?.enabled && <Suspense fallback={null}><LampLogoDecal logo={logo} position={logoPosition} /></Suspense>}</mesh>;
 }
 
 export function LampBodyModel({ config, yOffset = 0, showSimulation = config.showSimulation, showMesh = false }: { config: LampBodyConfig; yOffset?: number; showSimulation?: boolean; showMesh?: boolean }) {
   const geometry = useMemo(() => createLampBodyGeometry(config), [config]);
   const totalHeight = config.baseHeight + config.height + config.neckHeight;
   const socketRadius = Math.max(2, config.socketDiameter / 2);
+  const logoProgress = THREE.MathUtils.clamp(config.logo?.position ?? .55, .1, .9);
+  const logoPosition: [number, number, number] = [0, config.baseHeight + config.height * logoProgress, getLampBodySurfaceRadius(config, logoProgress) + 1];
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group position={[0, yOffset, 0]}>
-    <BodyMesh geometry={geometry} color={config.color} lowPoly={config.renderStyle === 'low-poly'} />
+    <BodyMesh geometry={geometry} color={config.color} lowPoly={config.renderStyle === 'low-poly'} logo={config.logo} logoPosition={logoPosition} />
     {showMesh && <mesh geometry={geometry}><meshBasicMaterial color="#8be7ff" wireframe transparent opacity={.28} /></mesh>}
     <mesh position={[0, totalHeight + .8, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[socketRadius + .8, .8, 12, 32]} /><meshStandardMaterial color="#252b35" metalness={.75} roughness={.3} /></mesh>
     <mesh position={[0, totalHeight + 6, 0]} castShadow><cylinderGeometry args={[socketRadius, socketRadius, 12, 32, 1, true]} /><meshStandardMaterial color="#252b35" metalness={.75} roughness={.3} side={THREE.DoubleSide} /></mesh>
@@ -423,8 +446,12 @@ export function LampBodyCreatorPage() {
   const exportStl = () => {
     try {
       const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
-      mesh.updateMatrixWorld(true);
-      const output = new STLExporter().parse(mesh, { binary: false });
+      const logoProgress = THREE.MathUtils.clamp(config.logo?.position ?? .55, .1, .9);
+      const model = new THREE.Group();
+      model.add(mesh);
+      model.add(createLogoReliefGroup(config.logo, getLampBodySurfaceRadius(config, logoProgress), config.baseHeight + config.height * logoProgress));
+      model.updateMatrixWorld(true);
+      const output = new STLExporter().parse(model, { binary: false });
       downloadFile(output, `lamp-body-${config.profile}.stl`);
       mesh.material.dispose();
       setExportState('done');
@@ -454,6 +481,7 @@ export function LampBodyCreatorPage() {
           {tab === 'finish' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Settings2} title={copy.construction} hint={copy.resolutionHint} /><RangeControl label={copy.wall} value={config.wallThickness} min={1.2} max={6} step={.1} unit={copy.mm} onChange={(value) => update('wallThickness', value)} /><RangeControl label={copy.segments} value={config.segments} min={24} max={128} step={8} unit="" onChange={(value) => update('segments', value)} /></section><section><PanelTitle icon={Sparkles} title={copy.appearance} /><SelectControl label={copy.style} value={config.renderStyle} options={[{ value: 'smooth', label: copy.smooth }, { value: 'low-poly', label: copy.lowPoly }]} onChange={(value) => update('renderStyle', value as RenderStyle)} /><div className="lamp-body-color-field"><span>{copy.color}</span><div className="lamp-body-swatches">{COLORS.map((color) => <button type="button" key={color} className={config.color === color ? 'selected' : ''} style={{ background: color }} aria-label={color} onClick={() => update('color', color)} />)}</div></div></section><section><PanelTitle icon={Lightbulb} title={copy.simulation} /><ToggleControl label={copy.simulation} hint={copy.simulationHint} value={config.showSimulation} onChange={() => update('showSimulation', !config.showSimulation)} onLabel={copy.on} offLabel={copy.off} /></section></div>}
           {tab === 'export' && <div className="lamp-body-panel-content"><section className="lamp-body-export-card"><span className="lamp-body-export-icon"><Check size={20} /></span><h2>{copy.exportTitle}</h2><p>{copy.exportText}</p><button type="button" className="lamp-body-export-button" onClick={exportStl}><Download size={16} /> {copy.download} <ArrowRight size={15} /></button>{exportState !== 'idle' && <div className={`lamp-body-export-status ${exportState}`}>{exportState === 'done' ? <Check size={14} /> : <Info size={14} />}{exportState === 'done' ? copy.exported : copy.exportFailed}</div>}</section><section className="lamp-body-summary"><PanelTitle icon={Info} title={copy.summary} /><div><span>{copy.profile}</span><strong>{copy.profiles[config.profile]}</strong></div><div><span>{copy.totalHeight}</span><strong>{Math.round(totalHeight)} {copy.mm}</strong></div><div><span>{copy.diameter}</span><strong>{Math.round(config.baseRadius * 2)} {copy.mm}</strong></div><div><span>{copy.volume}</span><strong>{Math.round(config.baseRadius * 2)} × {Math.round(totalHeight)} {copy.mm}</strong></div></section></div>}
         </div>
+        {tab === 'finish' && <div className="lamp-body-panel-scroll"><LogoControls logo={config.logo} copy={copy} onChange={(logo) => update('logo', logo)} /></div>}
         <footer className="lamp-body-sidebar-footer"><span>{copy.licenses}</span><span>{copy.localOnly}</span></footer>
       </aside>
       <section className="lamp-body-viewport" aria-label={copy.preview}><Canvas shadows dpr={[1, 2]} gl={{ antialias: true }}><LampBodyScene config={config} geometry={geometry} /></Canvas><div className="lamp-body-viewport-top"><span><Sparkles size={13} />{copy.preview}</span><span>{copy.profiles[config.profile]}</span></div><div className="lamp-body-viewport-toolbar"><span><Rotate3D size={14} />{copy.drag}</span><span>{copy.scroll}</span><button type="button" className={config.renderStyle === 'low-poly' ? 'active' : ''} onClick={() => update('renderStyle', config.renderStyle === 'low-poly' ? 'smooth' : 'low-poly')}><Box size={14} />{copy.mesh}</button></div><div className="lamp-body-viewport-measure"><span>H</span><strong>{Math.round(totalHeight)} {copy.mm}</strong><span>Ø</span><strong>{Math.round(config.baseRadius * 2)} {copy.mm}</strong></div></section>

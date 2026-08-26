@@ -5,11 +5,12 @@ import {
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { useI18n, type Language } from '../../lib/i18n';
-import { DEFAULT_LAMP_BODY_CONFIG, LampBodyControls, LampBodyModel, getLampBodyCopy, createLampBodyGeometry, type BodyTab, type LampBodyConfig, type LampBodyCopy, type LampBodyUpdate } from '../lamp-body-creator';
+import { DEFAULT_LAMP_BODY_CONFIG, LampBodyControls, LampBodyModel, getLampBodyCopy, getLampBodySurfaceRadius, createLampBodyGeometry, type BodyTab, type LampBodyConfig, type LampBodyCopy, type LampBodyUpdate } from '../lamp-body-creator';
+import { createLogoReliefGroup, LampLogoDecal, LogoControls, type LogoConfig, type LogoCopy } from '../lamp-logo';
 import './tulip-creator.css';
 import '../lamp-body-creator/lamp-body-creator.css';
 
@@ -44,6 +45,7 @@ type TulipConfig = {
   renderStyle: TulipStyle;
   showSimulation: boolean;
   color: string;
+  logo: LogoConfig | null;
 };
 
 const DEFAULT_PROFILE: ProfilePoint[] = [
@@ -71,6 +73,7 @@ const DEFAULT_CONFIG: TulipConfig = {
   renderStyle: 'smooth',
   showSimulation: false,
   color: '#fbbf24',
+  logo: null,
 };
 
 const COLOR_PRESETS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#64748b', '#ffffff'];
@@ -93,6 +96,7 @@ const COPY = {
     shapes: { circle: 'Circle', polygon: 'Poly', wave: 'Wave', star: 'Star' },
     profileLabels: { Cylinder: 'Cylinder', Cone: 'Cone', Tulip: 'Tulip', Vintage: 'Vintage', Bowl: 'Bowl' },
     style: 'Style', smooth: 'Smooth', lowPoly: 'Low Poly / Geo', simulation: 'Simulation', lamp: 'Lamp Simulation', simulationHint: 'Preview with light and base',
+    logo: 'Logo on shade', importLogo: 'Import logo', logoHint: 'Optional logo for this shade. It appears in preview and is exported as raised relief in the shade STL.', chooseFile: 'PNG, JPG, WebP or SVG', replaceLogo: 'Replace logo', removeLogo: 'Remove logo', useLogo: 'Show logo', logoWidth: 'Logo width', logoHeight: 'Logo height', logoDepth: 'Relief depth', logoPosition: 'Vertical position', logoInvalid: 'Could not read this image.',
     color: 'Color', download: 'Download STL', footer: 'Tulip Creator', licenses: 'Licenses', close: 'Close', soon: 'Soon', login: 'Log in', register: 'Register', language: 'Language', academy: 'Academy',
     licenseTitle: 'Licenses and Third-Party CAD Stack', licenseLead: 'FormaForge uses a client-side CAD path for parametric geometry and STL export.',
     licenseThree: 'Three.js + React Three Fiber', licenseThreeText: 'MIT licensed rendering and interaction libraries used for the live preview.',
@@ -130,6 +134,16 @@ const COPY = {
     licenseNote: 'Trang này tạo hình học cục bộ. Không có model hay dữ liệu thiết kế nào được tải lên.', showMesh: 'Hiện lưới', viewMesh: 'Ẩn lưới', exportFailed: 'Không thể xuất file',
   },
 };
+
+const LOGO_COPY: Record<'en' | 'es' | 'vi', LogoCopy> = {
+  en: { logo: 'Logo on shade', importLogo: 'Import logo', logoHint: 'Optional logo for this shade. It appears in preview and is exported as raised relief in the shade STL.', chooseFile: 'PNG, JPG, WebP or SVG', replaceLogo: 'Replace logo', removeLogo: 'Remove logo', useLogo: 'Show logo', logoWidth: 'Logo width', logoHeight: 'Logo height', logoDepth: 'Relief depth', logoPosition: 'Vertical position', logoInvalid: 'Could not read this image.' },
+  es: { logo: 'Logo en la tulipa', importLogo: 'Importar logo', logoHint: 'Logo opcional para esta tulipa. Se muestra en la vista previa y se exporta como relieve en el STL.', chooseFile: 'PNG, JPG, WebP o SVG', replaceLogo: 'Reemplazar logo', removeLogo: 'Eliminar logo', useLogo: 'Mostrar logo', logoWidth: 'Ancho del logo', logoHeight: 'Alto del logo', logoDepth: 'Profundidad del relieve', logoPosition: 'Posición vertical', logoInvalid: 'No se pudo leer esta imagen.' },
+  vi: { logo: 'Logo trên chao đèn', importLogo: 'Import logo', logoHint: 'Tùy chọn logo cho chao đèn. Logo hiện trong preview và được xuất nổi trong STL chao.', chooseFile: 'PNG, JPG, WebP hoặc SVG', replaceLogo: 'Đổi logo', removeLogo: 'Xóa logo', useLogo: 'Hiện logo', logoWidth: 'Chiều rộng logo', logoHeight: 'Chiều cao logo', logoDepth: 'Độ nổi logo', logoPosition: 'Vị trí dọc', logoInvalid: 'Không đọc được ảnh logo này.' },
+};
+
+function getTulipCopy(language: Language) {
+  return { ...COPY[language], ...LOGO_COPY[language] } as typeof COPY.en;
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -204,6 +218,12 @@ function getDefaultRadius(config: TulipConfig, normalizedHeight: number) {
   const middleWeight = (t * (t - 1)) / (middle * (middle - 1));
   const topWeight = (t * (t - middle)) / (1 * (1 - middle));
   return Math.max(0, config.radiusBottom * bottomWeight + config.radiusMid * middleWeight + config.radiusTop * topWeight);
+}
+
+export function getTulipSurfaceRadius(config: TulipConfig, normalizedHeight: number) {
+  const progress = clamp(normalizedHeight, 0, 1);
+  const baseRadius = config.useAdvancedMode ? getAdvancedRadius(config.profilePoints, config.maxRadius, progress) : getDefaultRadius(config, progress);
+  return Math.max(2, shapeRadius(baseRadius, 0, config.shapeType, config.waves, config.amplitude));
 }
 
 function createTulipGeometry(config: TulipConfig) {
@@ -479,6 +499,8 @@ function ShapeButton({ shape, active, label, onClick }: { shape: TulipShape; act
 
 function TulipMesh({ config, showMesh }: { config: TulipConfig; showMesh: boolean }) {
   const geometry = useMemo(() => createTulipGeometry(config), [config]);
+  const logoProgress = clamp(config.logo?.position ?? .55, .1, .9);
+  const logoPosition: [number, number, number] = [0, config.height * logoProgress, getTulipSurfaceRadius(config, logoProgress) + 1];
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group>
     <mesh geometry={geometry} castShadow receiveShadow>
@@ -498,6 +520,7 @@ function TulipMesh({ config, showMesh }: { config: TulipConfig; showMesh: boolea
           tulipGlow = mix(tulipGlow, uTulipCore, tulipCore);
           totalEmissiveRadiance += tulipGlow * (2.3 + tulipFill * 4.0 + tulipCore * 12.0);`);
       }} /> : <meshStandardMaterial color={config.color} roughness={.58} metalness={.1} side={THREE.DoubleSide} flatShading={config.renderStyle === 'low-poly'} />}
+      {config.logo?.enabled && <Suspense fallback={null}><LampLogoDecal logo={config.logo} position={logoPosition} /></Suspense>}
     </mesh>
     {config.showSimulation && <mesh position={[0, 30, 0]} renderOrder={2}><sphereGeometry args={[20, 32, 20]} /><meshBasicMaterial color="#fff0b5" transparent opacity={.16} depthTest={false} depthWrite={false} /></mesh>}
     {showMesh && <mesh geometry={geometry}><meshBasicMaterial color="#ffffff" wireframe transparent opacity={.12} /></mesh>}
@@ -579,7 +602,7 @@ function ShapePanel({ config, update, copy }: { config: TulipConfig; update: (pa
 }
 
 function SettingsPanel({ config, update, copy }: { config: TulipConfig; update: (patch: Partial<TulipConfig>) => void; copy: typeof COPY.en }) {
-  return <div className="tulip-panel-content"><h3>{copy.style}</h3><div className="tulip-style-row"><button type="button" className={config.renderStyle === 'smooth' ? 'active' : ''} onClick={() => update({ renderStyle: 'smooth' })}>{copy.smooth}</button><button type="button" className={config.renderStyle === 'low-poly' ? 'active' : ''} onClick={() => update({ renderStyle: 'low-poly' })}>{copy.lowPoly}</button></div><div className="tulip-divider" /><h3>{copy.simulation}</h3><label className="tulip-toggle-row"><span><strong>{copy.lamp}</strong><small>{copy.simulationHint}</small></span><input type="checkbox" checked={config.showSimulation} onChange={(event) => update({ showSimulation: event.target.checked })} /><i /></label><div className="tulip-divider" /><label className="tulip-color-label">{copy.color}</label><div className="tulip-colors">{COLOR_PRESETS.map((color) => <button type="button" key={color} className={config.color.toLowerCase() === color ? 'active' : ''} style={{ background: color }} aria-label={`Select color ${color}`} onClick={() => update({ color })}>{config.color.toLowerCase() === color && <Check size={13} />}</button>)}</div><label className="tulip-color-input"><input type="color" value={config.color} onChange={(event) => update({ color: event.target.value })} /><code>{config.color}</code></label></div>;
+  return <div className="tulip-panel-content"><h3>{copy.style}</h3><div className="tulip-style-row"><button type="button" className={config.renderStyle === 'smooth' ? 'active' : ''} onClick={() => update({ renderStyle: 'smooth' })}>{copy.smooth}</button><button type="button" className={config.renderStyle === 'low-poly' ? 'active' : ''} onClick={() => update({ renderStyle: 'low-poly' })}>{copy.lowPoly}</button></div><div className="tulip-divider" /><h3>{copy.simulation}</h3><label className="tulip-toggle-row"><span><strong>{copy.lamp}</strong><small>{copy.simulationHint}</small></span><input type="checkbox" checked={config.showSimulation} onChange={(event) => update({ showSimulation: event.target.checked })} /><i /></label><div className="tulip-divider" /><label className="tulip-color-label">{copy.color}</label><div className="tulip-colors">{COLOR_PRESETS.map((color) => <button type="button" key={color} className={config.color.toLowerCase() === color ? 'active' : ''} style={{ background: color }} aria-label={`Select color ${color}`} onClick={() => update({ color })}>{config.color.toLowerCase() === color && <Check size={13} />}</button>)}</div><label className="tulip-color-input"><input type="color" value={config.color} onChange={(event) => update({ color: event.target.value })} /><code>{config.color}</code></label><LogoControls logo={config.logo} copy={copy} onChange={(logo) => update({ logo })} /></div>;
 }
 
 function ExportPanel({ onExport, copy, exportError }: { onExport: () => void; copy: typeof COPY.en; exportError: string }) {
@@ -587,12 +610,12 @@ function ExportPanel({ onExport, copy, exportError }: { onExport: () => void; co
 }
 
 function LicenseDialog({ language, onClose }: { language: Language; onClose: () => void }) {
-  const copy = COPY[language] as typeof COPY.en;
+  const copy = getTulipCopy(language);
   return <div className="tulip-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="tulip-license-modal" role="dialog" aria-modal="true" aria-labelledby="tulip-license-title"><header><h2 id="tulip-license-title">{copy.licenseTitle}</h2><button type="button" aria-label={copy.close} onClick={onClose}><X size={18} /></button></header><p>{copy.licenseLead}</p><h3>{copy.licenseThree}</h3><p>{copy.licenseThreeText}</p><h3>{copy.licenseStl}</h3><p>{copy.licenseStlText}</p><div className="tulip-license-note"><Info size={15} />{copy.licenseNote}</div><button type="button" className="tulip-modal-close" onClick={onClose}>{copy.close}</button></section></div>;
 }
 
 function TulipHeader({ language, onLicenses }: { language: Language; onLicenses: () => void; onLanguage?: (language: Language) => void }) {
-  const copy = COPY[language] as typeof COPY.en;
+  const copy = getTulipCopy(language);
   return <header className="tulip-header"><Link to="/" className="tulip-brand"><span className="tulip-brand-mark">✦</span><strong>FormaForge</strong></Link><div className="tulip-header-center"><a className="tulip-academy" href="#/academy"><GraduationCap size={14} /><span>{copy.academy}</span><small>{copy.soon}</small></a><span className="tulip-header-muted">{copy.title}</span></div><div className="tulip-header-actions"><Link to="/account">{copy.login}</Link><Link to="/account?mode=register" className="tulip-register">{copy.register}</Link><a href="https://www.instagram.com/shaperlab.es" target="_blank" rel="noreferrer" aria-label="Instagram"><Instagram size={17} /></a><button type="button" onClick={onLicenses}>{copy.licenses}</button><span className="tulip-language" aria-label={copy.language}><span className={language === 'en' ? 'active' : ''}>EN</span><i>/</i><span className={language === 'vi' ? 'active' : ''}>VI</span></span></div></header>;
 }
 
@@ -616,7 +639,7 @@ function TulipCombinedWorkspace({ language, copy, bodyCopy, config, bodyConfig, 
     { id: 'export', label: bodyCopy.tabs.export, icon: Download },
   ];
   const bodyHeight = bodyConfig.baseHeight + bodyConfig.height + bodyConfig.neckHeight;
-  const assemblyHeight = bodyHeight + 24 + config.height;
+  const assemblyHeight = bodyHeight + 12 + config.height;
   return <main className="tulip-page"><TulipHeader language={language} onLicenses={onLicenses} /><div className="tulip-workspace"><aside className="tulip-sidebar"><div className="tulip-sidebar-title"><span className="tulip-kicker"><Lightbulb size={15} /> 3D WORKSPACE</span><h1>{part === 'shade' ? copy.title : bodyCopy.title}</h1><p>{part === 'shade' ? copy.subtitle : bodyCopy.subtitle}</p><div className="tulip-part-switch" role="tablist" aria-label="Lamp components"><button type="button" className={part === 'shade' ? 'active' : ''} role="tab" aria-selected={part === 'shade'} onClick={() => onPart('shade')}><Sparkles size={14} />{copy.title}</button><button type="button" className={part === 'body' ? 'active' : ''} role="tab" aria-selected={part === 'body'} onClick={() => onPart('body')}><Box size={14} />{bodyCopy.title}</button></div></div><nav className={`tulip-tabs${part === 'body' ? ' body-tabs' : ''}`} aria-label={part === 'shade' ? 'Tulip Creator sections' : 'Lamp Body Creator sections'}>{(part === 'shade' ? tabs : bodyTabs).map(({ id, label, icon: Icon }) => <button type="button" key={id} className={(part === 'shade' ? tab === id : bodyTab === id) ? 'active' : ''} aria-selected={part === 'shade' ? tab === id : bodyTab === id} onClick={() => part === 'shade' ? onTab(id as TulipTab) : onBodyTab(id as BodyTab)}><Icon size={18} /><span>{label}</span></button>)}</nav><div className="tulip-panel-scroll">{part === 'shade' ? <>{tab === 'general' && <ProfilePanel config={config} update={onShadeUpdate} copy={copy} />}{tab === 'shape' && <ShapePanel config={config} update={onShadeUpdate} copy={copy} />}{tab === 'settings' && <SettingsPanel config={config} update={onShadeUpdate} copy={copy} />}{tab === 'export' && <ExportPanel onExport={onShadeExport} copy={copy} exportError={exportError} />}</> : <LampBodyControls config={bodyConfig} tab={bodyTab} update={onBodyUpdate} copy={bodyCopy} onExport={onBodyExport} exportState={bodyExportState} />}</div><footer className="tulip-sidebar-footer"><span>v1.0.0 · {part === 'shade' ? copy.footer : bodyCopy.title}</span><span>{Math.round(assemblyHeight)}mm assembly</span></footer></aside><section className="tulip-viewport" aria-label="Tulip shade and lamp body 3D preview"><Canvas shadows dpr={[1, 2]} gl={{ antialias: true }}><TulipScene config={config} bodyConfig={bodyConfig} showMesh={showMesh} /></Canvas><div className="tulip-viewport-badges"><button type="button" className={showMesh ? 'active' : ''} title={showMesh ? copy.viewMesh : copy.showMesh} aria-pressed={showMesh} onClick={onMesh}>#</button><span>H: {Math.round(assemblyHeight)}mm</span><span className="tulip-assembly-badge">{copy.title} + {bodyCopy.title}</span></div><div className="tulip-orbit-hint"><span>◈</span> Drag to orbit · Scroll to zoom</div></section></div></main>;
 }
 
@@ -631,7 +654,7 @@ export function TulipCreatorPage() {
   const [licensesOpen, setLicensesOpen] = useState(false);
   const [exportError, setExportError] = useState('');
   const [bodyExportState, setBodyExportState] = useState<'idle' | 'done' | 'error'>('idle');
-  const copy = COPY[language] as typeof COPY.en;
+  const copy = getTulipCopy(language);
   const bodyCopy = getLampBodyCopy(language);
   const update = (patch: Partial<TulipConfig>) => setConfig((current) => ({ ...current, ...patch }));
   const updateBody: LampBodyUpdate = (key, value) => setBodyConfig((current) => ({ ...current, [key]: value }));
@@ -639,9 +662,13 @@ export function TulipCreatorPage() {
     try {
       const geometry = createTulipGeometry(config);
       const mesh = new THREE.Mesh(geometry);
-      mesh.rotation.x = Math.PI / 2;
-      mesh.updateMatrixWorld(true);
-      const output = new STLExporter().parse(mesh, { binary: false });
+      const logoProgress = clamp(config.logo?.position ?? .55, .1, .9);
+      const model = new THREE.Group();
+      model.add(mesh);
+      model.add(createLogoReliefGroup(config.logo, getTulipSurfaceRadius(config, logoProgress), config.height * logoProgress));
+      model.rotation.x = Math.PI / 2;
+      model.updateMatrixWorld(true);
+      const output = new STLExporter().parse(model, { binary: false });
       geometry.dispose();
       downloadText(output, `formaforge-tulip-${Math.round(config.height)}mm.stl`);
       setExportError('');
@@ -655,8 +682,12 @@ export function TulipCreatorPage() {
     const geometry = createLampBodyGeometry(bodyConfig);
     try {
       const mesh = new THREE.Mesh(geometry);
-      mesh.updateMatrixWorld(true);
-      const output = new STLExporter().parse(mesh, { binary: false });
+      const logoProgress = THREE.MathUtils.clamp(bodyConfig.logo?.position ?? .55, .1, .9);
+      const model = new THREE.Group();
+      model.add(mesh);
+      model.add(createLogoReliefGroup(bodyConfig.logo, getLampBodySurfaceRadius(bodyConfig, logoProgress), bodyConfig.baseHeight + bodyConfig.height * logoProgress));
+      model.updateMatrixWorld(true);
+      const output = new STLExporter().parse(model, { binary: false });
       downloadText(output, `formaforge-lamp-body-${Math.round(bodyConfig.height)}mm.stl`);
       setBodyExportState('done');
     } catch (error) {
