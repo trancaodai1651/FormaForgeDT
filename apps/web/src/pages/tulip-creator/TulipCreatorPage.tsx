@@ -460,7 +460,7 @@ function ProfilePanel({ config, update, copy }: { config: TulipConfig; update: (
         <RangeControl label={copy.maxRadius} value={config.maxRadius} min={20} max={150} unit=" mm" onChange={(maxRadius) => update({ maxRadius })} />
         <div className="tulip-vertical-profile"><strong>{copy.vertical}</strong><div className="tulip-profile-presets">{PROFILE_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => update({ profilePoints: preset.points.map((point) => ({ ...point })) })}>{copy.profileLabels[preset.name as keyof typeof copy.profileLabels]}</button>)}</div><ProfileEditor points={config.profilePoints} maxRadius={config.maxRadius} onChange={(profilePoints) => update({ profilePoints })} /><p className="tulip-help">{copy.dragHint}</p></div>
       </> : <>
-        <RangeControl label={copy.topOpening} value={config.radiusTop} min={10} max={150} unit=" mm" onChange={(radiusTop) => update({ radiusTop })} />
+        <RangeControl label={copy.topOpening} value={config.radiusTop} min={0} max={150} unit=" mm" onChange={(radiusTop) => update({ radiusTop })} />
         <RangeControl label={copy.middle} value={config.radiusMid} min={10} max={150} unit=" mm" onChange={(radiusMid) => update({ radiusMid })} />
         <RangeControl label={copy.maxBottom} value={config.radiusBottom} min={config.holeDiameter + 5} max={150} unit=" mm" onChange={(radiusBottom) => update({ radiusBottom })} />
         <RangeControl label={copy.middlePos} value={config.midHeight * 100} min={10} max={90} unit="%" onChange={(middlePos) => update({ midHeight: middlePos / 100 })} />
@@ -510,6 +510,7 @@ function TulipCombinedWorkspace({ language, copy, bodyCopy, config, bodyConfig, 
   const bodyTabs: Array<{ id: BodyTab; label: string; icon: typeof Sparkles }> = [
     { id: 'body', label: bodyCopy.tabs.body, icon: Box },
     { id: 'profile', label: bodyCopy.tabs.profile, icon: Waves },
+    { id: 'shape', label: bodyCopy.tabs.shape, icon: Flower2 },
     { id: 'base', label: bodyCopy.tabs.base, icon: Layers3 },
     { id: 'finish', label: bodyCopy.tabs.finish, icon: Settings2 },
     { id: 'export', label: bodyCopy.tabs.export, icon: Download },

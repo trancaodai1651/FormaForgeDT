@@ -56,7 +56,7 @@
 .lamp-body-sidebar-title h1 { margin: 9px 0 3px; color: #eef8ff; font-size: 22px; font-weight: 800; letter-spacing: -.045em; }
 .lamp-body-sidebar-title p { margin: 0; color: #8495b2; font-size: 12px; }
 
-.lamp-body-tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 14px; border-bottom: 1px solid #25324a; }
+.lamp-body-tabs { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); padding: 0 14px; border-bottom: 1px solid #25324a; }
 .lamp-body-tabs button { position: relative; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 10px 3px; border: 0; color: #7183a3; background: transparent; font-size: 10px; font-weight: 700; }
 .lamp-body-tabs button:hover, .lamp-body-tabs button.active { color: #6fddff; }
 .lamp-body-tabs button.active::after { content: ""; position: absolute; right: 7px; bottom: -1px; left: 7px; height: 2px; background: #6fddff; }
@@ -110,7 +110,11 @@
 .lamp-body-advanced-toggle input:checked + i::after { transform: translateX(15px); background: #66dcff; box-shadow: 0 0 0 3px #66dcff22; }
 .lamp-body-advanced-toggle:focus-within { border-color: #5bd3fb; }
 .lamp-body-vertical-profile { position: relative; display: flex; flex-direction: column; gap: 13px; }
-.lamp-body-vertical-profile > strong { color: #9dacc5; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.lamp-body-profile-editor-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lamp-body-profile-editor-toolbar > strong { color: #9dacc5; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.lamp-body-add-point { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #2c6d83; border-radius: 7px; color: #9aeaff; background: #123047; font-size: 10px; font-weight: 800; cursor: pointer; }
+.lamp-body-add-point:hover { border-color: #66dcff; background: #17445b; }
+.lamp-body-add-point:disabled { opacity: .45; cursor: not-allowed; }
 .lamp-body-profile-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .lamp-body-profile-presets button { min-height: 30px; padding: 5px 2px; border: 1px solid #283957; border-radius: 6px; color: #9dacc5; background: #111d34; font-size: 9px; cursor: pointer; }
 .lamp-body-profile-presets button:hover, .lamp-body-profile-presets button.active { border-color: #5bd3fb; color: #d8f7ff; background: #123048; }
@@ -118,8 +122,13 @@
 .lamp-body-vertical-profile svg { display: block; width: 100%; height: 195px; overflow: visible; border: 1px solid #243553; border-radius: 11px; color: #7183a3; background: #0f182b; touch-action: none; }
 .lamp-body-vertical-profile svg circle { cursor: grab; }
 .lamp-body-vertical-profile svg circle:active { cursor: grabbing; }
+.lamp-body-profile-sample { opacity: .96; filter: drop-shadow(0 0 2px #fbbf2455); }
 .lamp-body-profile-scale { display: flex; justify-content: space-between; margin: -8px 10px 0 22px; color: #7183a3; font-size: 8px; }
 .lamp-body-profile-help { margin: 0; padding: 11px 12px; border-radius: 9px; color: #7d91b1; background: #101d33; font-size: 10px; line-height: 1.5; }
+.lamp-body-profile-fields { display: flex; flex-direction: column; gap: 22px; }
+.lamp-body-shape-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.lamp-body-shape-button { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 7px; padding: 12px 3px 10px; border: 1px solid transparent; border-radius: 10px; color: #7588a7; background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; }
+.lamp-body-shape-button:hover, .lamp-body-shape-button.active { border-color: #2f627b; color: #7de1ff; background: #12283a; }
 
 .lamp-body-export-card { align-items: center; padding: 24px 17px 20px; border: 1px solid #264565; border-radius: 14px; background: linear-gradient(145deg, #10253b, #0e192b); text-align: center; }
 .lamp-body-export-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: #a9f2da; background: #184346; }

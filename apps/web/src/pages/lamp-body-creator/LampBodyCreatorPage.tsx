@@ -1,4 +1,4 @@
-import { ArrowRight, Box, Check, Download, Info, Layers3, Lightbulb, Rotate3D, Settings2, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ArrowRight, Box, Check, Circle, Download, Flower2, Hexagon, Info, Layers3, Lightbulb, Rotate3D, Settings2, SlidersHorizontal, Sparkles, Waves } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useEffect, useMemo, useState } from 'react';
@@ -17,14 +17,19 @@ export type BodyProfilePoint = {
   handleIn?: { x: number; y: number };
   handleOut?: { x: number; y: number };
 };
+export type BodyShape = 'circle' | 'polygon' | 'wave' | 'star';
 type RenderStyle = 'smooth' | 'low-poly';
-export type BodyTab = 'body' | 'profile' | 'base' | 'finish' | 'export';
+export type BodyTab = 'body' | 'profile' | 'shape' | 'base' | 'finish' | 'export';
 
 export type LampBodyConfig = {
   profile: BodyProfile;
   profileMode: BodyProfileMode;
   advancedProfilePoints: BodyProfilePoint[];
   advancedMaxRadius: number;
+  shapeType: BodyShape;
+  shapeWaves: number;
+  shapeAmplitude: number;
+  shapeTwist: number;
   height: number;
   bodyRadius: number;
   topRadius: number;
@@ -52,6 +57,10 @@ export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
     { x: .38, y: 1, type: 'corner' },
   ],
   advancedMaxRadius: 90,
+  shapeType: 'circle',
+  shapeWaves: 8,
+  shapeAmplitude: 2,
+  shapeTwist: 0,
   height: 190,
   bodyRadius: 48,
   topRadius: 34,
@@ -82,8 +91,10 @@ export const BODY_PROFILE_PRESETS: Array<{ name: BodyProfile; points: BodyProfil
 const COPY = {
   en: {
     title: 'Lamp Body Creator', subtitle: 'Parametric Lamp Stand Generator', workspace: 'BODY WORKSPACE', preview: 'Live 3D preview', realtime: 'Realtime geometry',
-    tabs: { body: 'Body', profile: 'Profile', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
-    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced profile', advancedHint: 'Edit the same vertical Bezier profile used by the lampshade.', vertical: 'Vertical profile', dragHint: 'Drag points and handles • Double-click a point to toggle Curve/Sharp • Double-click the grid to add a point', profilePreset: 'Profile presets', maxRadius: 'Maximum radius', profileLabels: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' }, lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
+    tabs: { body: 'Body', profile: 'Profile', shape: 'Shape', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
+    addPoint: 'Add point',
+    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced profile', advancedHint: 'Edit the same vertical Bezier profile used by the lampshade.', vertical: 'Vertical profile', dragHint: 'Drag points and handles • Double-click a point to toggle Curve/Sharp • Double-click anywhere on the grid to add a point', profilePreset: 'Profile presets', maxRadius: 'Maximum radius', profileLabels: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' }, lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
+    shapeSettings: 'Shape settings', shapes: { circle: 'Circle', polygon: 'Polygon', wave: 'Wave', star: 'Star' }, count: 'Count', depth: 'Depth', twist: 'Twist',
     profiles: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' },
     dimensions: 'Body dimensions', height: 'Height', bodyRadius: 'Body radius', topRadius: 'Top radius',
     base: 'Base and mounting', baseRadius: 'Base radius', baseHeight: 'Base height', neckRadius: 'Neck radius', neckHeight: 'Neck height', bottomHole: 'Bottom cable & socket opening', bottomHoleHint: 'A real through-hole is cut into the base for the cable and lamp socket.', bottomHoleDiameter: 'Opening diameter', holeEnabled: 'Bottom opening', holeOn: 'Open', holeOff: 'Closed',
@@ -97,9 +108,11 @@ const COPY = {
     mm: 'mm', drag: 'Drag to orbit', scroll: 'Scroll to zoom', mesh: 'Mesh', licenses: 'Local geometry', localOnly: 'No model data is uploaded.',
   },
   vi: {
+    addPoint: 'Thêm điểm',
     title: 'Trình tạo thân đèn', subtitle: 'Tạo thân đèn tham số', workspace: 'KHÔNG GIAN THÂN ĐÈN', preview: 'Preview 3D trực tiếp', realtime: 'Hình học thời gian thực',
-    tabs: { body: 'Thân đèn', profile: 'Biên dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
-    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Biên dạng nâng cao', advancedHint: 'Chỉnh cùng biên dạng Bézier dọc như chao đèn: kéo điểm, tay nắm và đổi Cong/Góc.', vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc · Nhấp đúp nền lưới để thêm điểm', profilePreset: 'Mẫu biên dạng', maxRadius: 'Bán kính lớn nhất', profileLabels: { cylinder: 'Trụ', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' }, lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
+    tabs: { body: 'Thân đèn', profile: 'Biên dạng', shape: 'Hình dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
+    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Biên dạng nâng cao', advancedHint: 'Chỉnh cùng biên dạng Bézier dọc như chao đèn: kéo điểm, tay nắm và đổi Cong/Góc.', vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc · Nhấp đúp bất kỳ vị trí nào trên lưới để thêm điểm', profilePreset: 'Mẫu biên dạng', maxRadius: 'Bán kính lớn nhất', profileLabels: { cylinder: 'Trụ', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' }, lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
+    shapeSettings: 'Thiết lập hình dạng', shapes: { circle: 'Tròn', polygon: 'Đa giác', wave: 'Sóng', star: 'Ngôi sao' }, count: 'Số lượng', depth: 'Độ sâu', twist: 'Độ xoắn',
     profiles: { cylinder: 'Trụ thẳng', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' },
     dimensions: 'Kích thước thân', height: 'Chiều cao', bodyRadius: 'Bán kính thân', topRadius: 'Bán kính đỉnh',
     base: 'Đế và vị trí lắp', baseRadius: 'Bán kính đế', baseHeight: 'Chiều cao đế', neckRadius: 'Bán kính cổ', neckHeight: 'Chiều cao cổ', bottomHole: 'Lỗ luồn dây & gắn đuôi đèn', bottomHoleHint: 'Lỗ xuyên thực được cắt qua đáy để luồn dây và gắn đuôi đèn.', bottomHoleDiameter: 'Đường kính lỗ', holeEnabled: 'Lỗ đáy', holeOn: 'Đang mở', holeOff: 'Đóng',
@@ -188,6 +201,27 @@ function bodyRadiusAt(config: LampBodyConfig, progress: number) {
   return THREE.MathUtils.lerp(config.bodyRadius * .86, config.topRadius, eased);
 }
 
+function positiveModulo(value: number, modulo: number) {
+  return ((value % modulo) + modulo) % modulo;
+}
+
+function bodyShapeRadius(radius: number, angle: number, config: LampBodyConfig) {
+  if (radius <= 0) return 0;
+  const waves = Math.max(3, Math.round(config.shapeWaves));
+  if (config.shapeType === 'circle') return radius;
+  if (config.shapeType === 'polygon') {
+    const sector = Math.PI * 2 / waves;
+    const localAngle = positiveModulo(angle, sector) - sector / 2;
+    return radius * Math.cos(Math.PI / waves) / Math.max(.08, Math.cos(localAngle));
+  }
+  if (config.shapeType === 'star') {
+    const sector = Math.PI * 2 / waves;
+    const localDistance = Math.abs(positiveModulo(angle, sector) - sector / 2) / (sector / 2);
+    return Math.max(.2, radius + config.shapeAmplitude * localDistance);
+  }
+  return Math.max(.2, radius + config.shapeAmplitude * Math.cos(waves * angle));
+}
+
 export function createLampBodyGeometry(config: LampBodyConfig) {
   const points: THREE.Vector2[] = [];
   const baseHeight = Math.max(8, config.baseHeight);
@@ -226,7 +260,37 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   // is an annular face; when disabled it becomes a solid bottom cap.
   points.push(new THREE.Vector2(config.baseRadius, 0));
 
-  const geometry = new THREE.LatheGeometry(points, config.renderStyle === 'low-poly' ? Math.max(16, Math.round(config.segments / 2)) : config.segments);
+  const segments = config.renderStyle === 'low-poly' ? Math.max(16, Math.round(config.segments / 2)) : Math.max(16, Math.round(config.segments));
+  const vertices: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  points.forEach((point) => {
+    const progress = THREE.MathUtils.clamp(point.y / totalHeight, 0, 1);
+    const twist = THREE.MathUtils.degToRad(config.shapeTwist) * progress;
+    for (let segment = 0; segment <= segments; segment += 1) {
+      const angle = segment / segments * Math.PI * 2;
+      const radius = bodyShapeRadius(point.x, angle, config);
+      const rotatedAngle = angle + twist;
+      vertices.push(radius * Math.cos(rotatedAngle), point.y, radius * Math.sin(rotatedAngle));
+      uvs.push(segment / segments, progress);
+    }
+  });
+  const rowSize = segments + 1;
+  for (let row = 0; row < points.length - 1; row += 1) {
+    const currentRow = row * rowSize;
+    const nextRow = (row + 1) * rowSize;
+    for (let segment = 0; segment < segments; segment += 1) {
+      const current = currentRow + segment;
+      const next = current + 1;
+      const above = nextRow + segment;
+      const aboveNext = above + 1;
+      indices.push(current, next, aboveNext, aboveNext, above, current);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -257,7 +321,7 @@ function ToggleControl({ label, hint, value, onChange, onLabel, offLabel }: { la
   return <div className="lamp-body-toggle-row"><div><strong>{label}</strong><small>{hint}</small></div><button type="button" className={value ? 'lamp-body-toggle on' : 'lamp-body-toggle'} aria-pressed={value} onClick={onChange}><span />{value ? onLabel : offLabel}</button></div>;
 }
 
-function BodyMesh({ geometry, color, lowPoly }: { geometry: THREE.LatheGeometry; color: string; lowPoly: boolean }) {
+function BodyMesh({ geometry, color, lowPoly }: { geometry: THREE.BufferGeometry; color: string; lowPoly: boolean }) {
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <mesh geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.58} metalness={.04} flatShading={lowPoly} /></mesh>;
 }
@@ -276,7 +340,7 @@ export function LampBodyModel({ config, yOffset = 0, showSimulation = config.sho
   </group>;
 }
 
-function LampBodyScene({ config }: { config: LampBodyConfig; geometry?: THREE.LatheGeometry }) {
+function LampBodyScene({ config }: { config: LampBodyConfig; geometry?: THREE.BufferGeometry }) {
   const totalHeight = config.baseHeight + config.height + config.neckHeight;
   return <>
     <color attach="background" args={['#070b12']} />
@@ -335,6 +399,7 @@ export function LampBodyCreatorPage() {
 
   const tabs = [
     { id: 'body' as const, label: copy.tabs.body, icon: Box },
+    { id: 'shape' as const, label: copy.tabs.shape, icon: Waves },
     { id: 'base' as const, label: copy.tabs.base, icon: Layers3 },
     { id: 'finish' as const, label: copy.tabs.finish, icon: Settings2 },
     { id: 'export' as const, label: copy.tabs.export, icon: Download },
@@ -348,6 +413,7 @@ export function LampBodyCreatorPage() {
         <nav className="lamp-body-tabs" aria-label="Lamp Body Creator sections">{tabs.map(({ id, label, icon: Icon }) => <button type="button" key={id} className={tab === id ? 'active' : ''} aria-selected={tab === id} onClick={() => { setTab(id); setExportState('idle'); }}><Icon size={17} /><span>{label}</span></button>)}</nav>
         <div className="lamp-body-panel-scroll">
           {tab === 'body' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Box} title={copy.bodyShape} hint={copy.bodyShapeHint} /><SelectControl label={copy.bodyShape} value={config.profile} options={(Object.keys(copy.profiles) as BodyProfile[]).map((value) => ({ value, label: copy.profiles[value] }))} onChange={(value) => update('profile', value as BodyProfile)} /></section><section><PanelTitle icon={SlidersHorizontal} title={copy.dimensions} /><RangeControl label={copy.height} value={config.height} min={80} max={360} unit={copy.mm} onChange={(value) => update('height', value)} /><RangeControl label={copy.bodyRadius} value={config.bodyRadius} min={22} max={90} unit={copy.mm} onChange={(value) => update('bodyRadius', value)} /><RangeControl label={copy.topRadius} value={config.topRadius} min={16} max={72} unit={copy.mm} onChange={(value) => update('topRadius', value)} /></section></div>}
+          {tab === 'shape' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Waves} title={copy.shapeSettings} /><div className="lamp-body-shape-grid"><button type="button" className={`lamp-body-shape-button${config.shapeType === 'circle' ? ' active' : ''}`} onClick={() => update('shapeType', 'circle')}><Circle size={21} /><span>{copy.shapes.circle}</span></button><button type="button" className={`lamp-body-shape-button${config.shapeType === 'polygon' ? ' active' : ''}`} onClick={() => update('shapeType', 'polygon')}><Hexagon size={21} /><span>{copy.shapes.polygon}</span></button><button type="button" className={`lamp-body-shape-button${config.shapeType === 'wave' ? ' active' : ''}`} onClick={() => update('shapeType', 'wave')}><Waves size={21} /><span>{copy.shapes.wave}</span></button><button type="button" className={`lamp-body-shape-button${config.shapeType === 'star' ? ' active' : ''}`} onClick={() => update('shapeType', 'star')}><Flower2 size={21} /><span>{copy.shapes.star}</span></button></div>{config.shapeType !== 'circle' && <div className="lamp-body-profile-fields"><RangeControl label={copy.count} value={config.shapeWaves} min={3} max={config.shapeType === 'polygon' ? 12 : 64} unit="" onChange={(value) => update('shapeWaves', value)} />{config.shapeType !== 'polygon' && <RangeControl label={copy.depth} value={config.shapeAmplitude} min={0} max={20} step={.5} unit={` ${copy.mm}`} onChange={(value) => update('shapeAmplitude', value)} />}</div>}<RangeControl label={copy.twist} value={config.shapeTwist} min={0} max={720} step={5} unit="°" onChange={(value) => update('shapeTwist', value)} /></section></div>}
           {tab === 'base' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Layers3} title={copy.base} /><RangeControl label={copy.baseRadius} value={config.baseRadius} min={45} max={120} unit={copy.mm} onChange={(value) => update('baseRadius', value)} /><RangeControl label={copy.baseHeight} value={config.baseHeight} min={8} max={42} unit={copy.mm} onChange={(value) => update('baseHeight', value)} /><RangeControl label={copy.neckRadius} value={config.neckRadius} min={14} max={42} unit={copy.mm} onChange={(value) => update('neckRadius', value)} /><RangeControl label={copy.neckHeight} value={config.neckHeight} min={8} max={38} unit={copy.mm} onChange={(value) => update('neckHeight', value)} /></section><section><PanelTitle icon={Info} title={copy.socket} hint={copy.socketHint} /><RangeControl label={copy.socketDiameter} value={config.socketDiameter} min={24} max={52} unit={copy.mm} onChange={(value) => update('socketDiameter', value)} /></section></div>}
           {tab === 'finish' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Settings2} title={copy.construction} hint={copy.resolutionHint} /><RangeControl label={copy.wall} value={config.wallThickness} min={1.2} max={6} step={.1} unit={copy.mm} onChange={(value) => update('wallThickness', value)} /><RangeControl label={copy.segments} value={config.segments} min={24} max={128} step={8} unit="" onChange={(value) => update('segments', value)} /></section><section><PanelTitle icon={Sparkles} title={copy.appearance} /><SelectControl label={copy.style} value={config.renderStyle} options={[{ value: 'smooth', label: copy.smooth }, { value: 'low-poly', label: copy.lowPoly }]} onChange={(value) => update('renderStyle', value as RenderStyle)} /><div className="lamp-body-color-field"><span>{copy.color}</span><div className="lamp-body-swatches">{COLORS.map((color) => <button type="button" key={color} className={config.color === color ? 'selected' : ''} style={{ background: color }} aria-label={color} onClick={() => update('color', color)} />)}</div></div></section><section><PanelTitle icon={Lightbulb} title={copy.simulation} /><ToggleControl label={copy.simulation} hint={copy.simulationHint} value={config.showSimulation} onChange={() => update('showSimulation', !config.showSimulation)} onLabel={copy.on} offLabel={copy.off} /></section></div>}
           {tab === 'export' && <div className="lamp-body-panel-content"><section className="lamp-body-export-card"><span className="lamp-body-export-icon"><Check size={20} /></span><h2>{copy.exportTitle}</h2><p>{copy.exportText}</p><button type="button" className="lamp-body-export-button" onClick={exportStl}><Download size={16} /> {copy.download} <ArrowRight size={15} /></button>{exportState !== 'idle' && <div className={`lamp-body-export-status ${exportState}`}>{exportState === 'done' ? <Check size={14} /> : <Info size={14} />}{exportState === 'done' ? copy.exported : copy.exportFailed}</div>}</section><section className="lamp-body-summary"><PanelTitle icon={Info} title={copy.summary} /><div><span>{copy.profile}</span><strong>{copy.profiles[config.profile]}</strong></div><div><span>{copy.totalHeight}</span><strong>{Math.round(totalHeight)} {copy.mm}</strong></div><div><span>{copy.diameter}</span><strong>{Math.round(config.baseRadius * 2)} {copy.mm}</strong></div><div><span>{copy.volume}</span><strong>{Math.round(config.baseRadius * 2)} × {Math.round(totalHeight)} {copy.mm}</strong></div></section></div>}
