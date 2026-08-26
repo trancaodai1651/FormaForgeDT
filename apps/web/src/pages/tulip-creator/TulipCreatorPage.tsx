@@ -242,19 +242,28 @@ function createTulipGeometry(config: TulipConfig) {
     }
   }
 
-  const holeOffset = vertices.length / 3;
-  const holeRadius = Math.max(.5, config.holeDiameter / 2);
-  for (let segment = 0; segment <= segments; segment += 1) {
-    const angle = segment / segments * Math.PI * 2;
-    vertices.push(holeRadius * Math.cos(angle), 0, holeRadius * Math.sin(angle));
-    uvs.push(segment / segments, 0);
-  }
-  for (let segment = 0; segment < segments; segment += 1) {
-    const body = segment;
-    const bodyNext = segment + 1;
-    const hole = holeOffset + segment;
-    const holeNext = hole + 1;
-    indices.push(hole, bodyNext, body, hole, holeNext, bodyNext);
+  const holeRadius = Math.max(0, config.holeDiameter / 2);
+  if (holeRadius > 0) {
+    const holeOffset = vertices.length / 3;
+    for (let segment = 0; segment <= segments; segment += 1) {
+      const angle = segment / segments * Math.PI * 2;
+      vertices.push(holeRadius * Math.cos(angle), 0, holeRadius * Math.sin(angle));
+      uvs.push(segment / segments, 0);
+    }
+    for (let segment = 0; segment < segments; segment += 1) {
+      const body = segment;
+      const bodyNext = segment + 1;
+      const hole = holeOffset + segment;
+      const holeNext = hole + 1;
+      indices.push(hole, bodyNext, body, hole, holeNext, bodyNext);
+    }
+  } else {
+    const centerOffset = vertices.length / 3;
+    vertices.push(0, 0, 0);
+    uvs.push(.5, 0);
+    for (let segment = 0; segment < segments; segment += 1) {
+      indices.push(centerOffset, segment + 1, segment);
+    }
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -440,7 +449,7 @@ function ProfilePanel({ config, update, copy }: { config: TulipConfig; update: (
   return <div className="tulip-panel-content">
     <h3>{copy.mounting}</h3>
     <div className="tulip-control-card">
-      <RangeControl label={copy.hole} value={config.holeDiameter} min={10} max={60} unit=" mm" onChange={(holeDiameter) => update({ holeDiameter })} />
+      <RangeControl label={copy.hole} value={config.holeDiameter} min={0} max={60} unit=" mm" onChange={(holeDiameter) => update({ holeDiameter })} />
       <div className="tulip-preset-row"><button type="button" className={config.holeDiameter === 28 ? 'active' : ''} onClick={() => update({ holeDiameter: 28 })}>E14 (28mm)</button><button type="button" className={config.holeDiameter === 42 ? 'active' : ''} onClick={() => update({ holeDiameter: 42 })}>E27 (42mm)</button></div>
     </div>
     <h3 className="tulip-section-spaced">{copy.dimensions}</h3>

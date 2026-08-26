@@ -1,5 +1,5 @@
 import { Box, Check, CircleDot, Download, Info, Layers3, Lightbulb, Settings2, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { BODY_PROFILE_PRESETS } from './LampBodyCreatorPage';
 import type { BodyProfile, BodyProfilePoint, BodyTab, LampBodyConfig, LampBodyCopy, LampBodyUpdate } from './LampBodyCreatorPage';
 
@@ -89,10 +89,21 @@ function BodyProfileEditor({ points, maxRadius, onChange, copy }: { points: Body
     }));
   };
 
+  const addPoint = (event: MouseEvent<SVGSVGElement>) => {
+    const target = event.target as Element;
+    if (target.tagName !== 'svg' && target.tagName !== 'rect') return;
+    if (points.length >= 24) return;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = clamp((event.clientX - rect.left) / rect.width, 0, 1.08);
+    const y = clamp(1 - (event.clientY - rect.top) / rect.height, 0, 1);
+    onChange([...points, { x, y, type: 'smooth', handleIn: { x, y: clamp(y - .1, 0, 1) }, handleOut: { x, y: clamp(y + .1, 0, 1) } }]);
+  };
+
   const sorted = points.map((point, index) => ({ point, index })).sort((a, b) => a.point.y - b.point.y);
   return <div className="lamp-body-vertical-profile">
     <div className="lamp-body-profile-axis-labels"><span>{copy.vertical} ↑</span><span>{copy.maxRadius} →</span></div>
-    <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${copy.vertical}, ${maxRadius}${copy.mm}`}>
+    <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${copy.vertical}, ${maxRadius}${copy.mm}`} onDoubleClick={addPoint}>
       <defs><pattern id="lamp-body-profile-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" strokeOpacity=".12" /></pattern></defs>
       <rect width="100" height="100" fill="url(#lamp-body-profile-grid)" />
       <line x1="0" y1="100" x2="100" y2="100" stroke="currentColor" strokeOpacity=".35" />

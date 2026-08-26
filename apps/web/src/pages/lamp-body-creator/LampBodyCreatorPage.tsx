@@ -83,7 +83,7 @@ const COPY = {
   en: {
     title: 'Lamp Body Creator', subtitle: 'Parametric Lamp Stand Generator', workspace: 'BODY WORKSPACE', preview: 'Live 3D preview', realtime: 'Realtime geometry',
     tabs: { body: 'Body', profile: 'Profile', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
-    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced profile', advancedHint: 'Edit the same vertical Bezier profile used by the lampshade.', vertical: 'Vertical profile', dragHint: 'Drag points and handles • Double-click a point to toggle Curve/Sharp', profilePreset: 'Profile presets', maxRadius: 'Maximum radius', profileLabels: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' }, lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
+    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced profile', advancedHint: 'Edit the same vertical Bezier profile used by the lampshade.', vertical: 'Vertical profile', dragHint: 'Drag points and handles • Double-click a point to toggle Curve/Sharp • Double-click the grid to add a point', profilePreset: 'Profile presets', maxRadius: 'Maximum radius', profileLabels: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' }, lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
     profiles: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' },
     dimensions: 'Body dimensions', height: 'Height', bodyRadius: 'Body radius', topRadius: 'Top radius',
     base: 'Base and mounting', baseRadius: 'Base radius', baseHeight: 'Base height', neckRadius: 'Neck radius', neckHeight: 'Neck height', bottomHole: 'Bottom cable & socket opening', bottomHoleHint: 'A real through-hole is cut into the base for the cable and lamp socket.', bottomHoleDiameter: 'Opening diameter', holeEnabled: 'Bottom opening', holeOn: 'Open', holeOff: 'Closed',
@@ -99,7 +99,7 @@ const COPY = {
   vi: {
     title: 'Trình tạo thân đèn', subtitle: 'Tạo thân đèn tham số', workspace: 'KHÔNG GIAN THÂN ĐÈN', preview: 'Preview 3D trực tiếp', realtime: 'Hình học thời gian thực',
     tabs: { body: 'Thân đèn', profile: 'Biên dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
-    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Biên dạng nâng cao', advancedHint: 'Chỉnh cùng biên dạng Bézier dọc như chao đèn: kéo điểm, tay nắm và đổi Cong/Góc.', vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc', profilePreset: 'Mẫu biên dạng', maxRadius: 'Bán kính lớn nhất', profileLabels: { cylinder: 'Trụ', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' }, lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
+    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Biên dạng nâng cao', advancedHint: 'Chỉnh cùng biên dạng Bézier dọc như chao đèn: kéo điểm, tay nắm và đổi Cong/Góc.', vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc · Nhấp đúp nền lưới để thêm điểm', profilePreset: 'Mẫu biên dạng', maxRadius: 'Bán kính lớn nhất', profileLabels: { cylinder: 'Trụ', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' }, lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
     profiles: { cylinder: 'Trụ thẳng', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' },
     dimensions: 'Kích thước thân', height: 'Chiều cao', bodyRadius: 'Bán kính thân', topRadius: 'Bán kính đỉnh',
     base: 'Đế và vị trí lắp', baseRadius: 'Bán kính đế', baseHeight: 'Chiều cao đế', neckRadius: 'Bán kính cổ', neckHeight: 'Chiều cao cổ', bottomHole: 'Lỗ luồn dây & gắn đuôi đèn', bottomHoleHint: 'Lỗ xuyên thực được cắt qua đáy để luồn dây và gắn đuôi đèn.', bottomHoleDiameter: 'Đường kính lỗ', holeEnabled: 'Lỗ đáy', holeOn: 'Đang mở', holeOff: 'Đóng',
@@ -164,7 +164,11 @@ function getAdvancedRadius(points: BodyProfilePoint[], maxRadius: number, normal
 function bodyRadiusAt(config: LampBodyConfig, progress: number) {
   const p = Math.min(1, Math.max(0, progress));
   if (config.profileMode === 'advanced') {
-    return getAdvancedRadius(config.advancedProfilePoints, config.advancedMaxRadius, p);
+    const rawRadius = getAdvancedRadius(config.advancedProfilePoints, config.advancedMaxRadius, p);
+    const rawBottomRadius = getAdvancedRadius(config.advancedProfilePoints, config.advancedMaxRadius, 0);
+    const rawTopRadius = getAdvancedRadius(config.advancedProfilePoints, config.advancedMaxRadius, 1);
+    const dimensionOffset = THREE.MathUtils.lerp(config.bodyRadius - rawBottomRadius, config.topRadius - rawTopRadius, p);
+    return Math.max(2, rawRadius + dimensionOffset);
   }
   if (config.profile === 'cylinder') return config.bodyRadius;
   if (config.profile === 'taper') return THREE.MathUtils.lerp(config.bodyRadius, config.topRadius, p);
