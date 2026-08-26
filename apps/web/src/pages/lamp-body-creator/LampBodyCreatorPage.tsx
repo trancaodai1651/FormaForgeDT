@@ -237,39 +237,68 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   const totalHeight = bodyTop + neckHeight;
   const wall = Math.max(.8, config.wallThickness);
   const seatRadius = Math.max(config.neckRadius + 1, Math.min(config.shadeSeatRadius, Math.max(config.neckRadius + 1, config.baseRadius - wall)));
-  const seatHeight = Math.max(2, Math.min(config.shadeSeatHeight, neckHeight));
-  const seatStartY = totalHeight - seatHeight;
+  const seatHeight = Math.max(2, Math.min(config.shadeSeatHeight, neckHeight * .72));
   const bodyBottomRadius = bodyRadiusAt(config, 0);
   const bodyTopRadius = bodyRadiusAt(config, 1);
-  const innerBaseY = baseHeight + wall;
   const maximumHoleRadius = Math.max(2, bodyBottomRadius - wall - 1);
   const bottomHoleRadius = config.bottomHoleEnabled
     ? Math.min(Math.max(2, config.bottomHoleDiameter / 2), maximumHoleRadius)
     : 0;
 
-  points.push(new THREE.Vector2(config.baseRadius, 0));
-  points.push(new THREE.Vector2(config.baseRadius, baseHeight * .42));
-  points.push(new THREE.Vector2(config.baseRadius * .96, baseHeight));
-  points.push(new THREE.Vector2(bodyBottomRadius, baseHeight));
-  [0, .18, .4, .65, .84, 1].forEach((progress) => {
+  const smoothStep = (value: number) => {
+    const t = THREE.MathUtils.clamp(value, 0, 1);
+    return t * t * (3 - 2 * t);
+  };
+  const transition = (start: number, end: number, progress: number) => start + (end - start) * smoothStep(progress);
+  // Keep the neck as a gentle shaping influence. Blending all the way down to
+  // the raw neck radius creates a visible collar/ring at the shade joint.
+  const neckTarget = THREE.MathUtils.lerp(config.neckRadius, Math.min(bodyTopRadius, seatRadius), .78);
+  const neckBlend = THREE.MathUtils.clamp(1 - seatHeight / neckHeight, .18, .82);
+  const topOuterRadiusAt = (progress: number) => {
+    const t = THREE.MathUtils.clamp(progress, 0, 1);
+    return t <= neckBlend
+      ? transition(bodyTopRadius, neckTarget, t / neckBlend)
+      : transition(neckTarget, seatRadius, (t - neckBlend) / (1 - neckBlend));
+  };
+
+  // Sample the complete outer profile densely. The old profile used a handful
+  // of straight rings, which made the base, body and neck read as stacked
+  // blocks even with smooth normals.
+  const baseSamples = 10;
+  for (let index = 0; index <= baseSamples; index += 1) {
+    const progress = index / baseSamples;
+    points.push(new THREE.Vector2(transition(config.baseRadius, bodyBottomRadius, progress), baseHeight * progress));
+  }
+  const bodySamples = 32;
+  for (let index = 1; index <= bodySamples; index += 1) {
+    const progress = index / bodySamples;
     points.push(new THREE.Vector2(bodyRadiusAt(config, progress), baseHeight + bodyHeight * progress));
-  });
-  points.push(new THREE.Vector2(Math.max(bodyTopRadius, config.neckRadius * 1.12), bodyTop + config.neckHeight * .2));
-  points.push(new THREE.Vector2(config.neckRadius, seatStartY));
-  // A configurable shoulder creates a larger, genuinely flat seat where the
-  // shade/socket assembly meets the body.
-  points.push(new THREE.Vector2(seatRadius, seatStartY));
+  }
+  const topSamples = 16;
+  for (let index = 1; index <= topSamples; index += 1) {
+    const progress = index / topSamples;
+    points.push(new THREE.Vector2(topOuterRadiusAt(progress), THREE.MathUtils.lerp(bodyTop, totalHeight, progress)));
+  }
+  // Keep the top rim planar so the shade/socket can sit on a real flat seat.
   points.push(new THREE.Vector2(seatRadius, totalHeight));
 
   const innerTopRadius = Math.max(2, Math.min(seatRadius - .8, config.socketDiameter / 2));
   points.push(new THREE.Vector2(innerTopRadius, totalHeight));
-  points.push(new THREE.Vector2(Math.max(2, bodyTopRadius - wall), bodyTop));
-  [.84, .65, .4, .18, 0].forEach((progress) => {
+  for (let index = 1; index <= topSamples; index += 1) {
+    const progress = 1 - index / topSamples;
+    const y = THREE.MathUtils.lerp(bodyTop, totalHeight, progress);
+    points.push(new THREE.Vector2(Math.max(2, topOuterRadiusAt(progress) - wall), y));
+  }
+  for (let index = bodySamples - 1; index >= 0; index -= 1) {
+    const progress = index / bodySamples;
     points.push(new THREE.Vector2(Math.max(2, bodyRadiusAt(config, progress) - wall), baseHeight + bodyHeight * progress));
-  });
-  points.push(new THREE.Vector2(Math.max(2, bodyBottomRadius - wall), innerBaseY));
-  points.push(new THREE.Vector2(bottomHoleRadius, innerBaseY));
-  points.push(new THREE.Vector2(bottomHoleRadius, 0));
+  }
+  const innerBottomRadius = Math.max(2, bodyBottomRadius - wall);
+  const baseInnerSamples = 8;
+  for (let index = 1; index <= baseInnerSamples; index += 1) {
+    const progress = index / baseInnerSamples;
+    points.push(new THREE.Vector2(transition(innerBottomRadius, bottomHoleRadius, progress), baseHeight * (1 - progress)));
+  }
   // Close the radial section across the underside. With an enabled hole this
   // is an annular face; when disabled it becomes a solid bottom cap.
   points.push(new THREE.Vector2(config.baseRadius, 0));
