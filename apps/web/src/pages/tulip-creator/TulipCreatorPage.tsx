@@ -1,11 +1,11 @@
 import {
   Circle, Check, Download, Flower2, GraduationCap, Hexagon, Info, Instagram,
-  Box, Layers3, Lightbulb, Settings2, Sparkles, Waves, X,
+  Box, Layers3, Lightbulb, Plus, Settings2, Sparkles, Waves, X,
 } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Grid, Lightformer, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { useI18n, type Language } from '../../lib/i18n';
@@ -88,7 +88,7 @@ const COPY = {
     tabs: { general: 'Profile', shape: 'Shape', settings: 'Settings', export: 'Export' },
     mounting: 'Mounting', hole: 'Hole Diameter (mm)', dimensions: 'Dimensions', advanced: 'Advanced Profile',
     height: 'Height', maxRadius: 'Max Radius', topOpening: 'Top Opening', middle: 'Middle', maxBottom: 'Max Bottom', middlePos: 'Middle Pos %',
-    vertical: 'Vertical Profile', dragHint: 'Drag points & handles • Double-click node to toggle Curve/Sharp',
+    vertical: 'Vertical Profile', addPoint: 'Add point', dragHint: 'Drag points & handles • Double-click node to toggle Curve/Sharp • Double-click anywhere on the grid to add a point',
     shapeSettings: 'Shape Settings', twist: 'Twist', resolution: 'Resolution', count: 'Count', depth: 'Depth',
     shapes: { circle: 'Circle', polygon: 'Poly', wave: 'Wave', star: 'Star' },
     profileLabels: { Cylinder: 'Cylinder', Cone: 'Cone', Tulip: 'Tulip', Vintage: 'Vintage', Bowl: 'Bowl' },
@@ -104,7 +104,7 @@ const COPY = {
     tabs: { general: 'Perfil', shape: 'Forma', settings: 'Ajustes', export: 'Exportar' },
     mounting: 'Montaje', hole: 'Diámetro Agujero (mm)', dimensions: 'Dimensiones', advanced: 'Advanced Profile',
     height: 'Altura', maxRadius: 'Max Radius', topOpening: 'Apertura Sup.', middle: 'Medio', maxBottom: 'Max Base', middlePos: 'Posición Media %',
-    vertical: 'Vertical Profile', dragHint: 'Drag points & handles • Double-click node to toggle Curve/Sharp',
+    vertical: 'Vertical Profile', addPoint: 'Add point', dragHint: 'Drag points & handles • Double-click node to toggle Curve/Sharp • Double-click anywhere on the grid to add a point',
     shapeSettings: 'Configuración de Forma', twist: 'Torsión', resolution: 'Resolución', count: 'Cantidad', depth: 'Profundidad',
     style: 'Estilo', smooth: 'Suave', lowPoly: 'Low Poly / Geo', simulation: 'Simulación', lamp: 'Simular Lámpara', simulationHint: 'Previsualizar con luz y base',
     color: 'Color', download: 'Download STL', footer: 'ShaperLab', licenses: 'Licencias', close: 'Cerrar', soon: 'Próximamente', login: 'Entrar', register: 'Registro',
@@ -118,7 +118,7 @@ const COPY = {
     tabs: { general: 'Biên dạng', shape: 'Hình dạng', settings: 'Thiết lập', export: 'Xuất file' },
     mounting: 'Đui đèn', hole: 'Đường kính lỗ (mm)', dimensions: 'Kích thước', advanced: 'Biên dạng nâng cao',
     height: 'Chiều cao', maxRadius: 'Bán kính lớn nhất', topOpening: 'Miệng trên', middle: 'Ở giữa', maxBottom: 'Đáy lớn nhất', middlePos: 'Vị trí giữa %',
-    vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc',
+    vertical: 'Biên dạng dọc', addPoint: 'Thêm điểm', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc · Nhấp đúp bất kỳ vị trí nào trên lưới để thêm điểm',
     shapeSettings: 'Thiết lập hình dạng', twist: 'Độ xoắn', resolution: 'Độ phân giải', count: 'Số lượng', depth: 'Độ sâu',
     shapes: { circle: 'Tròn', polygon: 'Đa giác', wave: 'Sóng', star: 'Ngôi sao' },
     profileLabels: { Cylinder: 'Trụ', Cone: 'Nón', Tulip: 'Tulip', Vintage: 'Cổ điển', Bowl: 'Bát' },
@@ -315,7 +315,55 @@ function profilePath(points: ProfilePoint[]) {
   return path;
 }
 
-function ProfileEditor({ points, maxRadius, onChange }: { points: ProfilePoint[]; maxRadius: number; onChange: (points: ProfilePoint[]) => void }) {
+function profileXAt(points: ProfilePoint[], y: number) {
+  const sorted = [...points].sort((a, b) => a.y - b.y);
+  if (sorted.length === 0) return 0;
+  if (sorted.length === 1) return sorted[0].x;
+  if (y <= sorted[0].y) return sorted[0].x;
+  if (y >= sorted[sorted.length - 1].y) return sorted[sorted.length - 1].x;
+  let segmentIndex = sorted.length - 2;
+  for (let index = 0; index < sorted.length - 1; index += 1) {
+    if (y <= sorted[index + 1].y) {
+      segmentIndex = index;
+      break;
+    }
+  }
+  const start = sorted[segmentIndex];
+  const end = sorted[segmentIndex + 1];
+  const span = Math.max(.0001, end.y - start.y);
+  const linearT = clamp((y - start.y) / span, 0, 1);
+  if (start.type === 'corner' && end.type === 'corner') return start.x + (end.x - start.x) * linearT;
+  const out = start.handleOut ?? { x: start.x, y: start.y + span * .33 };
+  const inside = end.handleIn ?? { x: end.x, y: end.y - span * .33 };
+  const parameter = solveCubicParameter(start.y, out.y, inside.y, end.y, y);
+  return cubicValue(start.x, out.x, inside.x, end.x, parameter);
+}
+
+function createSmoothPoint(points: ProfilePoint[], x: number, y: number, ignoredIndex = -1): ProfilePoint {
+  const neighbors = points.filter((_, index) => index !== ignoredIndex).sort((a, b) => a.y - b.y);
+  const previous = [...neighbors].reverse().find((point) => point.y < y) ?? neighbors[0] ?? { x, y };
+  const next = neighbors.find((point) => point.y > y) ?? neighbors[neighbors.length - 1] ?? { x, y };
+  const span = Math.max(.08, next.y - previous.y);
+  const slope = next.y - previous.y > .0001 ? (next.x - previous.x) / (next.y - previous.y) : 0;
+  const handleLength = Math.min(.16, Math.max(.06, span * .28));
+  return {
+    x,
+    y,
+    type: 'smooth',
+    handleIn: { x: clamp(x - slope * handleLength, 0, 1.08), y: clamp(y - handleLength, 0, 1) },
+    handleOut: { x: clamp(x + slope * handleLength, 0, 1.08), y: clamp(y + handleLength, 0, 1) },
+  };
+}
+
+function profileSamples(points: ProfilePoint[], sampleCount = 20) {
+  if (points.length < 2) return points.map((point) => ({ x: point.x, y: point.y }));
+  return Array.from({ length: sampleCount }, (_, sampleIndex) => {
+    const y = sampleIndex / (sampleCount - 1);
+    return { x: clamp(profileXAt(points, y), 0, 1.08), y };
+  });
+}
+
+function ProfileEditor({ points, maxRadius, onChange, copy }: { points: ProfilePoint[]; maxRadius: number; onChange: (points: ProfilePoint[]) => void; copy: typeof COPY.en }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ index: number; handle: 'point' | 'in' | 'out' } | null>(null);
 
@@ -328,7 +376,17 @@ function ProfileEditor({ points, maxRadius, onChange }: { points: ProfilePoint[]
       const y = clamp(1 - (event.clientY - rect.top) / rect.height, 0, 1);
       onChange(points.map((point, index) => {
         if (index !== dragging.index) return point;
-        if (dragging.handle === 'point') return { ...point, x, y };
+        if (dragging.handle === 'point') {
+          const deltaX = x - point.x;
+          const deltaY = y - point.y;
+          return {
+            ...point,
+            x,
+            y,
+            handleIn: point.handleIn ? { x: clamp(point.handleIn.x + deltaX, 0, 1.08), y: clamp(point.handleIn.y + deltaY, 0, 1) } : undefined,
+            handleOut: point.handleOut ? { x: clamp(point.handleOut.x + deltaX, 0, 1.08), y: clamp(point.handleOut.y + deltaY, 0, 1) } : undefined,
+          };
+        }
         return { ...point, [dragging.handle === 'in' ? 'handleIn' : 'handleOut']: { x, y } };
       }));
     };
@@ -345,18 +403,57 @@ function ProfileEditor({ points, maxRadius, onChange }: { points: ProfilePoint[]
     onChange(points.map((point, pointIndex) => {
       if (pointIndex !== index) return point;
       if (point.type === 'smooth') return { x: point.x, y: point.y, type: 'corner' };
-      return { ...point, type: 'smooth', handleIn: { x: point.x, y: clamp(point.y - .12, 0, 1) }, handleOut: { x: point.x, y: clamp(point.y + .12, 0, 1) } };
+      return createSmoothPoint(points, point.x, point.y, index);
     }));
+  };
+
+  const addPointAt = (x: number, y: number) => {
+    if (points.length >= 24) return;
+    onChange([...points, createSmoothPoint(points, clamp(x, 0, 1.08), clamp(y, 0, 1))]);
+  };
+
+  const addPointBetween = () => {
+    if (points.length >= 24) return;
+    const sortedPoints = [...points].sort((a, b) => a.y - b.y);
+    if (sortedPoints.length < 2) {
+      addPointAt(.72, .5);
+      return;
+    }
+    let largestGap = -1;
+    let gapIndex = 0;
+    for (let index = 0; index < sortedPoints.length - 1; index += 1) {
+      const gap = sortedPoints[index + 1].y - sortedPoints[index].y;
+      if (gap > largestGap) {
+        largestGap = gap;
+        gapIndex = index;
+      }
+    }
+    const y = (sortedPoints[gapIndex].y + sortedPoints[gapIndex + 1].y) / 2;
+    addPointAt(profileXAt(points, y), y);
+  };
+
+  const addPoint = (event: MouseEvent<SVGSVGElement>) => {
+    const target = event.target as Element;
+    if (target.closest('circle')) return;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    addPointAt((event.clientX - rect.left) / rect.width, 1 - (event.clientY - rect.top) / rect.height);
   };
 
   const sorted = points.map((point, index) => ({ point, index })).sort((a, b) => a.point.y - b.point.y);
   return <div className="tulip-profile-editor">
+    <div className="tulip-profile-editor-toolbar"><strong>{copy.vertical}</strong><button type="button" className="tulip-add-point" onClick={addPointBetween} disabled={points.length >= 24}><Plus size={13} />{copy.addPoint}</button></div>
     <div className="tulip-profile-axis"><span>Height ↑</span><span>Radius →</span></div>
-    <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`Vertical profile, max ${maxRadius}mm`}>
+    <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${copy.vertical}, ${maxRadius}mm`} onDoubleClick={addPoint}>
       <defs><pattern id="tulip-profile-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" strokeOpacity=".12" /></pattern></defs>
       <rect width="100" height="100" fill="url(#tulip-profile-grid)" />
       <line x1="0" y1="100" x2="100" y2="100" stroke="currentColor" strokeOpacity=".35" />
       <path d={profilePath(points)} fill="none" stroke="#ec4899" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      {profileSamples(points).map((sample, sampleIndex) => {
+        const x = sample.x * 100;
+        const y = (1 - sample.y) * 100;
+        return <rect key={`sample-${sampleIndex}`} className="tulip-profile-sample" x={x - 1.6} y={y - 1.6} width="3.2" height="3.2" rx=".35" transform={`rotate(45 ${x} ${y})`} fill="#fbbf24" pointerEvents="none" />;
+      })}
       {sorted.map(({ point, index: pointIndex }) => {
         const x = point.x * 100;
         const y = (1 - point.y) * 100;
@@ -371,7 +468,7 @@ function ProfileEditor({ points, maxRadius, onChange }: { points: ProfilePoint[]
         </g>;
       })}
     </svg>
-    <div className="tulip-profile-scale"><span>0mm</span><span>Max {maxRadius}mm</span></div>
+    <div className="tulip-profile-scale"><span>0mm</span><span>{copy.maxRadius} {maxRadius}mm</span></div>
   </div>;
 }
 
@@ -424,7 +521,9 @@ function LampSimulation({ holeDiameter }: { holeDiameter: number }) {
 
 function TulipScene({ config, bodyConfig = DEFAULT_LAMP_BODY_CONFIG, showMesh }: { config: TulipConfig; bodyConfig?: LampBodyConfig; showMesh: boolean }) {
   const bodyHeight = bodyConfig.baseHeight + bodyConfig.height + bodyConfig.neckHeight;
-  const shadeOffset = bodyHeight + 24;
+  // The shade sits on the top of the preview socket instead of floating above
+  // it. This makes the adjustable flat seat read as a real connection.
+  const shadeOffset = bodyHeight + 12;
   const assemblyHeight = shadeOffset + config.height;
   return <>
     <color attach="background" args={['#050918']} />
@@ -459,7 +558,7 @@ function ProfilePanel({ config, update, copy }: { config: TulipConfig; update: (
       <RangeControl label={copy.height} value={config.height} min={20} max={300} unit=" mm" onChange={(height) => update({ height })} />
       {config.useAdvancedMode ? <>
         <RangeControl label={copy.maxRadius} value={config.maxRadius} min={20} max={150} unit=" mm" onChange={(maxRadius) => update({ maxRadius })} />
-        <div className="tulip-vertical-profile"><strong>{copy.vertical}</strong><div className="tulip-profile-presets">{PROFILE_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => update({ profilePoints: preset.points.map((point) => ({ ...point })) })}>{copy.profileLabels[preset.name as keyof typeof copy.profileLabels]}</button>)}</div><ProfileEditor points={config.profilePoints} maxRadius={config.maxRadius} onChange={(profilePoints) => update({ profilePoints })} /><p className="tulip-help">{copy.dragHint}</p></div>
+        <div className="tulip-vertical-profile"><strong>{copy.vertical}</strong><div className="tulip-profile-presets">{PROFILE_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => update({ profilePoints: preset.points.map((point) => ({ ...point })) })}>{copy.profileLabels[preset.name as keyof typeof copy.profileLabels]}</button>)}</div><ProfileEditor points={config.profilePoints} maxRadius={config.maxRadius} onChange={(profilePoints) => update({ profilePoints })} copy={copy} /><p className="tulip-help">{copy.dragHint}</p></div>
       </> : <>
         <RangeControl label={copy.topOpening} value={config.radiusTop} min={0} max={150} unit=" mm" onChange={(radiusTop) => update({ radiusTop })} />
         <RangeControl label={copy.middle} value={config.radiusMid} min={10} max={150} unit=" mm" onChange={(radiusMid) => update({ radiusMid })} />

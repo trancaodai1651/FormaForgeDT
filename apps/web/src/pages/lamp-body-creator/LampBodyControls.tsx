@@ -65,28 +65,62 @@ function cubicValue(a: number, b: number, c: number, d: number, t: number) {
   return inverse ** 3 * a + 3 * inverse ** 2 * t * b + 3 * inverse * t ** 2 * c + t ** 3 * d;
 }
 
-function profileSamples(points: BodyProfilePoint[], sampleCount = 20) {
+function solveCubicParameter(a: number, b: number, c: number, d: number, target: number) {
+  let low = 0;
+  let high = 1;
+  for (let iteration = 0; iteration < 14; iteration += 1) {
+    const middle = (low + high) / 2;
+    if (cubicValue(a, b, c, d, middle) < target) low = middle;
+    else high = middle;
+  }
+  return (low + high) / 2;
+}
+
+function profileXAt(points: BodyProfilePoint[], y: number) {
   const sorted = [...points].sort((a, b) => a.y - b.y);
-  if (sorted.length < 2) return sorted.map((point) => ({ x: point.x, y: point.y }));
+  if (sorted.length === 0) return 0;
+  if (sorted.length === 1) return sorted[0].x;
+  if (y <= sorted[0].y) return sorted[0].x;
+  if (y >= sorted[sorted.length - 1].y) return sorted[sorted.length - 1].x;
+  let segmentIndex = sorted.length - 2;
+  for (let index = 0; index < sorted.length - 1; index += 1) {
+    if (y <= sorted[index + 1].y) {
+      segmentIndex = index;
+      break;
+    }
+  }
+  const start = sorted[segmentIndex];
+  const end = sorted[segmentIndex + 1];
+  const span = Math.max(.0001, end.y - start.y);
+  const linearT = clamp((y - start.y) / span, 0, 1);
+  if (start.type === 'corner' && end.type === 'corner') return start.x + (end.x - start.x) * linearT;
+  const out = start.handleOut ?? { x: start.x, y: start.y + span * .33 };
+  const inside = end.handleIn ?? { x: end.x, y: end.y - span * .33 };
+  const t = solveCubicParameter(start.y, out.y, inside.y, end.y, y);
+  return cubicValue(start.x, out.x, inside.x, end.x, t);
+}
+
+function createSmoothPoint(points: BodyProfilePoint[], x: number, y: number, ignoredIndex = -1): BodyProfilePoint {
+  const neighbors = points.filter((_, index) => index !== ignoredIndex).sort((a, b) => a.y - b.y);
+  const previous = [...neighbors].reverse().find((point) => point.y < y) ?? neighbors[0] ?? { x, y };
+  const next = neighbors.find((point) => point.y > y) ?? neighbors[neighbors.length - 1] ?? { x, y };
+  const span = Math.max(.08, next.y - previous.y);
+  const slope = next.y - previous.y > .0001 ? (next.x - previous.x) / (next.y - previous.y) : 0;
+  const handleLength = Math.min(.16, Math.max(.06, span * .28));
+  return {
+    x,
+    y,
+    type: 'smooth',
+    handleIn: { x: clamp(x - slope * handleLength, 0, 1.08), y: clamp(y - handleLength, 0, 1) },
+    handleOut: { x: clamp(x + slope * handleLength, 0, 1.08), y: clamp(y + handleLength, 0, 1) },
+  };
+}
+
+function profileSamples(points: BodyProfilePoint[], sampleCount = 20) {
+  if (points.length < 2) return points.map((point) => ({ x: point.x, y: point.y }));
   return Array.from({ length: sampleCount }, (_, sampleIndex) => {
     const y = sampleIndex / (sampleCount - 1);
-    let segmentIndex = sorted.length - 2;
-    for (let index = 0; index < sorted.length - 1; index += 1) {
-      if (y <= sorted[index + 1].y) {
-        segmentIndex = index;
-        break;
-      }
-    }
-    const start = sorted[segmentIndex];
-    const end = sorted[segmentIndex + 1];
-    const span = Math.max(.0001, end.y - start.y);
-    const t = clamp((y - start.y) / span, 0, 1);
-    const out = start.handleOut ?? { x: start.x, y: start.y + span * .33 };
-    const inside = end.handleIn ?? { x: end.x, y: end.y - span * .33 };
-    const x = start.type === 'corner' && end.type === 'corner'
-      ? start.x + (end.x - start.x) * t
-      : cubicValue(start.x, out.x, inside.x, end.x, t);
-    return { x: clamp(x, 0, 1.08), y };
+    return { x: clamp(profileXAt(points, y), 0, 1.08), y };
   });
 }
 
@@ -103,7 +137,17 @@ function BodyProfileEditor({ points, maxRadius, onChange, copy }: { points: Body
       const y = clamp(1 - (event.clientY - rect.top) / rect.height, 0, 1);
       onChange(points.map((point, index) => {
         if (index !== dragging.index) return point;
-        if (dragging.handle === 'point') return { ...point, x, y };
+        if (dragging.handle === 'point') {
+          const deltaX = x - point.x;
+          const deltaY = y - point.y;
+          return {
+            ...point,
+            x,
+            y,
+            handleIn: point.handleIn ? { x: clamp(point.handleIn.x + deltaX, 0, 1.08), y: clamp(point.handleIn.y + deltaY, 0, 1) } : undefined,
+            handleOut: point.handleOut ? { x: clamp(point.handleOut.x + deltaX, 0, 1.08), y: clamp(point.handleOut.y + deltaY, 0, 1) } : undefined,
+          };
+        }
         return { ...point, [dragging.handle === 'in' ? 'handleIn' : 'handleOut']: { x, y } };
       }));
     };
@@ -120,7 +164,7 @@ function BodyProfileEditor({ points, maxRadius, onChange, copy }: { points: Body
     onChange(points.map((point, pointIndex) => {
       if (pointIndex !== index) return point;
       if (point.type === 'smooth') return { x: point.x, y: point.y, type: 'corner' };
-      return { ...point, type: 'smooth', handleIn: { x: point.x, y: clamp(point.y - .12, 0, 1) }, handleOut: { x: point.x, y: clamp(point.y + .12, 0, 1) } };
+      return createSmoothPoint(points, point.x, point.y, index);
     }));
   };
 
@@ -128,7 +172,7 @@ function BodyProfileEditor({ points, maxRadius, onChange, copy }: { points: Body
     if (points.length >= 24) return;
     const safeX = clamp(x, 0, 1.08);
     const safeY = clamp(y, 0, 1);
-    onChange([...points, { x: safeX, y: safeY, type: 'smooth', handleIn: { x: safeX, y: clamp(safeY - .1, 0, 1) }, handleOut: { x: safeX, y: clamp(safeY + .1, 0, 1) } }]);
+    onChange([...points, createSmoothPoint(points, safeX, safeY)]);
   };
 
   const addPointBetween = () => {
@@ -149,7 +193,8 @@ function BodyProfileEditor({ points, maxRadius, onChange, copy }: { points: Body
     }
     const start = sortedPoints[gapIndex];
     const end = sortedPoints[gapIndex + 1];
-    addPointAt((start.x + end.x) / 2, (start.y + end.y) / 2);
+    const y = (start.y + end.y) / 2;
+    addPointAt(profileXAt(points, y), y);
   };
 
   const addPoint = (event: MouseEvent<SVGSVGElement>) => {
@@ -240,7 +285,7 @@ export function LampBodyControls({ config, tab, update, copy, onExport, exportSt
     {tab === 'body' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Box} title={copy.bodyShape} hint={copy.bodyShapeHint} /><SelectControl label={copy.bodyShape} value={config.profile} options={(Object.keys(copy.profiles) as BodyProfile[]).map((value) => ({ value, label: copy.profiles[value] }))} onChange={(value) => selectProfile(value as BodyProfile)} /></section><section><PanelTitle icon={SlidersHorizontal} title={copy.dimensions} /><RangeControl label={copy.height} value={config.height} min={80} max={360} unit={copy.mm} onChange={(value) => update('height', value)} /><RangeControl label={copy.bodyRadius} value={config.bodyRadius} min={22} max={90} unit={copy.mm} onChange={(value) => update('bodyRadius', value)} /><RangeControl label={copy.topRadius} value={config.topRadius} min={16} max={72} unit={copy.mm} onChange={(value) => update('topRadius', value)} /></section></div>}
     {tab === 'profile' && <div className="lamp-body-panel-content"><AdvancedProfilePanel config={config} update={update} copy={copy} /></div>}
     {tab === 'shape' && <ShapePanel config={config} update={update} copy={copy} />}
-    {tab === 'base' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Layers3} title={copy.base} /><RangeControl label={copy.baseRadius} value={config.baseRadius} min={45} max={120} unit={copy.mm} onChange={(value) => update('baseRadius', value)} /><RangeControl label={copy.baseHeight} value={config.baseHeight} min={8} max={42} unit={copy.mm} onChange={(value) => update('baseHeight', value)} /><RangeControl label={copy.neckRadius} value={config.neckRadius} min={14} max={42} unit={copy.mm} onChange={(value) => update('neckRadius', value)} /><RangeControl label={copy.neckHeight} value={config.neckHeight} min={8} max={38} unit={copy.mm} onChange={(value) => update('neckHeight', value)} /></section><section><PanelTitle icon={Info} title={copy.socket} hint={copy.socketHint} /><RangeControl label={copy.socketDiameter} value={config.socketDiameter} min={24} max={52} unit={copy.mm} onChange={(value) => update('socketDiameter', value)} /></section><section><PanelTitle icon={CircleDot} title={copy.bottomHole} hint={copy.bottomHoleHint} /><ToggleControl label={copy.holeEnabled} hint={copy.bottomHoleHint} value={config.bottomHoleEnabled} onChange={() => update('bottomHoleEnabled', !config.bottomHoleEnabled)} onLabel={copy.holeOn} offLabel={copy.holeOff} /><RangeControl label={copy.bottomHoleDiameter} value={config.bottomHoleDiameter} min={8} max={52} unit={copy.mm} disabled={!config.bottomHoleEnabled} onChange={(value) => update('bottomHoleDiameter', value)} /></section></div>}
+    {tab === 'base' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Layers3} title={copy.base} /><RangeControl label={copy.baseRadius} value={config.baseRadius} min={45} max={120} unit={copy.mm} onChange={(value) => update('baseRadius', value)} /><RangeControl label={copy.baseHeight} value={config.baseHeight} min={8} max={42} unit={copy.mm} onChange={(value) => update('baseHeight', value)} /><RangeControl label={copy.neckRadius} value={config.neckRadius} min={14} max={42} unit={copy.mm} onChange={(value) => update('neckRadius', value)} /><RangeControl label={copy.neckHeight} value={config.neckHeight} min={8} max={38} unit={copy.mm} onChange={(value) => update('neckHeight', value)} /><RangeControl label={copy.shadeSeatRadius} value={config.shadeSeatRadius} min={15} max={90} unit={copy.mm} onChange={(value) => update('shadeSeatRadius', value)} /><RangeControl label={copy.shadeSeatHeight} value={config.shadeSeatHeight} min={2} max={38} unit={copy.mm} onChange={(value) => update('shadeSeatHeight', value)} /></section><section><PanelTitle icon={Info} title={copy.socket} hint={copy.socketHint} /><RangeControl label={copy.socketDiameter} value={config.socketDiameter} min={24} max={52} unit={copy.mm} onChange={(value) => update('socketDiameter', value)} /></section><section><PanelTitle icon={CircleDot} title={copy.bottomHole} hint={copy.bottomHoleHint} /><ToggleControl label={copy.holeEnabled} hint={copy.bottomHoleHint} value={config.bottomHoleEnabled} onChange={() => update('bottomHoleEnabled', !config.bottomHoleEnabled)} onLabel={copy.holeOn} offLabel={copy.holeOff} /><RangeControl label={copy.bottomHoleDiameter} value={config.bottomHoleDiameter} min={8} max={52} unit={copy.mm} disabled={!config.bottomHoleEnabled} onChange={(value) => update('bottomHoleDiameter', value)} /></section></div>}
     {tab === 'finish' && <div className="lamp-body-panel-content"><section><PanelTitle icon={Settings2} title={copy.construction} hint={copy.resolutionHint} /><RangeControl label={copy.wall} value={config.wallThickness} min={1.2} max={6} step={.1} unit={copy.mm} onChange={(value) => update('wallThickness', value)} /><RangeControl label={copy.segments} value={config.segments} min={24} max={128} step={8} unit="" onChange={(value) => update('segments', value)} /></section><section><PanelTitle icon={Sparkles} title={copy.appearance} /><SelectControl label={copy.style} value={config.renderStyle} options={[{ value: 'smooth', label: copy.smooth }, { value: 'low-poly', label: copy.lowPoly }]} onChange={(value) => update('renderStyle', value as LampBodyConfig['renderStyle'])} /><div className="lamp-body-color-field"><span>{copy.color}</span><div className="lamp-body-swatches">{['#d9d6cf', '#e7e7e7', '#1b1b1b', '#d23b3b', '#2f6fdd', '#2e9e5b', '#f2b705'].map((color) => <button type="button" key={color} className={config.color === color ? 'selected' : ''} style={{ background: color }} aria-label={color} onClick={() => update('color', color)} />)}</div></div></section><section><PanelTitle icon={Lightbulb} title={copy.simulation} /><ToggleControl label={copy.simulation} hint={copy.simulationHint} value={config.showSimulation} onChange={() => update('showSimulation', !config.showSimulation)} onLabel={copy.on} offLabel={copy.off} /></section></div>}
     {tab === 'export' && <div className="lamp-body-panel-content"><section className="lamp-body-export-card"><span className="lamp-body-export-icon"><Check size={20} /></span><h2>{copy.exportTitle}</h2><p>{copy.exportText}</p><button type="button" className="lamp-body-export-button" onClick={() => onExport?.()}><Download size={16} /> {copy.download}</button>{exportState !== 'idle' && <div className={`lamp-body-export-status ${exportState}`}>{exportState === 'done' ? <Check size={14} /> : <Info size={14} />}{exportState === 'done' ? copy.exported : copy.exportFailed}</div>}</section><section className="lamp-body-summary"><PanelTitle icon={Info} title={copy.summary} /><div><span>{copy.profile}</span><strong>{copy.profiles[config.profile]}</strong></div><div><span>{copy.totalHeight}</span><strong>{Math.round(config.baseHeight + config.height + config.neckHeight)} {copy.mm}</strong></div><div><span>{copy.diameter}</span><strong>{Math.round(config.baseRadius * 2)} {copy.mm}</strong></div><div><span>{copy.bottomHoleDiameter}</span><strong>{config.bottomHoleEnabled ? `${Math.round(config.bottomHoleDiameter)} ${copy.mm}` : copy.holeOff}</strong></div><div><span>{copy.volume}</span><strong>{Math.round(config.baseRadius * 2)} × {Math.round(config.baseHeight + config.height + config.neckHeight)} {copy.mm}</strong></div></section></div>}
   </>;
