@@ -1,0 +1,136 @@
+.lamp-body-page {
+  height: 100dvh;
+  min-height: 620px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #070b12;
+  color: #eaf1ff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.app-shell-admin-tool .lamp-body-page { padding-top: 124px; }
+
+.lamp-body-header {
+  z-index: 2;
+  flex: none;
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 0 24px;
+  border-bottom: 1px solid #1d2942;
+  background: #0b1120;
+}
+
+.lamp-body-brand,
+.lamp-body-header-status,
+.lamp-body-header-meta,
+.lamp-body-viewport-top,
+.lamp-body-viewport-toolbar,
+.lamp-body-sidebar-footer,
+.lamp-body-toggle-row,
+.lamp-body-color-field > span,
+.lamp-body-range > span,
+.lamp-body-select,
+.lamp-body-summary > div,
+.lamp-body-kicker,
+.lamp-body-panel-title {
+  display: flex;
+  align-items: center;
+}
+
+.lamp-body-brand { gap: 10px; color: #f7fbff; font-size: 17px; font-weight: 700; letter-spacing: -.03em; }
+.lamp-body-brand small { margin-left: 7px; color: #6f86a8; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.lamp-body-brand-mark { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #2e6b95; border-radius: 9px; color: #72d6ff; background: #09203a; }
+.lamp-body-header-status { gap: 8px; color: #9bacc8; font-size: 11px; }
+.lamp-body-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #65dfb1; box-shadow: 0 0 0 4px #65dfb11c; }
+.lamp-body-header-meta { gap: 10px; color: #607390; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.lamp-body-unit-pill { padding: 5px 7px; border: 1px solid #2b3954; border-radius: 6px; color: #b5c5de; background: #101b30; font-size: 9px; }
+
+.lamp-body-workspace { min-height: 0; flex: 1; display: flex; }
+.lamp-body-sidebar { z-index: 1; flex: none; width: 378px; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid #1d2942; background: #0d1526; }
+.lamp-body-sidebar-title { flex: none; padding: 25px 24px 20px; border-bottom: 1px solid #17243b; }
+.lamp-body-kicker { gap: 7px; color: #65d8ff; font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+.lamp-body-sidebar-title h1 { margin: 9px 0 3px; color: #eef8ff; font-size: 22px; font-weight: 800; letter-spacing: -.045em; }
+.lamp-body-sidebar-title p { margin: 0; color: #8495b2; font-size: 12px; }
+
+.lamp-body-tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 14px; border-bottom: 1px solid #25324a; }
+.lamp-body-tabs button { position: relative; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 10px 3px; border: 0; color: #7183a3; background: transparent; font-size: 10px; font-weight: 700; }
+.lamp-body-tabs button:hover, .lamp-body-tabs button.active { color: #6fddff; }
+.lamp-body-tabs button.active::after { content: ""; position: absolute; right: 7px; bottom: -1px; left: 7px; height: 2px; background: #6fddff; }
+.lamp-body-panel-scroll { min-height: 0; flex: 1; overflow: auto; padding: 23px 23px 18px; scrollbar-color: #304263 transparent; scrollbar-width: thin; }
+.lamp-body-panel-content { display: flex; flex-direction: column; gap: 23px; }
+.lamp-body-panel-content section { display: flex; flex-direction: column; gap: 16px; }
+.lamp-body-panel-title { align-items: flex-start; gap: 10px; }
+.lamp-body-panel-icon { flex: none; width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid #264263; border-radius: 8px; color: #6dd8ff; background: #102339; }
+.lamp-body-panel-title h3 { margin: 1px 0 2px; color: #edf4ff; font-size: 12px; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.lamp-body-panel-title p { max-width: 270px; margin: 0; color: #7184a3; font-size: 11px; line-height: 1.45; }
+
+.lamp-body-range { gap: 8px; flex-direction: column; align-items: stretch; color: #95a7c3; font-size: 11px; }
+.lamp-body-range > span { justify-content: space-between; gap: 12px; }
+.lamp-body-range strong { color: #e2ecfc; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.lamp-body-range input { width: 100%; height: 4px; accent-color: #5bd3fb; cursor: pointer; }
+.lamp-body-select { justify-content: space-between; gap: 12px; color: #9aabc4; font-size: 11px; }
+.lamp-body-select select { min-width: 155px; padding: 9px 10px; border: 1px solid #2a3a58; border-radius: 8px; outline: 0; color: #ecf3ff; background: #111d32; font: inherit; }
+.lamp-body-select select:focus { border-color: #5bd3fb; }
+.lamp-body-color-field { display: flex; flex-direction: column; gap: 11px; color: #9aabc4; font-size: 11px; }
+.lamp-body-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.lamp-body-swatches button { width: 25px; height: 25px; padding: 0; border: 2px solid transparent; border-radius: 50%; box-shadow: 0 3px 8px #0005; cursor: pointer; }
+.lamp-body-swatches button.selected { border-color: #fff; box-shadow: 0 0 0 2px #5bd3fb; }
+.lamp-body-toggle-row { justify-content: space-between; gap: 12px; }
+.lamp-body-toggle-row > div { display: flex; flex-direction: column; gap: 4px; }
+.lamp-body-toggle-row strong { color: #dce8fa; font-size: 11px; }
+.lamp-body-toggle-row small { color: #7184a3; font-size: 10px; line-height: 1.4; }
+.lamp-body-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid #2a3a58; border-radius: 8px; color: #7184a3; background: #111d32; font-size: 10px; font-weight: 800; cursor: pointer; }
+.lamp-body-toggle span { width: 6px; height: 6px; border-radius: 50%; background: #596b88; }
+.lamp-body-toggle.on { border-color: #286b70; color: #a9f2da; background: #112b32; }
+.lamp-body-toggle.on span { background: #65dfb1; box-shadow: 0 0 0 3px #65dfb12b; }
+
+.lamp-body-export-card { align-items: center; padding: 24px 17px 20px; border: 1px solid #264565; border-radius: 14px; background: linear-gradient(145deg, #10253b, #0e192b); text-align: center; }
+.lamp-body-export-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: #a9f2da; background: #184346; }
+.lamp-body-export-card h2 { margin: 15px 0 7px; color: #f1f7ff; font-size: 16px; }
+.lamp-body-export-card p { margin: 0; color: #91a5c3; font-size: 11px; line-height: 1.55; }
+.lamp-body-export-button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 18px; padding: 11px 12px; border: 0; border-radius: 9px; color: #06202c; background: #67d9ff; font-size: 11px; font-weight: 800; cursor: pointer; }
+.lamp-body-export-button:hover { background: #91e6ff; }
+.lamp-body-export-status { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 12px; font-size: 10px; }
+.lamp-body-export-status.done { color: #9aefd0; }
+.lamp-body-export-status.error { color: #ff9e9e; }
+.lamp-body-summary { gap: 11px !important; }
+.lamp-body-summary > div { justify-content: space-between; gap: 12px; color: #8092ae; font-size: 11px; }
+.lamp-body-summary > div strong { color: #e5edfa; font-size: 11px; font-weight: 700; text-align: right; }
+.lamp-body-sidebar-footer { flex: none; justify-content: space-between; gap: 12px; padding: 12px 23px; border-top: 1px solid #17243b; color: #607390; font-size: 9px; }
+.lamp-body-sidebar-footer span:last-child { color: #7588a5; text-align: right; }
+
+.lamp-body-viewport { position: relative; min-width: 0; min-height: 0; flex: 1; background: #070b12; }
+.lamp-body-viewport > div:first-child { position: absolute !important; inset: 0; }
+.lamp-body-viewport-top { position: absolute; top: 20px; right: 23px; left: 23px; justify-content: space-between; pointer-events: none; color: #98abc5; font-size: 11px; }
+.lamp-body-viewport-top span { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid #273650; border-radius: 7px; background: #0c1423d9; }
+.lamp-body-viewport-top span:first-child { color: #72d6ff; }
+.lamp-body-viewport-toolbar { position: absolute; right: 23px; bottom: 22px; left: 23px; gap: 16px; color: #7589a7; font-size: 10px; pointer-events: none; }
+.lamp-body-viewport-toolbar span { display: inline-flex; align-items: center; gap: 6px; }
+.lamp-body-viewport-toolbar button { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 8px 10px; border: 1px solid #2a3a58; border-radius: 7px; color: #8498b6; background: #0d1728d9; font-size: 10px; cursor: pointer; pointer-events: auto; }
+.lamp-body-viewport-toolbar button.active { border-color: #4e91b0; color: #75ddff; background: #102b3c; }
+.lamp-body-viewport-measure { position: absolute; top: 50%; right: 23px; display: grid; grid-template-columns: 20px auto; gap: 7px 9px; padding: 10px; border: 1px solid #263650; border-radius: 8px; color: #68809f; background: #0d1728d9; font-size: 9px; }
+.lamp-body-viewport-measure strong { color: #d2def0; font-size: 10px; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .lamp-body-sidebar { width: 335px; }
+  .lamp-body-header-status { display: none; }
+}
+
+@media (max-width: 700px) {
+  .app-shell-admin-tool .lamp-body-page { padding-top: 108px; }
+  .lamp-body-page { height: auto; min-height: 100dvh; overflow: visible; }
+  .lamp-body-header { height: 58px; padding: 0 14px; }
+  .lamp-body-brand { font-size: 15px; }
+  .lamp-body-header-meta { display: none; }
+  .lamp-body-workspace { min-height: calc(100dvh - 58px); flex-direction: column; }
+  .lamp-body-sidebar { width: 100%; min-height: 450px; order: 2; border-right: 0; border-top: 1px solid #1d2942; }
+  .lamp-body-viewport { order: 1; height: 52dvh; min-height: 360px; flex: none; }
+  .lamp-body-panel-scroll { max-height: 440px; }
+  .lamp-body-viewport-measure { top: 20px; right: 14px; }
+  .lamp-body-viewport-top { top: 14px; right: 14px; left: 14px; }
+  .lamp-body-viewport-toolbar { right: 14px; bottom: 14px; left: 14px; }
+}

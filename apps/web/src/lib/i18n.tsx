@@ -399,6 +399,24 @@ Object.assign(vi, { 'admin.clickerSvgLayers': 'Tách lớp SVG', 'admin.clickerS
 Object.assign(en, { 'admin.clickerMultiColor': 'Multi Color', 'admin.clickerMultiColorPageDescription': 'Split a flat-colour image into printable colour layers.' });
 Object.assign(vi, { 'admin.clickerMultiColor': 'Ảnh đa màu', 'admin.clickerMultiColorPageDescription': 'Tách ảnh màu thành các lớp riêng có thể in.' });
 
+Object.assign(en, {
+  'admin.tulipCreator': 'Tulip Creator',
+  'admin.tulipCreatorPageDescription': 'Create parametric lampshades with a live 3D preview and STL export.',
+});
+Object.assign(vi, {
+  'admin.tulipCreator': 'Trình tạo chao đèn',
+  'admin.tulipCreatorPageDescription': 'Tạo chao đèn tham số với preview 3D trực tiếp và xuất STL.',
+});
+
+Object.assign(en, {
+  'admin.homeItem': 'Home Item',
+  'admin.homeItemPageDescription': 'Create parametric home-decor vessels with procedural relief, mask controls and STL export.',
+});
+Object.assign(vi, {
+  'admin.homeItem': 'Home Item',
+  'admin.homeItemPageDescription': 'Tạo đồ gia dụng tham số với họa tiết nổi, mask, preview 3D và xuất STL.',
+});
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 
