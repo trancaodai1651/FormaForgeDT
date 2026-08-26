@@ -9,18 +9,22 @@ import './lamp-body-creator.css';
 
 export type BodyProfile = 'cylinder' | 'taper' | 'hourglass' | 'pedestal' | 'lampshade';
 export type BodyProfileMode = 'preset' | 'advanced';
+export type BodyProfilePointType = 'corner' | 'smooth';
+export type BodyProfilePoint = {
+  x: number;
+  y: number;
+  type?: BodyProfilePointType;
+  handleIn?: { x: number; y: number };
+  handleOut?: { x: number; y: number };
+};
 type RenderStyle = 'smooth' | 'low-poly';
 export type BodyTab = 'body' | 'profile' | 'base' | 'finish' | 'export';
 
 export type LampBodyConfig = {
   profile: BodyProfile;
   profileMode: BodyProfileMode;
-  advancedLowerRadius: number;
-  advancedShoulderRadius: number;
-  advancedWaistRadius: number;
-  advancedUpperRadius: number;
-  profileCurve: number;
-  profileFlare: number;
+  advancedProfilePoints: BodyProfilePoint[];
+  advancedMaxRadius: number;
   height: number;
   bodyRadius: number;
   topRadius: number;
@@ -40,13 +44,14 @@ export type LampBodyConfig = {
 
 export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
   profile: 'lampshade',
-  profileMode: 'preset',
-  advancedLowerRadius: 72,
-  advancedShoulderRadius: 62,
-  advancedWaistRadius: 46,
-  advancedUpperRadius: 30,
-  profileCurve: 55,
-  profileFlare: 35,
+  profileMode: 'advanced',
+  advancedProfilePoints: [
+    { x: .78, y: 0, type: 'corner' },
+    { x: .9, y: .28, type: 'smooth', handleIn: { x: .9, y: .18 }, handleOut: { x: .88, y: .4 } },
+    { x: .72, y: .62, type: 'smooth', handleIn: { x: .76, y: .5 }, handleOut: { x: .68, y: .75 } },
+    { x: .38, y: 1, type: 'corner' },
+  ],
+  advancedMaxRadius: 90,
   height: 190,
   bodyRadius: 48,
   topRadius: 34,
@@ -66,11 +71,19 @@ export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
 
 const COLORS = ['#d9d6cf', '#e7e7e7', '#1b1b1b', '#d23b3b', '#2f6fdd', '#2e9e5b', '#f2b705'];
 
+export const BODY_PROFILE_PRESETS: Array<{ name: BodyProfile; points: BodyProfilePoint[] }> = [
+  { name: 'cylinder', points: [{ x: .78, y: 0, type: 'corner' }, { x: .78, y: 1, type: 'corner' }] },
+  { name: 'taper', points: [{ x: .9, y: 0, type: 'corner' }, { x: .4, y: 1, type: 'corner' }] },
+  { name: 'lampshade', points: DEFAULT_LAMP_BODY_CONFIG.advancedProfilePoints },
+  { name: 'hourglass', points: [{ x: .82, y: 0, type: 'corner' }, { x: .48, y: .5, type: 'corner' }, { x: .42, y: 1, type: 'corner' }] },
+  { name: 'pedestal', points: [{ x: .58, y: 0, type: 'corner' }, { x: .9, y: .2, type: 'smooth', handleIn: { x: .9, y: .1 }, handleOut: { x: .86, y: .34 } }, { x: .72, y: .6, type: 'smooth', handleIn: { x: .76, y: .48 }, handleOut: { x: .66, y: .76 } }, { x: .4, y: 1, type: 'corner' }] },
+];
+
 const COPY = {
   en: {
     title: 'Lamp Body Creator', subtitle: 'Parametric Lamp Stand Generator', workspace: 'BODY WORKSPACE', preview: 'Live 3D preview', realtime: 'Realtime geometry',
     tabs: { body: 'Body', profile: 'Profile', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
-    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced', advancedHint: 'Tune four profile stations to create a shade-like body with controlled curvature.', lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
+    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced profile', advancedHint: 'Edit the same vertical Bezier profile used by the lampshade.', vertical: 'Vertical profile', dragHint: 'Drag points and handles • Double-click a point to toggle Curve/Sharp', profilePreset: 'Profile presets', maxRadius: 'Maximum radius', profileLabels: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' }, lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
     profiles: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' },
     dimensions: 'Body dimensions', height: 'Height', bodyRadius: 'Body radius', topRadius: 'Top radius',
     base: 'Base and mounting', baseRadius: 'Base radius', baseHeight: 'Base height', neckRadius: 'Neck radius', neckHeight: 'Neck height', bottomHole: 'Bottom cable & socket opening', bottomHoleHint: 'A real through-hole is cut into the base for the cable and lamp socket.', bottomHoleDiameter: 'Opening diameter', holeEnabled: 'Bottom opening', holeOn: 'Open', holeOff: 'Closed',
@@ -86,7 +99,7 @@ const COPY = {
   vi: {
     title: 'Trình tạo thân đèn', subtitle: 'Tạo thân đèn tham số', workspace: 'KHÔNG GIAN THÂN ĐÈN', preview: 'Preview 3D trực tiếp', realtime: 'Hình học thời gian thực',
     tabs: { body: 'Thân đèn', profile: 'Biên dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
-    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Nâng cao', advancedHint: 'Tinh chỉnh bốn điểm biên dạng để tạo thân giống chao đèn, có kiểm soát độ cong.', lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
+    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Biên dạng nâng cao', advancedHint: 'Chỉnh cùng biên dạng Bézier dọc như chao đèn: kéo điểm, tay nắm và đổi Cong/Góc.', vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc', profilePreset: 'Mẫu biên dạng', maxRadius: 'Bán kính lớn nhất', profileLabels: { cylinder: 'Trụ', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' }, lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
     profiles: { cylinder: 'Trụ thẳng', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' },
     dimensions: 'Kích thước thân', height: 'Chiều cao', bodyRadius: 'Bán kính thân', topRadius: 'Bán kính đỉnh',
     base: 'Đế và vị trí lắp', baseRadius: 'Bán kính đế', baseHeight: 'Chiều cao đế', neckRadius: 'Bán kính cổ', neckHeight: 'Chiều cao cổ', bottomHole: 'Lỗ luồn dây & gắn đuôi đèn', bottomHoleHint: 'Lỗ xuyên thực được cắt qua đáy để luồn dây và gắn đuôi đèn.', bottomHoleDiameter: 'Đường kính lỗ', holeEnabled: 'Lỗ đáy', holeOn: 'Đang mở', holeOff: 'Đóng',
@@ -106,15 +119,52 @@ export function getLampBodyCopy(language: Language): LampBodyCopy {
   return COPY[language] as LampBodyCopy;
 }
 
+function cubicValue(a: number, b: number, c: number, d: number, t: number) {
+  const inverse = 1 - t;
+  return inverse ** 3 * a + 3 * inverse ** 2 * t * b + 3 * inverse * t ** 2 * c + t ** 3 * d;
+}
+
+function solveCubicParameter(a: number, b: number, c: number, d: number, target: number) {
+  let low = 0;
+  let high = 1;
+  for (let iteration = 0; iteration < 14; iteration += 1) {
+    const middle = (low + high) / 2;
+    if (cubicValue(a, b, c, d, middle) < target) low = middle;
+    else high = middle;
+  }
+  return (low + high) / 2;
+}
+
+function getAdvancedRadius(points: BodyProfilePoint[], maxRadius: number, normalizedHeight: number) {
+  const sorted = [...points].sort((a, b) => a.y - b.y);
+  if (sorted.length === 0) return 0;
+  const y = THREE.MathUtils.clamp(normalizedHeight, 0, 1);
+  if (y <= sorted[0].y) return Math.max(0, sorted[0].x * maxRadius);
+  const last = sorted[sorted.length - 1];
+  if (y >= last.y) return Math.max(0, last.x * maxRadius);
+  let index = 0;
+  for (let pointIndex = 0; pointIndex < sorted.length - 1; pointIndex += 1) {
+    if (y >= sorted[pointIndex].y && y <= sorted[pointIndex + 1].y) {
+      index = pointIndex;
+      break;
+    }
+  }
+  const start = sorted[index];
+  const end = sorted[index + 1] ?? start;
+  if (start.type === 'corner' && end.type === 'corner') {
+    const span = end.y - start.y;
+    return Math.max(0, (start.x + (end.x - start.x) * (span === 0 ? 0 : (y - start.y) / span)) * maxRadius);
+  }
+  const startControl = start.handleOut ?? { x: start.x, y: start.y + (end.y - start.y) * .33 };
+  const endControl = end.handleIn ?? { x: end.x, y: end.y - (end.y - start.y) * .33 };
+  const parameter = solveCubicParameter(start.y, startControl.y, endControl.y, end.y, y);
+  return Math.max(0, cubicValue(start.x, startControl.x, endControl.x, end.x, parameter) * maxRadius);
+}
+
 function bodyRadiusAt(config: LampBodyConfig, progress: number) {
   const p = Math.min(1, Math.max(0, progress));
   if (config.profileMode === 'advanced') {
-    const stations = [config.advancedLowerRadius, config.advancedShoulderRadius, config.advancedWaistRadius, config.advancedUpperRadius];
-    const scaled = p * (stations.length - 1);
-    const index = Math.min(stations.length - 2, Math.floor(scaled));
-    const local = scaled - index;
-    const eased = THREE.MathUtils.smoothstep(local, 0, 1);
-    return THREE.MathUtils.lerp(stations[index], stations[index + 1], eased);
+    return getAdvancedRadius(config.advancedProfilePoints, config.advancedMaxRadius, p);
   }
   if (config.profile === 'cylinder') return config.bodyRadius;
   if (config.profile === 'taper') return THREE.MathUtils.lerp(config.bodyRadius, config.topRadius, p);
@@ -125,10 +175,8 @@ function bodyRadiusAt(config: LampBodyConfig, progress: number) {
   if (config.profile === 'lampshade') {
     const lower = Math.max(config.bodyRadius * 1.18, config.baseRadius * 0.78);
     const upper = Math.max(config.topRadius, config.neckRadius * 1.16);
-    const flare = THREE.MathUtils.clamp(config.profileFlare / 100, 0, 1);
-    const curve = THREE.MathUtils.lerp(1.45, 0.62, THREE.MathUtils.clamp(config.profileCurve / 100, 0, 1));
-    const shadeT = Math.pow(p, curve);
-    const shoulder = THREE.MathUtils.lerp(lower, upper, 0.56 - flare * 0.16);
+    const shadeT = Math.pow(p, 0.88);
+    const shoulder = THREE.MathUtils.lerp(lower, upper, 0.5);
     if (shadeT < 0.48) return THREE.MathUtils.lerp(lower, shoulder, shadeT / 0.48);
     return THREE.MathUtils.lerp(shoulder, upper, (shadeT - 0.48) / 0.52);
   }

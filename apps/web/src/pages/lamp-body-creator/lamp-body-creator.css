@@ -98,6 +98,29 @@
 .lamp-body-profile-diagram small { position: relative; z-index: 1; color: #8fa9c7; font-size: 9px; }
 .lamp-body-profile-diagram small:last-child { text-align: right; }
 
+.lamp-body-advanced-profile-section { gap: 15px !important; }
+.lamp-body-advanced-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid #263b5c; border-radius: 10px; background: #101d32; cursor: pointer; }
+.lamp-body-advanced-toggle > span { display: flex; flex-direction: column; gap: 4px; }
+.lamp-body-advanced-toggle strong { color: #e6f0ff; font-size: 11px; }
+.lamp-body-advanced-toggle small { color: #778ba9; font-size: 10px; line-height: 1.4; }
+.lamp-body-advanced-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.lamp-body-advanced-toggle i { position: relative; flex: none; width: 34px; height: 19px; border: 1px solid #344966; border-radius: 999px; background: #17243a; transition: .18s ease; }
+.lamp-body-advanced-toggle i::after { position: absolute; top: 3px; left: 3px; width: 11px; height: 11px; border-radius: 50%; content: ""; background: #7183a3; transition: .18s ease; }
+.lamp-body-advanced-toggle input:checked + i { border-color: #2c7f91; background: #123c49; }
+.lamp-body-advanced-toggle input:checked + i::after { transform: translateX(15px); background: #66dcff; box-shadow: 0 0 0 3px #66dcff22; }
+.lamp-body-advanced-toggle:focus-within { border-color: #5bd3fb; }
+.lamp-body-vertical-profile { position: relative; display: flex; flex-direction: column; gap: 13px; }
+.lamp-body-vertical-profile > strong { color: #9dacc5; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.lamp-body-profile-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.lamp-body-profile-presets button { min-height: 30px; padding: 5px 2px; border: 1px solid #283957; border-radius: 6px; color: #9dacc5; background: #111d34; font-size: 9px; cursor: pointer; }
+.lamp-body-profile-presets button:hover, .lamp-body-profile-presets button.active { border-color: #5bd3fb; color: #d8f7ff; background: #123048; }
+.lamp-body-profile-axis-labels { position: absolute; inset: 7px 10px auto 10px; display: flex; justify-content: space-between; color: #7183a3; font-size: 8px; letter-spacing: .05em; text-transform: uppercase; pointer-events: none; }
+.lamp-body-vertical-profile svg { display: block; width: 100%; height: 195px; overflow: visible; border: 1px solid #243553; border-radius: 11px; color: #7183a3; background: #0f182b; touch-action: none; }
+.lamp-body-vertical-profile svg circle { cursor: grab; }
+.lamp-body-vertical-profile svg circle:active { cursor: grabbing; }
+.lamp-body-profile-scale { display: flex; justify-content: space-between; margin: -8px 10px 0 22px; color: #7183a3; font-size: 8px; }
+.lamp-body-profile-help { margin: 0; padding: 11px 12px; border-radius: 9px; color: #7d91b1; background: #101d33; font-size: 10px; line-height: 1.5; }
+
 .lamp-body-export-card { align-items: center; padding: 24px 17px 20px; border: 1px solid #264565; border-radius: 14px; background: linear-gradient(145deg, #10253b, #0e192b); text-align: center; }
 .lamp-body-export-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: #a9f2da; background: #184346; }
 .lamp-body-export-card h2 { margin: 15px 0 7px; color: #f1f7ff; font-size: 16px; }
