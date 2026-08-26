@@ -100,7 +100,7 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
 }
 
 function PatternCard({ title, icon, enabled, onChange, children }: { title: string; icon: React.ReactNode; enabled: boolean; onChange: () => void; children: React.ReactNode }) {
-  return <section className={`home-item-pattern-card${enabled ? ' expanded' : ''}`}><button type="button" className="home-item-pattern-heading" onClick={onChange}><span>{icon}<strong>{title}</strong></span><Toggle enabled={enabled} label={title} onChange={onChange} /></button>{enabled && <div className="home-item-pattern-body">{children}</div>}</section>;
+  return <section className={`home-item-pattern-card${enabled ? ' expanded' : ''}`}><div className="home-item-pattern-heading" role="button" tabIndex={0} aria-expanded={enabled} onClick={onChange} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onChange(); } }}><span>{icon}<strong>{title}</strong></span><Toggle enabled={enabled} label={title} onChange={onChange} /></div>{enabled && <div className="home-item-pattern-body">{children}</div>}</section>;
 }
 
 function HomeItemScene({ geometry, config, showMesh }: { geometry: THREE.BufferGeometry; config: HomeItemConfig; showMesh: boolean }) {
@@ -117,14 +117,14 @@ function HomeItemScene({ geometry, config, showMesh }: { geometry: THREE.BufferG
   useEffect(() => () => floorGeometry.dispose(), [floorGeometry]);
   return <>
     <color attach="background" args={['#080f1d']} />
-    <ambientLight intensity={1.25} />
-    <directionalLight position={[160, 230, 180]} intensity={3.2} color="#dfe8ff" />
-    <directionalLight position={[-150, 90, -80]} intensity={1.8} color="#7bb8ff" />
-    <pointLight position={[0, config.height * .72, 80]} intensity={20} distance={420} color="#e7d9ff" />
+    <ambientLight intensity={.62} />
+    <directionalLight position={[160, 230, 180]} intensity={2.65} color="#dfe8ff" />
+    <directionalLight position={[-150, 90, -80]} intensity={.65} color="#7bb8ff" />
+    <pointLight position={[0, config.height * .72, 80]} intensity={8} distance={420} color="#e7d9ff" />
     <lineSegments geometry={floorGeometry}><lineBasicMaterial color="#2b527f" transparent opacity={.4} /></lineSegments>
     <group>
       <mesh geometry={geometry}>
-        <meshStandardMaterial color={config.color} roughness={.72} metalness={.04} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={config.color} roughness={.64} metalness={.04} side={THREE.DoubleSide} />
       </mesh>
       {showMesh && <mesh geometry={geometry} scale={[1.001, 1.001, 1.001]}><meshBasicMaterial color="#58b9ff" wireframe transparent opacity={.26} /></mesh>}
     </group>

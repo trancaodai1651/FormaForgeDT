@@ -7,12 +7,20 @@ import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { useI18n, type Language } from '../../lib/i18n';
 import './lamp-body-creator.css';
 
-export type BodyProfile = 'cylinder' | 'taper' | 'hourglass' | 'pedestal';
+export type BodyProfile = 'cylinder' | 'taper' | 'hourglass' | 'pedestal' | 'lampshade';
+export type BodyProfileMode = 'preset' | 'advanced';
 type RenderStyle = 'smooth' | 'low-poly';
-export type BodyTab = 'body' | 'base' | 'finish' | 'export';
+export type BodyTab = 'body' | 'profile' | 'base' | 'finish' | 'export';
 
 export type LampBodyConfig = {
   profile: BodyProfile;
+  profileMode: BodyProfileMode;
+  advancedLowerRadius: number;
+  advancedShoulderRadius: number;
+  advancedWaistRadius: number;
+  advancedUpperRadius: number;
+  profileCurve: number;
+  profileFlare: number;
   height: number;
   bodyRadius: number;
   topRadius: number;
@@ -22,6 +30,8 @@ export type LampBodyConfig = {
   neckHeight: number;
   wallThickness: number;
   socketDiameter: number;
+  bottomHoleEnabled: boolean;
+  bottomHoleDiameter: number;
   segments: number;
   renderStyle: RenderStyle;
   showSimulation: boolean;
@@ -29,7 +39,14 @@ export type LampBodyConfig = {
 };
 
 export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
-  profile: 'pedestal',
+  profile: 'lampshade',
+  profileMode: 'preset',
+  advancedLowerRadius: 72,
+  advancedShoulderRadius: 62,
+  advancedWaistRadius: 46,
+  advancedUpperRadius: 30,
+  profileCurve: 55,
+  profileFlare: 35,
   height: 190,
   bodyRadius: 48,
   topRadius: 34,
@@ -39,6 +56,8 @@ export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
   neckHeight: 16,
   wallThickness: 3.2,
   socketDiameter: 42,
+  bottomHoleEnabled: true,
+  bottomHoleDiameter: 42,
   segments: 64,
   renderStyle: 'smooth',
   showSimulation: true,
@@ -50,11 +69,11 @@ const COLORS = ['#d9d6cf', '#e7e7e7', '#1b1b1b', '#d23b3b', '#2f6fdd', '#2e9e5b'
 const COPY = {
   en: {
     title: 'Lamp Body Creator', subtitle: 'Parametric Lamp Stand Generator', workspace: 'BODY WORKSPACE', preview: 'Live 3D preview', realtime: 'Realtime geometry',
-    tabs: { body: 'Body', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
-    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.',
-    profiles: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal' },
+    tabs: { body: 'Body', profile: 'Profile', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
+    bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced', advancedHint: 'Tune four profile stations to create a shade-like body with controlled curvature.', lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
+    profiles: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' },
     dimensions: 'Body dimensions', height: 'Height', bodyRadius: 'Body radius', topRadius: 'Top radius',
-    base: 'Base and mounting', baseRadius: 'Base radius', baseHeight: 'Base height', neckRadius: 'Neck radius', neckHeight: 'Neck height',
+    base: 'Base and mounting', baseRadius: 'Base radius', baseHeight: 'Base height', neckRadius: 'Neck radius', neckHeight: 'Neck height', bottomHole: 'Bottom cable & socket opening', bottomHoleHint: 'A real through-hole is cut into the base for the cable and lamp socket.', bottomHoleDiameter: 'Opening diameter', holeEnabled: 'Bottom opening', holeOn: 'Open', holeOff: 'Closed',
     socket: 'Socket opening', socketDiameter: 'Socket diameter', socketHint: 'The opening is sized for a replaceable E27/E14 insert.',
     construction: 'Print construction', wall: 'Wall thickness', segments: 'Radial resolution', resolutionHint: 'Higher resolution creates a smoother round body.',
     appearance: 'Appearance', style: 'Render style', smooth: 'Smooth', lowPoly: 'Low poly', color: 'Body color', simulation: 'Lamp simulation',
@@ -66,11 +85,11 @@ const COPY = {
   },
   vi: {
     title: 'Trình tạo thân đèn', subtitle: 'Tạo thân đèn tham số', workspace: 'KHÔNG GIAN THÂN ĐÈN', preview: 'Preview 3D trực tiếp', realtime: 'Hình học thời gian thực',
-    tabs: { body: 'Thân đèn', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
-    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.',
-    profiles: { cylinder: 'Trụ thẳng', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân' },
+    tabs: { body: 'Thân đèn', profile: 'Biên dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
+    bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Nâng cao', advancedHint: 'Tinh chỉnh bốn điểm biên dạng để tạo thân giống chao đèn, có kiểm soát độ cong.', lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
+    profiles: { cylinder: 'Trụ thẳng', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' },
     dimensions: 'Kích thước thân', height: 'Chiều cao', bodyRadius: 'Bán kính thân', topRadius: 'Bán kính đỉnh',
-    base: 'Đế và vị trí lắp', baseRadius: 'Bán kính đế', baseHeight: 'Chiều cao đế', neckRadius: 'Bán kính cổ', neckHeight: 'Chiều cao cổ',
+    base: 'Đế và vị trí lắp', baseRadius: 'Bán kính đế', baseHeight: 'Chiều cao đế', neckRadius: 'Bán kính cổ', neckHeight: 'Chiều cao cổ', bottomHole: 'Lỗ luồn dây & gắn đuôi đèn', bottomHoleHint: 'Lỗ xuyên thực được cắt qua đáy để luồn dây và gắn đuôi đèn.', bottomHoleDiameter: 'Đường kính lỗ', holeEnabled: 'Lỗ đáy', holeOn: 'Đang mở', holeOff: 'Đóng',
     socket: 'Miệng lắp đui', socketDiameter: 'Đường kính miệng', socketHint: 'Miệng được thiết kế cho vòng chuyển E27/E14 có thể thay thế.',
     construction: 'Kết cấu in', wall: 'Độ dày thành', segments: 'Độ phân giải quanh trục', resolutionHint: 'Độ phân giải cao tạo thân tròn mượt hơn.',
     appearance: 'Hiển thị', style: 'Kiểu hiển thị', smooth: 'Mượt', lowPoly: 'Low poly', color: 'Màu thân đèn', simulation: 'Mô phỏng đèn',
@@ -89,11 +108,29 @@ export function getLampBodyCopy(language: Language): LampBodyCopy {
 
 function bodyRadiusAt(config: LampBodyConfig, progress: number) {
   const p = Math.min(1, Math.max(0, progress));
+  if (config.profileMode === 'advanced') {
+    const stations = [config.advancedLowerRadius, config.advancedShoulderRadius, config.advancedWaistRadius, config.advancedUpperRadius];
+    const scaled = p * (stations.length - 1);
+    const index = Math.min(stations.length - 2, Math.floor(scaled));
+    const local = scaled - index;
+    const eased = THREE.MathUtils.smoothstep(local, 0, 1);
+    return THREE.MathUtils.lerp(stations[index], stations[index + 1], eased);
+  }
   if (config.profile === 'cylinder') return config.bodyRadius;
   if (config.profile === 'taper') return THREE.MathUtils.lerp(config.bodyRadius, config.topRadius, p);
   if (config.profile === 'hourglass') {
     const waist = Math.max(config.topRadius, config.bodyRadius * .52);
     return p < .5 ? THREE.MathUtils.lerp(config.bodyRadius, waist, p * 2) : THREE.MathUtils.lerp(waist, config.topRadius, (p - .5) * 2);
+  }
+  if (config.profile === 'lampshade') {
+    const lower = Math.max(config.bodyRadius * 1.18, config.baseRadius * 0.78);
+    const upper = Math.max(config.topRadius, config.neckRadius * 1.16);
+    const flare = THREE.MathUtils.clamp(config.profileFlare / 100, 0, 1);
+    const curve = THREE.MathUtils.lerp(1.45, 0.62, THREE.MathUtils.clamp(config.profileCurve / 100, 0, 1));
+    const shadeT = Math.pow(p, curve);
+    const shoulder = THREE.MathUtils.lerp(lower, upper, 0.56 - flare * 0.16);
+    if (shadeT < 0.48) return THREE.MathUtils.lerp(lower, shoulder, shadeT / 0.48);
+    return THREE.MathUtils.lerp(shoulder, upper, (shadeT - 0.48) / 0.52);
   }
   const eased = p * p * (3 - 2 * p);
   return THREE.MathUtils.lerp(config.bodyRadius * .86, config.topRadius, eased);
@@ -108,6 +145,11 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   const wall = Math.max(.8, config.wallThickness);
   const bodyBottomRadius = bodyRadiusAt(config, 0);
   const bodyTopRadius = bodyRadiusAt(config, 1);
+  const innerBaseY = baseHeight + wall;
+  const maximumHoleRadius = Math.max(2, bodyBottomRadius - wall - 1);
+  const bottomHoleRadius = config.bottomHoleEnabled
+    ? Math.min(Math.max(2, config.bottomHoleDiameter / 2), maximumHoleRadius)
+    : 0;
 
   points.push(new THREE.Vector2(config.baseRadius, 0));
   points.push(new THREE.Vector2(config.baseRadius, baseHeight * .42));
@@ -125,9 +167,12 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   [.84, .65, .4, .18, 0].forEach((progress) => {
     points.push(new THREE.Vector2(Math.max(2, bodyRadiusAt(config, progress) - wall), baseHeight + bodyHeight * progress));
   });
-  points.push(new THREE.Vector2(Math.max(2, bodyBottomRadius - wall), baseHeight + wall));
-  points.push(new THREE.Vector2(0, baseHeight + wall));
-  points.push(new THREE.Vector2(0, 0));
+  points.push(new THREE.Vector2(Math.max(2, bodyBottomRadius - wall), innerBaseY));
+  points.push(new THREE.Vector2(bottomHoleRadius, innerBaseY));
+  points.push(new THREE.Vector2(bottomHoleRadius, 0));
+  // Close the radial section across the underside. With an enabled hole this
+  // is an annular face; when disabled it becomes a solid bottom cap.
+  points.push(new THREE.Vector2(config.baseRadius, 0));
 
   const geometry = new THREE.LatheGeometry(points, config.renderStyle === 'low-poly' ? Math.max(16, Math.round(config.segments / 2)) : config.segments);
   geometry.computeVertexNormals();

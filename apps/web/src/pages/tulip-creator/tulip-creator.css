@@ -240,6 +240,10 @@
   border-bottom: 1px solid #25324a;
 }
 
+.tulip-tabs.body-tabs {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .tulip-tabs button {
   position: relative;
   display: flex;

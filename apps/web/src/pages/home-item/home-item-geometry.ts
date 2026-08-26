@@ -68,9 +68,11 @@ export type HomeItemConfig = {
 
 export const HOME_ITEM_QUALITY: Record<HomeItemQuality, { segments: number; verticalLayers: number }> = {
   low: { segments: 48, verticalLayers: 48 },
-  medium: { segments: 72, verticalLayers: 72 },
-  high: { segments: 104, verticalLayers: 104 },
-  ultra: { segments: 160, verticalLayers: 160 },
+  medium: { segments: 96, verticalLayers: 96 },
+  // The reference's High preview is intentionally dense (about 716k triangles).
+  // Keep the same quality feel so procedural relief reads as a continuous surface.
+  high: { segments: 424, verticalLayers: 422 },
+  ultra: { segments: 560, verticalLayers: 560 },
 };
 
 export const DEFAULT_HOME_ITEM_CONFIG: HomeItemConfig = {
@@ -140,13 +142,16 @@ function maskFactor(config: HomeItemConfig, angle: number) {
 
 function patternRelief(config: HomeItemConfig, angle: number, y: number, radius: number) {
   let relief = 0;
-  const circumference = Math.max(1, Math.PI * 2 * radius);
+  // `angle * radius` is the true arc-length coordinate. Multiplying by the
+  // full circumference would repeat each cell 2π times and turn round dots
+  // into visually incorrect vertical striations.
+  const arc = angle * Math.max(1, radius);
   const t = y / Math.max(1, config.height);
 
   if (config.lines.enabled) {
     const direction = config.lines.direction;
     const rotated = angle + THREE.MathUtils.degToRad(config.lines.angle);
-    const lineDistance = periodicDistance(Math.sin(rotated) * circumference, Math.max(1, config.lines.period));
+    const lineDistance = periodicDistance(Math.sin(rotated) * radius, Math.max(1, config.lines.period));
     const lineBand = 1 - smoothstep(config.lines.width * 0.35, config.lines.width, lineDistance);
     const horizontalBand = 1 - smoothstep(config.lines.width * 0.35, config.lines.width, periodicDistance(y, Math.max(2, config.lines.period)));
     const contribution = direction === 'horizontal' ? horizontalBand : direction === 'vertical' ? lineBand : Math.max(lineBand, horizontalBand);
@@ -159,7 +164,7 @@ function patternRelief(config: HomeItemConfig, angle: number, y: number, radius:
     const rowIndex = Math.round(y / rowSpacing);
     const rowY = rowIndex * rowSpacing;
     const rowOffset = config.spheres.distribution === 'staggered' && rowIndex % 2 ? columnSpacing / 2 : 0;
-    const horizontalDistance = periodicDistance(((angle * circumference) - rowOffset), columnSpacing);
+    const horizontalDistance = periodicDistance(arc - rowOffset, columnSpacing);
     const verticalDistance = Math.abs(y - rowY);
     const halfDiameter = Math.max(0.8, config.spheres.diameter / 2);
     const distance = Math.sqrt(horizontalDistance ** 2 + verticalDistance ** 2);
@@ -176,8 +181,8 @@ function patternRelief(config: HomeItemConfig, angle: number, y: number, radius:
   if (config.diamonds.enabled) {
     const xPeriod = Math.max(2, config.diamonds.horizontalSpacing);
     const yPeriod = Math.max(2, config.diamonds.verticalSpacing);
-    const diagonalA = periodicDistance(angle * circumference + y, xPeriod);
-    const diagonalB = periodicDistance(angle * circumference - y, xPeriod);
+    const diagonalA = periodicDistance(arc + y, xPeriod);
+    const diagonalB = periodicDistance(arc - y, xPeriod);
     const diamondDistance = Math.min(diagonalA, diagonalB);
     const rowDistance = periodicDistance(y, yPeriod);
     const line = Math.max(
@@ -189,7 +194,7 @@ function patternRelief(config: HomeItemConfig, angle: number, y: number, radius:
 
   if (config.dots.enabled) {
     const spacing = Math.max(3, config.dots.width + config.dots.threadThickness * 2);
-    const dotDistance = Math.sqrt(periodicDistance(angle * circumference, spacing) ** 2 + periodicDistance(y, Math.max(3, config.dots.height + 3)) ** 2);
+    const dotDistance = Math.sqrt(periodicDistance(arc, spacing) ** 2 + periodicDistance(y, Math.max(3, config.dots.height + 3)) ** 2);
     relief += Math.max(0, 1 - dotDistance / Math.max(1, config.dots.width / 2)) ** 2 * config.dots.depth;
   }
 
