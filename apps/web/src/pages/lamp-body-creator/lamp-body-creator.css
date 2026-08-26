@@ -112,16 +112,16 @@
 .lamp-body-vertical-profile { position: relative; display: flex; flex-direction: column; gap: 13px; }
 .lamp-body-profile-editor-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .lamp-body-profile-editor-toolbar > strong { color: #9dacc5; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
-.lamp-body-add-point { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #2c6d83; border-radius: 7px; color: #9aeaff; background: #123047; font-size: 10px; font-weight: 800; cursor: pointer; }
+.lamp-body-add-point { display: inline-flex; flex: none; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid #2c6d83; border-radius: 7px; color: #9aeaff; background: #123047; font-size: 9px; font-weight: 800; white-space: nowrap; cursor: pointer; }
 .lamp-body-add-point:hover { border-color: #66dcff; background: #17445b; }
 .lamp-body-add-point:disabled { opacity: .45; cursor: not-allowed; }
 .lamp-body-profile-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .lamp-body-profile-presets button { min-height: 30px; padding: 5px 2px; border: 1px solid #283957; border-radius: 6px; color: #9dacc5; background: #111d34; font-size: 9px; cursor: pointer; }
 .lamp-body-profile-presets button:hover, .lamp-body-profile-presets button.active { border-color: #5bd3fb; color: #d8f7ff; background: #123048; }
 .lamp-body-profile-axis-labels { position: absolute; inset: 7px 10px auto 10px; display: flex; justify-content: space-between; color: #7183a3; font-size: 8px; letter-spacing: .05em; text-transform: uppercase; pointer-events: none; }
-.lamp-body-vertical-profile svg { display: block; width: 100%; height: 195px; overflow: visible; border: 1px solid #243553; border-radius: 11px; color: #7183a3; background: #0f182b; touch-action: none; }
-.lamp-body-vertical-profile svg circle { cursor: grab; }
-.lamp-body-vertical-profile svg circle:active { cursor: grabbing; }
+.lamp-body-vertical-profile > svg { display: block; width: 100%; height: 195px; overflow: visible; border: 1px solid #243553; border-radius: 11px; color: #7183a3; background: #0f182b; touch-action: none; }
+.lamp-body-vertical-profile > svg circle { cursor: grab; }
+.lamp-body-vertical-profile > svg circle:active { cursor: grabbing; }
 .lamp-body-profile-sample { opacity: .96; filter: drop-shadow(0 0 2px #fbbf2455); }
 .lamp-body-profile-scale { display: flex; justify-content: space-between; margin: -8px 10px 0 22px; color: #7183a3; font-size: 8px; }
 .lamp-body-profile-help { margin: 0; padding: 11px 12px; border-radius: 9px; color: #7d91b1; background: #101d33; font-size: 10px; line-height: 1.5; }

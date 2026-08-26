@@ -216,11 +216,16 @@ function AdvancedProfilePanel({ config, update, copy }: { config: LampBodyConfig
 }
 
 function ShapePanel({ config, update, copy }: { config: LampBodyConfig; update: LampBodyUpdate; copy: LampBodyCopy }) {
+  const selectShape = (shape: BodyShape) => {
+    update('shapeType', shape);
+    if (shape === 'polygon' && config.shapeWaves > 12) update('shapeWaves', 12);
+  };
+
   return <div className="lamp-body-panel-content"><section><PanelTitle icon={Waves} title={copy.shapeSettings} /><div className="lamp-body-shape-grid">
-    <BodyShapeButton shape="circle" label={copy.shapes.circle} active={config.shapeType === 'circle'} onClick={() => update('shapeType', 'circle')} />
-    <BodyShapeButton shape="polygon" label={copy.shapes.polygon} active={config.shapeType === 'polygon'} onClick={() => update('shapeType', 'polygon')} />
-    <BodyShapeButton shape="wave" label={copy.shapes.wave} active={config.shapeType === 'wave'} onClick={() => update('shapeType', 'wave')} />
-    <BodyShapeButton shape="star" label={copy.shapes.star} active={config.shapeType === 'star'} onClick={() => update('shapeType', 'star')} />
+    <BodyShapeButton shape="circle" label={copy.shapes.circle} active={config.shapeType === 'circle'} onClick={() => selectShape('circle')} />
+    <BodyShapeButton shape="polygon" label={copy.shapes.polygon} active={config.shapeType === 'polygon'} onClick={() => selectShape('polygon')} />
+    <BodyShapeButton shape="wave" label={copy.shapes.wave} active={config.shapeType === 'wave'} onClick={() => selectShape('wave')} />
+    <BodyShapeButton shape="star" label={copy.shapes.star} active={config.shapeType === 'star'} onClick={() => selectShape('star')} />
   </div>{config.shapeType !== 'circle' && <div className="lamp-body-profile-fields"><RangeControl label={copy.count} value={config.shapeWaves} min={3} max={config.shapeType === 'polygon' ? 12 : 64} unit="" onChange={(value) => update('shapeWaves', value)} />{config.shapeType !== 'polygon' && <RangeControl label={copy.depth} value={config.shapeAmplitude} min={0} max={20} step={.5} unit={` ${copy.mm}`} onChange={(value) => update('shapeAmplitude', value)} />}</div>}<RangeControl label={copy.twist} value={config.shapeTwist} min={0} max={720} step={5} unit="°" onChange={(value) => update('shapeTwist', value)} /></section></div>;
 }
 

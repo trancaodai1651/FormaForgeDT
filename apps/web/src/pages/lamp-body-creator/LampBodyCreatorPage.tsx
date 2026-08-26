@@ -207,7 +207,9 @@ function positiveModulo(value: number, modulo: number) {
 
 function bodyShapeRadius(radius: number, angle: number, config: LampBodyConfig) {
   if (radius <= 0) return 0;
-  const waves = Math.max(3, Math.round(config.shapeWaves));
+  const waves = config.shapeType === 'polygon'
+    ? Math.min(12, Math.max(3, Math.round(config.shapeWaves)))
+    : Math.min(64, Math.max(3, Math.round(config.shapeWaves)));
   if (config.shapeType === 'circle') return radius;
   if (config.shapeType === 'polygon') {
     const sector = Math.PI * 2 / waves;
@@ -261,36 +263,24 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   points.push(new THREE.Vector2(config.baseRadius, 0));
 
   const segments = config.renderStyle === 'low-poly' ? Math.max(16, Math.round(config.segments / 2)) : Math.max(16, Math.round(config.segments));
-  const vertices: number[] = [];
-  const uvs: number[] = [];
-  const indices: number[] = [];
-  points.forEach((point) => {
+  const outerTopIndex = points.findIndex((point, index) => index > 0 && point.y === totalHeight);
+  const innerProfileStart = outerTopIndex + 1;
+  const geometry = new THREE.LatheGeometry(points, segments);
+  const position = geometry.getAttribute('position');
+  for (let row = 0; row < points.length; row += 1) {
+    const point = points[row];
     const progress = THREE.MathUtils.clamp(point.y / totalHeight, 0, 1);
-    const twist = THREE.MathUtils.degToRad(config.shapeTwist) * progress;
+    const twist = config.shapeType === 'circle' ? 0 : THREE.MathUtils.degToRad(config.shapeTwist) * progress;
+    const shapeOuter = row < innerProfileStart || row === points.length - 1;
     for (let segment = 0; segment <= segments; segment += 1) {
+      const index = segment * points.length + row;
       const angle = segment / segments * Math.PI * 2;
-      const radius = bodyShapeRadius(point.x, angle, config);
+      const radius = shapeOuter ? Math.max(point.x - wall, bodyShapeRadius(point.x, angle, config)) : point.x;
       const rotatedAngle = angle + twist;
-      vertices.push(radius * Math.cos(rotatedAngle), point.y, radius * Math.sin(rotatedAngle));
-      uvs.push(segment / segments, progress);
-    }
-  });
-  const rowSize = segments + 1;
-  for (let row = 0; row < points.length - 1; row += 1) {
-    const currentRow = row * rowSize;
-    const nextRow = (row + 1) * rowSize;
-    for (let segment = 0; segment < segments; segment += 1) {
-      const current = currentRow + segment;
-      const next = current + 1;
-      const above = nextRow + segment;
-      const aboveNext = above + 1;
-      indices.push(current, next, aboveNext, aboveNext, above, current);
+      position.setXYZ(index, radius * Math.sin(rotatedAngle), point.y, radius * Math.cos(rotatedAngle));
     }
   }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(indices);
+  position.needsUpdate = true;
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -323,18 +313,22 @@ function ToggleControl({ label, hint, value, onChange, onLabel, offLabel }: { la
 
 function BodyMesh({ geometry, color, lowPoly }: { geometry: THREE.BufferGeometry; color: string; lowPoly: boolean }) {
   useEffect(() => () => geometry.dispose(), [geometry]);
-  return <mesh geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.58} metalness={.04} flatShading={lowPoly} /></mesh>;
+  return <mesh geometry={geometry} castShadow receiveShadow><meshStandardMaterial color={color} roughness={.64} metalness={.04} side={THREE.DoubleSide} flatShading={lowPoly} /></mesh>;
 }
 
-export function LampBodyModel({ config, yOffset = 0, showSimulation = config.showSimulation }: { config: LampBodyConfig; yOffset?: number; showSimulation?: boolean }) {
+export function LampBodyModel({ config, yOffset = 0, showSimulation = config.showSimulation, showMesh = false }: { config: LampBodyConfig; yOffset?: number; showSimulation?: boolean; showMesh?: boolean }) {
   const geometry = useMemo(() => createLampBodyGeometry(config), [config]);
   const totalHeight = config.baseHeight + config.height + config.neckHeight;
+  const socketRadius = Math.max(2, config.socketDiameter / 2);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group position={[0, yOffset, 0]}>
     <BodyMesh geometry={geometry} color={config.color} lowPoly={config.renderStyle === 'low-poly'} />
+    {showMesh && <mesh geometry={geometry}><meshBasicMaterial color="#8be7ff" wireframe transparent opacity={.28} /></mesh>}
+    <mesh position={[0, totalHeight + .8, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[socketRadius + .8, .8, 12, 32]} /><meshStandardMaterial color="#252b35" metalness={.75} roughness={.3} /></mesh>
+    <mesh position={[0, totalHeight + 6, 0]} castShadow><cylinderGeometry args={[socketRadius, socketRadius, 12, 32, 1, true]} /><meshStandardMaterial color="#252b35" metalness={.75} roughness={.3} side={THREE.DoubleSide} /></mesh>
+    {config.bottomHoleEnabled && <mesh position={[0, .9, 0]}><cylinderGeometry args={[Math.max(1, config.bottomHoleDiameter / 2 - .6), Math.max(1, config.bottomHoleDiameter / 2 - .6), 1.8, 32, 1, true]} /><meshStandardMaterial color="#171b24" roughness={.9} side={THREE.DoubleSide} /></mesh>}
     {showSimulation && <>
       <pointLight position={[0, totalHeight + 48, 0]} color="#ffd38a" intensity={260} distance={500} decay={2} />
-      <mesh position={[0, totalHeight + 11, 0]} castShadow><cylinderGeometry args={[config.socketDiameter / 2, config.socketDiameter / 2, 12, 32]} /><meshStandardMaterial color="#252b35" metalness={.75} roughness={.3} /></mesh>
       <mesh position={[0, totalHeight + 48, 0]}><sphereGeometry args={[23, 32, 18]} /><meshStandardMaterial color="#fff3cf" emissive="#ffb84a" emissiveIntensity={1.8} roughness={.25} /></mesh>
     </>}
   </group>;
@@ -346,6 +340,7 @@ function LampBodyScene({ config }: { config: LampBodyConfig; geometry?: THREE.Bu
     <color attach="background" args={['#070b12']} />
     <PerspectiveCamera makeDefault position={[420, 300, 520]} fov={38} />
     <ambientLight intensity={.55} />
+    <hemisphereLight args={['#d9eaff', '#101521', .48]} />
     <directionalLight position={[220, 360, 260]} intensity={2.3} castShadow shadow-mapSize={[2048, 2048]} />
     <directionalLight position={[-180, 180, -120]} intensity={.7} />
     {config.showSimulation && <pointLight position={[0, totalHeight + 48, 0]} color="#ffd38a" intensity={260} distance={500} decay={2} />}

@@ -431,6 +431,7 @@ function TulipScene({ config, bodyConfig = DEFAULT_LAMP_BODY_CONFIG, showMesh }:
     <PerspectiveCamera makeDefault position={[430, 350, 560]} fov={45} near={.1} far={5000} />
     <OrbitControls makeDefault target={[0, assemblyHeight * .48, 0]} minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} enablePan enableDamping dampingFactor={.1} minDistance={170} maxDistance={1200} />
     <ambientLight intensity={config.showSimulation ? .2 : .5} />
+    <hemisphereLight args={['#d9eaff', '#101521', .48]} />
     {!config.showSimulation && <pointLight position={[0, bodyHeight + 48, 0]} color="#ffffff" intensity={2} />}
     <directionalLight position={[180, 360, 220]} intensity={config.showSimulation ? .55 : 1} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0001} shadow-normalBias={.04} />
     {config.showSimulation && !bodyConfig.showSimulation && <pointLight position={[0, bodyHeight + 48, 0]} color="#ffaa00" intensity={900} distance={800} decay={1.5} />}
@@ -439,7 +440,7 @@ function TulipScene({ config, bodyConfig = DEFAULT_LAMP_BODY_CONFIG, showMesh }:
       <Lightformer form="rect" intensity={1.2} position={[420, 320, 220]} scale={[320, 320, 1]} target={[0, assemblyHeight * .45, 0]} />
       <Lightformer form="rect" intensity={.7} position={[-420, 220, 140]} scale={[320, 320, 1]} target={[0, assemblyHeight * .45, 0]} />
     </Environment>
-    <LampBodyModel config={bodyConfig} showSimulation={bodyConfig.showSimulation} />
+    <LampBodyModel config={bodyConfig} showSimulation={bodyConfig.showSimulation} showMesh={showMesh} />
     <group position={[0, shadeOffset, 0]}><TulipMesh config={config} showMesh={showMesh} /></group>
     <Grid sectionSize={100} cellSize={20} infiniteGrid position={[0, -.1, 0]} fadeDistance={Math.max(3000, assemblyHeight * 10)} fadeStrength={1} />
   </>;
