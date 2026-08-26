@@ -49,7 +49,7 @@ type TulipConfig = {
 };
 
 const DEFAULT_PROFILE: ProfilePoint[] = [
-  { x: .5, y: 0, type: 'corner' },
+  { x: .78, y: 0, type: 'corner' },
   { x: .9, y: .3, type: 'smooth', handleIn: { x: .9, y: .2 }, handleOut: { x: .9, y: .4 } },
   { x: 1, y: .6, type: 'smooth', handleIn: { x: 1, y: .5 }, handleOut: { x: 1, y: .7 } },
   { x: .8, y: 1, type: 'corner' },
@@ -262,7 +262,12 @@ function createTulipGeometry(config: TulipConfig) {
     }
   }
 
-  const holeRadius = Math.max(0, config.holeDiameter / 2);
+  let minimumBottomRadius = Infinity;
+  for (let segment = 0; segment < segments; segment += 1) {
+    const angle = segment / segments * Math.PI * 2;
+    minimumBottomRadius = Math.min(minimumBottomRadius, shapeRadius(radiusAt(0), angle, config.shapeType, config.waves, config.amplitude));
+  }
+  const holeRadius = Math.min(Math.max(0, config.holeDiameter / 2), Math.max(0, minimumBottomRadius - 1));
   if (holeRadius > 0) {
     const holeOffset = vertices.length / 3;
     for (let segment = 0; segment <= segments; segment += 1) {
@@ -582,7 +587,7 @@ function ProfilePanel({ config, update, copy }: { config: TulipConfig; update: (
   return <div className="tulip-panel-content">
     <h3>{copy.mounting}</h3>
     <div className="tulip-control-card">
-      <RangeControl label={copy.hole} value={config.holeDiameter} min={0} max={60} unit=" mm" onChange={(holeDiameter) => update({ holeDiameter })} />
+      <RangeControl label={copy.hole} value={config.holeDiameter} min={0} max={240} unit=" mm" onChange={(holeDiameter) => update(config.useAdvancedMode ? { holeDiameter } : { holeDiameter, radiusBottom: Math.max(config.radiusBottom, holeDiameter / 2 + 5) })} />
       <div className="tulip-preset-row"><button type="button" className={config.holeDiameter === 28 ? 'active' : ''} onClick={() => update({ holeDiameter: 28 })}>E14 (28mm)</button><button type="button" className={config.holeDiameter === 42 ? 'active' : ''} onClick={() => update({ holeDiameter: 42 })}>E27 (42mm)</button></div>
     </div>
     <h3 className="tulip-section-spaced">{copy.dimensions}</h3>
@@ -590,12 +595,12 @@ function ProfilePanel({ config, update, copy }: { config: TulipConfig; update: (
     <div className="tulip-profile-fields">
       <RangeControl label={copy.height} value={config.height} min={20} max={300} unit=" mm" onChange={(height) => update({ height })} />
       {config.useAdvancedMode ? <>
-        <RangeControl label={copy.maxRadius} value={config.maxRadius} min={20} max={150} unit=" mm" onChange={(maxRadius) => update({ maxRadius })} />
+        <RangeControl label={copy.maxRadius} value={config.maxRadius} min={20} max={240} unit=" mm" onChange={(maxRadius) => update({ maxRadius })} />
         <div className="tulip-vertical-profile"><strong>{copy.vertical}</strong><div className="tulip-profile-presets">{PROFILE_PRESETS.map((preset) => <button type="button" key={preset.name} onClick={() => update({ profilePoints: preset.points.map((point) => ({ ...point })) })}>{copy.profileLabels[preset.name as keyof typeof copy.profileLabels]}</button>)}</div><ProfileEditor points={config.profilePoints} maxRadius={config.maxRadius} onChange={(profilePoints) => update({ profilePoints })} copy={copy} /><p className="tulip-help">{copy.dragHint}</p></div>
       </> : <>
-        <RangeControl label={copy.topOpening} value={config.radiusTop} min={0} max={150} unit=" mm" onChange={(radiusTop) => update({ radiusTop })} />
-        <RangeControl label={copy.middle} value={config.radiusMid} min={10} max={150} unit=" mm" onChange={(radiusMid) => update({ radiusMid })} />
-        <RangeControl label={copy.maxBottom} value={config.radiusBottom} min={config.holeDiameter + 5} max={150} unit=" mm" onChange={(radiusBottom) => update({ radiusBottom })} />
+        <RangeControl label={copy.topOpening} value={config.radiusTop} min={0} max={240} unit=" mm" onChange={(radiusTop) => update({ radiusTop })} />
+        <RangeControl label={copy.middle} value={config.radiusMid} min={10} max={240} unit=" mm" onChange={(radiusMid) => update({ radiusMid })} />
+        <RangeControl label={copy.maxBottom} value={config.radiusBottom} min={config.holeDiameter + 5} max={Math.max(240, config.holeDiameter + 5)} unit=" mm" onChange={(radiusBottom) => update({ radiusBottom })} />
         <RangeControl label={copy.middlePos} value={config.midHeight * 100} min={10} max={90} unit="%" onChange={(middlePos) => update({ midHeight: middlePos / 100 })} />
       </>}
     </div>
@@ -670,6 +675,7 @@ export function TulipCreatorPage() {
   useEffect(() => { setPart(location.pathname === '/admin/lamp-body-creator' ? 'body' : 'shade'); }, [location.pathname]);
   const update = (patch: Partial<TulipConfig>) => setConfig((current) => ({ ...current, ...patch }));
   const updateBody: LampBodyUpdate = (key, value) => setBodyConfig((current) => ({ ...current, [key]: value }));
+  useEffect(() => { if (part === 'body') setBodyTab('profile'); else setTab('general'); }, [part]);
   const exportStl = () => {
     try {
       const geometry = createTulipGeometry(config);

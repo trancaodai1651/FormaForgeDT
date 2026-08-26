@@ -176,7 +176,9 @@ function getAdvancedRadius(points: BodyProfilePoint[], maxRadius: number, normal
   const end = sorted[index + 1] ?? start;
   if (start.type === 'corner' && end.type === 'corner') {
     const span = end.y - start.y;
-    return Math.max(0, (start.x + (end.x - start.x) * (span === 0 ? 0 : (y - start.y) / span)) * maxRadius);
+    const linear = span === 0 ? 0 : (y - start.y) / span;
+    const eased = linear * linear * (3 - 2 * linear);
+    return Math.max(0, (start.x + (end.x - start.x) * eased) * maxRadius);
   }
   const startControl = start.handleOut ?? { x: start.x, y: start.y + (end.y - start.y) * .33 };
   const endControl = end.handleIn ?? { x: end.x, y: end.y - (end.y - start.y) * .33 };
@@ -251,7 +253,7 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   const seatHeight = Math.max(2, Math.min(config.shadeSeatHeight, neckHeight * .72));
   const bodyBottomRadius = bodyRadiusAt(config, 0);
   const bodyTopRadius = bodyRadiusAt(config, 1);
-  const maximumHoleRadius = Math.max(2, bodyBottomRadius - wall - 1);
+  const maximumHoleRadius = Math.max(2, config.baseRadius - wall - .8);
   const bottomHoleRadius = config.bottomHoleEnabled
     ? Math.min(Math.max(2, config.bottomHoleDiameter / 2), maximumHoleRadius)
     : 0;
@@ -273,10 +275,11 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
   // the raw neck radius creates a visible collar/ring at the shade joint.
   const neckTarget = THREE.MathUtils.lerp(config.neckRadius, Math.min(bodyTopRadius, seatRadius), .78);
   const neckBlend = THREE.MathUtils.clamp(1 - seatHeight / neckHeight, .18, .82);
+  const neckStartTangent = bodySlopeAtTop * neckHeight / bodyHeight * neckBlend;
   const topOuterRadiusAt = (progress: number) => {
     const t = THREE.MathUtils.clamp(progress, 0, 1);
     return t <= neckBlend
-      ? transition(bodyTopRadius, neckTarget, t / neckBlend, bodySlopeAtTop * neckBlend, 0)
+      ? transition(bodyTopRadius, neckTarget, t / neckBlend, neckStartTangent, 0)
       : transition(neckTarget, seatRadius, (t - neckBlend) / (1 - neckBlend), 0, 0);
   };
 
@@ -298,9 +301,8 @@ export function createLampBodyGeometry(config: LampBodyConfig) {
     const progress = index / topSamples;
     points.push(new THREE.Vector2(topOuterRadiusAt(progress), THREE.MathUtils.lerp(bodyTop, totalHeight, progress)));
   }
-  // Keep the top rim planar so the shade/socket can sit on a real flat seat.
-  points.push(new THREE.Vector2(seatRadius, totalHeight));
-
+  // The final top sample already lands on the flat seat. Do not duplicate it:
+  // a zero-length ring here produces a false crease in the revolved shell.
   const innerTopRadius = Math.max(2, Math.min(seatRadius - .8, config.socketDiameter / 2));
   points.push(new THREE.Vector2(innerTopRadius, totalHeight));
   for (let index = 1; index <= topSamples; index += 1) {
