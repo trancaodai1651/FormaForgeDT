@@ -59,7 +59,7 @@ const DEFAULT_CONFIG: TulipConfig = {
   height: 140,
   profilePoints: DEFAULT_PROFILE,
   maxRadius: 80,
-  useAdvancedMode: false,
+  useAdvancedMode: true,
   radiusTop: 50,
   radiusBottom: 80,
   radiusMid: 90,
@@ -88,7 +88,7 @@ const PROFILE_PRESETS: Array<{ name: string; points: ProfilePoint[] }> = [
 const COPY = {
   en: {
     title: 'Tulip Creator', subtitle: 'Lampshade Generator',
-    tabs: { general: 'Profile', shape: 'Shape', settings: 'Settings', export: 'Export' },
+    tabs: { general: 'Draw profile', shape: 'Shape', settings: 'Settings', export: 'Export' },
     mounting: 'Mounting', hole: 'Hole Diameter (mm)', dimensions: 'Dimensions', advanced: 'Advanced Profile',
     height: 'Height', maxRadius: 'Max Radius', topOpening: 'Top Opening', middle: 'Middle', maxBottom: 'Max Bottom', middlePos: 'Middle Pos %',
     vertical: 'Vertical Profile', addPoint: 'Add point', dragHint: 'Drag points & handles • Double-click node to toggle Curve/Sharp • Double-click anywhere on the grid to add a point',
@@ -119,7 +119,7 @@ const COPY = {
   },
   vi: {
     title: 'Trình tạo chao đèn', subtitle: 'Tạo chụp đèn tham số',
-    tabs: { general: 'Biên dạng', shape: 'Hình dạng', settings: 'Thiết lập', export: 'Xuất file' },
+    tabs: { general: 'Vẽ biên dạng', shape: 'Hình dạng', settings: 'Thiết lập', export: 'Xuất file' },
     mounting: 'Đui đèn', hole: 'Đường kính lỗ (mm)', dimensions: 'Kích thước', advanced: 'Biên dạng nâng cao',
     height: 'Chiều cao', maxRadius: 'Bán kính lớn nhất', topOpening: 'Miệng trên', middle: 'Ở giữa', maxBottom: 'Đáy lớn nhất', middlePos: 'Vị trí giữa %',
     vertical: 'Biên dạng dọc', addPoint: 'Thêm điểm', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc · Nhấp đúp bất kỳ vị trí nào trên lưới để thêm điểm',
@@ -335,6 +335,14 @@ function profilePath(points: ProfilePoint[]) {
   return path;
 }
 
+function profileAreaPath(points: ProfilePoint[]) {
+  const sorted = [...points].sort((a, b) => a.y - b.y);
+  if (sorted.length === 0) return '';
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  return `${profilePath(points)} L 0 ${(1 - last.y) * 100} L 0 ${(1 - first.y) * 100} Z`;
+}
+
 function profileXAt(points: ProfilePoint[], y: number) {
   const sorted = [...points].sort((a, b) => a.y - b.y);
   if (sorted.length === 0) return 0;
@@ -467,8 +475,10 @@ function ProfileEditor({ points, maxRadius, onChange, copy }: { points: ProfileP
     <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${copy.vertical}, ${maxRadius}mm`} onDoubleClick={addPoint}>
       <defs><pattern id="tulip-profile-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" strokeOpacity=".12" /></pattern></defs>
       <rect width="100" height="100" fill="url(#tulip-profile-grid)" />
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#ffcf25" strokeOpacity=".52" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       <line x1="0" y1="100" x2="100" y2="100" stroke="currentColor" strokeOpacity=".35" />
-      <path d={profilePath(points)} fill="none" stroke="#ec4899" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <path d={profileAreaPath(points)} fill="#ffcf25" fillOpacity=".16" stroke="none" />
+      <path d={profilePath(points)} fill="none" stroke="#ffcf25" strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
       {profileSamples(points).map((sample, sampleIndex) => {
         const x = sample.x * 100;
         const y = (1 - sample.y) * 100;
@@ -648,7 +658,7 @@ export function TulipCreatorPage() {
   const [config, setConfig] = useState<TulipConfig>(DEFAULT_CONFIG);
   const [bodyConfig, setBodyConfig] = useState<LampBodyConfig>(DEFAULT_LAMP_BODY_CONFIG);
   const [part, setPart] = useState<TulipPart>('shade');
-  const [bodyTab, setBodyTab] = useState<BodyTab>('body');
+  const [bodyTab, setBodyTab] = useState<BodyTab>('profile');
   const [tab, setTab] = useState<TulipTab>('general');
   const [showMesh, setShowMesh] = useState(false);
   const [licensesOpen, setLicensesOpen] = useState(false);

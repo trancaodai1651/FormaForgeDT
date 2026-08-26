@@ -61,6 +61,14 @@ function profilePath(points: BodyProfilePoint[]) {
   return path;
 }
 
+function profileAreaPath(points: BodyProfilePoint[]) {
+  const sorted = [...points].sort((a, b) => a.y - b.y);
+  if (sorted.length === 0) return '';
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  return `${profilePath(points)} L 0 ${(1 - last.y) * 100} L 0 ${(1 - first.y) * 100} Z`;
+}
+
 function cubicValue(a: number, b: number, c: number, d: number, t: number) {
   const inverse = 1 - t;
   return inverse ** 3 * a + 3 * inverse ** 2 * t * b + 3 * inverse * t ** 2 * c + t ** 3 * d;
@@ -215,8 +223,10 @@ function BodyProfileEditor({ points, maxRadius, onChange, copy }: { points: Body
     <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={`${copy.vertical}, ${maxRadius}${copy.mm}`} onDoubleClick={addPoint}>
       <defs><pattern id="lamp-body-profile-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" strokeOpacity=".12" /></pattern></defs>
       <rect width="100" height="100" fill="url(#lamp-body-profile-grid)" />
+      <line x1="0" y1="0" x2="0" y2="100" stroke="#ef3340" strokeOpacity=".52" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       <line x1="0" y1="100" x2="100" y2="100" stroke="currentColor" strokeOpacity=".35" />
-      <path d={profilePath(points)} fill="none" stroke="#66dcff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <path d={profileAreaPath(points)} fill="#ef3340" fillOpacity=".17" stroke="none" />
+      <path d={profilePath(points)} fill="none" stroke="#ef3340" strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
       {profileSamples(points).map((sample, sampleIndex) => {
         const x = sample.x * 100;
         const y = (1 - sample.y) * 100;

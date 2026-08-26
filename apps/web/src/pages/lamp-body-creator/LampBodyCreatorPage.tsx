@@ -52,13 +52,11 @@ export type LampBodyConfig = {
 };
 
 export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
-  profile: 'lampshade',
+  profile: 'taper',
   profileMode: 'advanced',
   advancedProfilePoints: [
-    { x: .78, y: 0, type: 'corner' },
-    { x: .9, y: .28, type: 'smooth', handleIn: { x: .9, y: .18 }, handleOut: { x: .88, y: .4 } },
-    { x: .72, y: .62, type: 'smooth', handleIn: { x: .76, y: .5 }, handleOut: { x: .68, y: .75 } },
-    { x: .38, y: 1, type: 'corner' },
+    { x: .9, y: 0, type: 'corner' },
+    { x: .4, y: 1, type: 'corner' },
   ],
   advancedMaxRadius: 90,
   shapeType: 'circle',
@@ -81,7 +79,7 @@ export const DEFAULT_LAMP_BODY_CONFIG: LampBodyConfig = {
   segments: 64,
   renderStyle: 'smooth',
   showSimulation: true,
-  color: '#d9d6cf',
+  color: '#ef3340',
   logo: null,
 };
 
@@ -90,7 +88,7 @@ const COLORS = ['#d9d6cf', '#e7e7e7', '#1b1b1b', '#d23b3b', '#2f6fdd', '#2e9e5b'
 export const BODY_PROFILE_PRESETS: Array<{ name: BodyProfile; points: BodyProfilePoint[] }> = [
   { name: 'cylinder', points: [{ x: .78, y: 0, type: 'corner' }, { x: .78, y: 1, type: 'corner' }] },
   { name: 'taper', points: [{ x: .9, y: 0, type: 'corner' }, { x: .4, y: 1, type: 'corner' }] },
-  { name: 'lampshade', points: DEFAULT_LAMP_BODY_CONFIG.advancedProfilePoints },
+  { name: 'lampshade', points: [{ x: .78, y: 0, type: 'corner' }, { x: .9, y: .28, type: 'smooth', handleIn: { x: .9, y: .18 }, handleOut: { x: .88, y: .4 } }, { x: .72, y: .62, type: 'smooth', handleIn: { x: .76, y: .5 }, handleOut: { x: .68, y: .75 } }, { x: .38, y: 1, type: 'corner' }] },
   { name: 'hourglass', points: [{ x: .82, y: 0, type: 'corner' }, { x: .48, y: .5, type: 'corner' }, { x: .42, y: 1, type: 'corner' }] },
   { name: 'pedestal', points: [{ x: .58, y: 0, type: 'corner' }, { x: .9, y: .2, type: 'smooth', handleIn: { x: .9, y: .1 }, handleOut: { x: .86, y: .34 } }, { x: .72, y: .6, type: 'smooth', handleIn: { x: .76, y: .48 }, handleOut: { x: .66, y: .76 } }, { x: .4, y: 1, type: 'corner' }] },
 ];
@@ -98,7 +96,7 @@ export const BODY_PROFILE_PRESETS: Array<{ name: BodyProfile; points: BodyProfil
 const COPY = {
   en: {
     title: 'Lamp Body Creator', subtitle: 'Parametric Lamp Stand Generator', workspace: 'BODY WORKSPACE', preview: 'Live 3D preview', realtime: 'Realtime geometry',
-    tabs: { body: 'Body', profile: 'Profile', shape: 'Shape', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
+    tabs: { body: 'Body', profile: 'Draw profile', shape: 'Shape', base: 'Base & Mount', finish: 'Finish', export: 'Export' },
     addPoint: 'Add point',
     bodyShape: 'Body profile', bodyShapeHint: 'Choose a starting silhouette for the printed stand.', profileMode: 'Profile mode', preset: 'Preset', advanced: 'Advanced profile', advancedHint: 'Edit the same vertical Bezier profile used by the lampshade.', vertical: 'Vertical profile', dragHint: 'Drag points and handles • Double-click a point to toggle Curve/Sharp • Double-click anywhere on the grid to add a point', profilePreset: 'Profile presets', maxRadius: 'Maximum radius', profileLabels: { cylinder: 'Cylinder', taper: 'Taper', hourglass: 'Hourglass', pedestal: 'Pedestal', lampshade: 'Lampshade' }, lampshade: 'Lampshade', lowerRadius: 'Lower radius', shoulderRadius: 'Shoulder radius', waistRadius: 'Waist radius', upperRadius: 'Upper radius', profileCurve: 'Curve tension', profileFlare: 'Shade flare',
     shapeSettings: 'Shape settings', shapes: { circle: 'Circle', polygon: 'Polygon', wave: 'Wave', star: 'Star' }, count: 'Count', depth: 'Depth', twist: 'Twist',
@@ -118,7 +116,7 @@ const COPY = {
   vi: {
     addPoint: 'Thêm điểm',
     title: 'Trình tạo thân đèn', subtitle: 'Tạo thân đèn tham số', workspace: 'KHÔNG GIAN THÂN ĐÈN', preview: 'Preview 3D trực tiếp', realtime: 'Hình học thời gian thực',
-    tabs: { body: 'Thân đèn', profile: 'Biên dạng', shape: 'Hình dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
+    tabs: { body: 'Thân đèn', profile: 'Vẽ biên dạng', shape: 'Hình dạng', base: 'Đế & ngàm', finish: 'Hoàn thiện', export: 'Xuất file' },
     bodyShape: 'Biên dạng thân', bodyShapeHint: 'Chọn hình dáng ban đầu cho thân đèn in 3D.', profileMode: 'Chế độ biên dạng', preset: 'Mẫu sẵn', advanced: 'Biên dạng nâng cao', advancedHint: 'Chỉnh cùng biên dạng Bézier dọc như chao đèn: kéo điểm, tay nắm và đổi Cong/Góc.', vertical: 'Biên dạng dọc', dragHint: 'Kéo các điểm và tay nắm · Nhấp đúp điểm để đổi Cong/Góc · Nhấp đúp bất kỳ vị trí nào trên lưới để thêm điểm', profilePreset: 'Mẫu biên dạng', maxRadius: 'Bán kính lớn nhất', profileLabels: { cylinder: 'Trụ', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' }, lampshade: 'Chao đèn', lowerRadius: 'Bán kính đáy thân', shoulderRadius: 'Bán kính vai', waistRadius: 'Bán kính eo', upperRadius: 'Bán kính phía trên', profileCurve: 'Độ cong đường biên', profileFlare: 'Độ xòe chao',
     shapeSettings: 'Thiết lập hình dạng', shapes: { circle: 'Tròn', polygon: 'Đa giác', wave: 'Sóng', star: 'Ngôi sao' }, count: 'Số lượng', depth: 'Độ sâu', twist: 'Độ xoắn',
     profiles: { cylinder: 'Trụ thẳng', taper: 'Thuôn côn', hourglass: 'Đồng hồ cát', pedestal: 'Bệ chân', lampshade: 'Chao đèn' },
@@ -436,7 +434,7 @@ export function LampBodyControls({ config, tab, update, copy, onExport, exportSt
 export function LampBodyCreatorPage() {
   const { language } = useI18n();
   const copy = getLampBodyCopy(language);
-  const [tab, setTab] = useState<BodyTab>('body');
+  const [tab, setTab] = useState<BodyTab>('profile');
   const [config, setConfig] = useState<LampBodyConfig>(DEFAULT_LAMP_BODY_CONFIG);
   const [exportState, setExportState] = useState<'idle' | 'done' | 'error'>('idle');
   const geometry = useMemo(() => createLampBodyGeometry(config), [config]);
