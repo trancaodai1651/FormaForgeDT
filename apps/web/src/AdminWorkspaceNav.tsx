@@ -20,6 +20,7 @@ const workspaces: WorkspaceLink[] = [
   { to: '/admin/price-reader', label: 'Price Reader', mark: '¥' },
   { to: '/admin/tulip-creator', label: 'Tulip Creator', labelKey: 'admin.tulipCreator', mark: 'TC' },
   { to: '/admin/home-item', label: 'Home Item', labelKey: 'admin.homeItem', mark: 'HI' },
+  { to: '/admin/stl-cutter', label: 'STL Cutter', labelKey: 'admin.stlCutter', mark: 'STL' },
 ];
 
 export function AdminWorkspaceNav({ compact = false }: AdminWorkspaceNavProps) {
