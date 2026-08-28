@@ -18,7 +18,7 @@
 .stl-cutter-brand h1 { margin: 2px 0 0; color: #f8fbff; font-size: 18px; letter-spacing: -.03em; }
 .stl-cutter-header-actions { gap: 8px; color: #8fa4c3; font-size: 11px; }
 .stl-cutter-header-actions span { gap: 5px; color: #8dd7ad; }
-.stl-cutter-header-actions button, .stl-cutter-header-actions a { min-height: 28px; padding: 5px 9px; border: 1px solid #29415e; border-radius: 7px; color: #b4c6de; background: #0e1a31; text-decoration: none; cursor: pointer; }
+.stl-cutter-header-actions button, .stl-cutter-header-actions a { min-height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid #29415e; border-radius: 7px; color: #b4c6de; background: #0e1a31; text-decoration: none; cursor: pointer; }
 .stl-cutter-header-actions button:hover, .stl-cutter-header-actions a:hover { border-color: #32a6ff; color: #fff; }
 .stl-eyebrow { color: #5ea9e6; font: 700 9px/1.2 "DM Mono", ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
 
@@ -65,6 +65,9 @@
 .stl-color-row { gap: 5px; margin-top: 9px; }
 .stl-color-row > button:not(.stl-delete-piece) { width: 14px; height: 14px; padding: 0; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
 .stl-color-row > button.active { border-color: #fff; box-shadow: 0 0 0 2px #2e81b7; }
+.stl-custom-color { width: 18px; height: 18px; padding: 0; border: 1px solid #55708f; border-radius: 50%; overflow: hidden; background: transparent; cursor: pointer; }
+.stl-custom-color::-webkit-color-swatch-wrapper { padding: 0; }
+.stl-custom-color::-webkit-color-swatch { border: 0; border-radius: 50%; }
 .stl-delete-piece { margin-left: auto; padding: 2px 5px; border: 0; color: #e98ba3; background: transparent; font-size: 9px; cursor: pointer; }
 .stl-transform-grid, .stl-bed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .stl-number-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -95,7 +98,7 @@
 .stl-action-row button.primary, .stl-tool-panel button.primary { color: #041426; }
 .stl-check-row { gap: 7px; margin-bottom: 10px; color: #b4c9e6; font-size: 11px; }
 .stl-check-row input { accent-color: #2ca7ef; }
-.stl-bed-estimate { margin-top: 12px; padding: 9px; border: 1px solid #203b5d; border-radius: 8px; color: #8099ba; font: 10px "DM Mono", ui-monospace, monospace; }
+.stl-bed-estimate { display: grid; gap: 5px; margin-top: 12px; padding: 9px; border: 1px solid #203b5d; border-radius: 8px; color: #8099ba; font: 10px "DM Mono", ui-monospace, monospace; }
 .stl-bed-estimate strong { color: #d6e9ff; }
 .stl-tool-panel button.wide { width: 100%; margin-top: 10px; }
 .stl-tool-callout { padding: 10px; border: 1px dashed #35587d; border-radius: 8px; color: #b3d8f5; background: #091a32; font-size: 11px; }
@@ -104,6 +107,19 @@
 .stl-roadmap-item > span { display: flex; flex-direction: column; gap: 2px; }
 .stl-roadmap-item b { font-size: 10px; }
 .stl-roadmap-item small { color: #7d94b4; font-size: 9px; }
+.stl-roadmap-disabled { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stl-roadmap-disabled button { min-height: 52px; padding: 7px; border: 1px solid #243a5a; border-radius: 8px; color: #657d9e; background: #091329; font-size: 9px; }
+.stl-mask-size { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; gap: 8px; margin: 10px 0; }
+.stl-mask-size strong { color: #e7f1ff; font: 700 11px "DM Mono", monospace; text-align: center; }
+.stl-mask-size button, .stl-mask-modes button, .stl-mask-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #29415e; border-radius: 7px; color: #91a8c6; background: #0d1b34; font: 700 9px Inter, sans-serif; cursor: pointer; }
+.stl-mask-size button { width: 30px; height: 28px; padding: 0; }
+.stl-mask-modes, .stl-mask-actions { display: grid; gap: 6px; }
+.stl-mask-modes { grid-template-columns: 1fr; }
+.stl-mask-actions { grid-template-columns: repeat(3, 1fr); margin: 9px 0; }
+.stl-mask-modes button, .stl-mask-actions button { min-height: 32px; padding: 7px; }
+.stl-mask-modes button:hover, .stl-mask-modes button.active, .stl-mask-actions button:hover, .stl-mask-actions button.active { border-color: #2ca6ed; color: #fff; background: #12395d; }
+.stl-mask-actions button.danger { border-color: #6f3046; color: #ffafc8; background: #28101c; }
+.stl-mask-actions button:disabled { opacity: .42; cursor: not-allowed; }
 .stl-sidebar-footer { justify-content: space-between; flex: 0 0 35px; padding: 0 14px; border-top: 1px solid #1b2841; color: #6983a6; font: 9px "DM Mono", ui-monospace, monospace; }
 .stl-sidebar-footer span { display: inline-flex; align-items: center; gap: 5px; }
 .stl-change-item { display: flex; gap: 8px; margin: 11px 0; color: #b8cbe3; font-size: 11px; line-height: 1.45; }
@@ -111,7 +127,7 @@
 
 .stl-cutter-viewport { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #050918; }
 .stl-cutter-viewport > canvas { display: block; }
-.stl-viewport-top { position: absolute; top: 18px; left: 18px; right: 18px; gap: 8px; pointer-events: none; }
+.stl-viewport-top { position: absolute; z-index: 6; top: 18px; left: 18px; right: 18px; gap: 8px; pointer-events: none; }
 .stl-viewport-badge, .stl-icon-button { min-height: 28px; padding: 6px 9px; border: 1px solid #203555; border-radius: 8px; color: #a8c0dd; background: rgba(10, 22, 45, .88); font: 10px "DM Mono", ui-monospace, monospace; }
 .stl-viewport-badge { gap: 6px; }
 .stl-viewport-badge:nth-child(2) { color: #67c5ff; }
@@ -119,12 +135,93 @@
 .stl-icon-button { display: grid; place-items: center; margin-left: auto; padding: 5px; pointer-events: auto; cursor: pointer; }
 .stl-icon-button + .stl-icon-button { margin-left: 0; }
 .stl-icon-button:hover { border-color: #36a9f2; color: #fff; }
-.stl-viewport-toolbar { position: absolute; top: 18px; left: 50%; gap: 3px; padding: 4px; transform: translateX(-50%); border: 1px solid #243b60; border-radius: 10px; background: rgba(7, 16, 34, .88); box-shadow: 0 10px 24px rgba(0,0,0,.22); }
+.stl-viewport-toolbar { position: absolute; z-index: 7; top: 18px; left: 50%; gap: 3px; padding: 4px; transform: translateX(-50%); border: 1px solid #243b60; border-radius: 10px; background: rgba(7, 16, 34, .88); box-shadow: 0 10px 24px rgba(0,0,0,.22); }
 .stl-tool-button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 6px 8px; border: 0; border-radius: 7px; color: #7e97b9; background: transparent; font: 700 9px Inter, sans-serif; cursor: pointer; }
 .stl-tool-button:hover, .stl-tool-button.active { color: #fff; background: #18507b; }
-.stl-viewport-help { position: absolute; right: 20px; bottom: 17px; left: 20px; color: #7590b3; font: 10px "DM Mono", ui-monospace, monospace; text-align: center; pointer-events: none; }
-.stl-curve-overlay { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; pointer-events: auto; }
-.stl-mask-cursor { position: absolute; top: 50%; left: 50%; border: 1px solid #f59e0b; border-radius: 50%; transform: translate(-50%, -50%); background: rgba(245, 158, 11, .12); pointer-events: none; }
+.stl-viewport-help { position: absolute; z-index: 5; right: 20px; bottom: 17px; left: 20px; color: #7590b3; font: 10px "DM Mono", ui-monospace, monospace; text-align: center; pointer-events: none; }
+.stl-viewport-error { position: absolute; z-index: 8; right: 20px; bottom: 48px; max-width: min(480px, calc(100% - 40px)); display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid #743750; border-radius: 9px; color: #ffbfd2; background: rgba(42, 16, 32, .94); font-size: 11px; box-shadow: 0 12px 30px rgba(0,0,0,.28); }
+.stl-viewport-error > svg { flex: none; }
+.stl-viewport-error button { display: grid; place-items: center; width: 22px; height: 22px; margin-left: auto; padding: 0; border: 0; color: #ffbfd2; background: transparent; cursor: pointer; }
+.stl-exploded-toggle { position: absolute; z-index: 6; right: 20px; bottom: 16px; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 6px 10px; border: 1px solid #29415e; border-radius: 8px; color: #8da4c6; background: rgba(10, 22, 45, .9); font: 700 9px Inter, sans-serif; cursor: pointer; }
+.stl-exploded-toggle:hover, .stl-exploded-toggle.active { border-color: #36a9f2; color: #fff; background: #14395d; }
+.stl-exploded-toggle:disabled { opacity: .4; cursor: not-allowed; }
+.stl-curve-overlay { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; cursor: crosshair; pointer-events: auto; touch-action: none; }
+.stl-mask-cursor { position: absolute; z-index: 4; border: 1px solid #f59e0b; border-radius: 50%; transform: translate(-50%, -50%); background: rgba(245, 158, 11, .12); pointer-events: none; }
+
+/* STL Cutter parity shell: retain FormaForge branding and admin access while
+   matching the reference workspace proportions and control placement. */
+.app-shell-admin-tool .stl-cutter-page { padding-top: 0; }
+.stl-cutter-header { flex-basis: 65px; padding: 0 26px; border-bottom-color: #1b263d; background: #0b1224; }
+.stl-cutter-brand { gap: 12px; }
+.stl-cutter-brand h1 { margin: 0; font-size: 20px; letter-spacing: -.035em; }
+.stl-cutter-brand h1 span { color: #32a6ff; }
+.stl-cutter-mark { border: 0; color: #23c5e8; background: transparent; transform: rotate(-9deg); }
+.stl-dashboard-pill { margin-left: 18px; border-color: #4a315d !important; border-radius: 11px !important; color: #e8d8ff !important; background: linear-gradient(135deg, rgba(50,166,255,.12), rgba(217,70,239,.13)) !important; }
+.stl-cutter-header-actions > span { padding: 6px 9px; border: 1px solid #25324b; border-radius: 8px; color: #88d6ae; }
+.stl-cutter-layout { grid-template-columns: 420px minmax(0, 1fr); }
+.stl-cutter-sidebar { background: #101a31; border-right-color: #25314a; }
+.stl-sidebar-intro { flex: 0 0 70px; display: flex; align-items: center; padding: 0 27px; border-bottom: 0; }
+.stl-sidebar-intro h2 { display: flex; align-items: center; gap: 11px; margin: 0; color: #ffd15c; font-size: 19px; letter-spacing: -.025em; }
+.stl-sidebar-intro h2 svg { color: #ffd15c; }
+.stl-panel-tabs { flex: 0 0 61px; padding: 0 12px; border-bottom-color: #25314a; }
+.stl-panel-tabs button { gap: 6px; padding: 10px 2px 12px; font-size: 9px; }
+.stl-sidebar-scroll { scrollbar-width: thin; scrollbar-color: #2e4265 transparent; }
+.stl-panel-section { margin: 0; padding: 24px; border: 0; border-bottom: 1px solid #202e48; border-radius: 0; background: transparent; }
+.stl-panel-section .stl-section-title { color: #4dc5f5; }
+.stl-dropzone { min-height: 187px; border-color: #49566c; border-radius: 13px; background: #0a142a; }
+.stl-dropzone b { font-size: 12px; }
+.stl-dropzone span { padding: 8px 14px; color: #fff; background: #159ee8; }
+.stl-demo-grid { border: 1px solid #1b2943; border-radius: 10px; overflow: hidden; gap: 0; }
+.stl-demo-grid button { min-height: 42px; border: 0; border-radius: 0; background: transparent; }
+.stl-demo-grid button:nth-child(odd) { border-right: 1px solid #1b2943; }
+.stl-demo-grid button:nth-child(-n+2) { border-bottom: 1px solid #1b2943; }
+.stl-center-button { min-height: 42px; margin-top: 22px; border-color: #245a7d; color: #56c7f4; background: #112e49; text-transform: uppercase; letter-spacing: .04em; }
+.stl-active-model { margin: 24px; padding: 18px 20px; border: 1px solid #24334e; border-radius: 14px; background: #0b1429; }
+.stl-active-model dl { gap: 12px; }
+.stl-piece-card { padding: 15px; border-color: #263a58; border-radius: 14px; background: #0b1831; }
+.stl-piece-card.selected { border-color: #2db7ef; box-shadow: 0 0 0 1px rgba(45,183,239,.25), inset 0 0 22px rgba(45,183,239,.04); }
+.stl-piece-top { gap: 9px; }
+.stl-piece-top input { min-height: 30px; padding: 4px 8px; border: 1px solid #2a3c5b; border-radius: 7px; background: #0a1429; }
+.stl-piece-visibility { width: 32px; height: 32px; }
+.stl-color-row { flex-wrap: wrap; gap: 8px; margin-top: 11px; }
+.stl-color-row > button:not(.stl-delete-piece) { width: 30px; height: 30px; border-width: 2px; }
+.stl-custom-color { width: 30px; height: 30px; }
+.stl-delete-piece { display: grid; place-items: center; width: 32px; height: 32px; margin-left: auto; padding: 0; border: 1px solid #4b2940; border-radius: 7px; color: #ff8faa; background: #241021; }
+.stl-piece-summary { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 9px 11px; border-radius: 7px; color: #dcecff; background: #103454; font: 700 9px "DM Mono", monospace; text-transform: uppercase; }
+.stl-piece-summary strong { color: #e6f7ff; }
+.stl-tool-panel { margin: 0 24px 24px; padding: 17px 20px; border-color: #24334e; background: #0b1429; }
+.stl-cutter-viewport { background: #020719; }
+.stl-viewport-top { top: 17px; left: 16px; right: auto; }
+.stl-viewport-badge, .stl-install-badge { min-height: 27px; padding: 5px 12px; border: 1px solid #243550; border-radius: 999px; color: #d8deeb; background: rgba(12,21,41,.92); font: 10px "DM Mono", ui-monospace, monospace; }
+.stl-viewport-badge:first-child { color: #f4a7d1; }
+.stl-install-badge { display: inline-flex; align-items: center; gap: 6px; color: #70d4ff; border-color: #245475; background: #0d2b43; cursor: pointer; pointer-events: auto; }
+.stl-viewport-toolbar { top: 17px; gap: 5px; padding: 5px; border-color: #263751; border-radius: 9px; background: rgba(12,21,41,.94); }
+.stl-tool-button { width: 36px; height: 36px; min-height: 36px; justify-content: center; padding: 0; border: 1px solid transparent; border-radius: 7px; }
+.stl-tool-button span { display: none; }
+.stl-tool-button:nth-child(1) { color: #67d8ff; border-color: #174e67; background: #0b3042; }
+.stl-tool-button:nth-child(2) { color: #65dfaa; border-color: #175d52; background: #0b3831; }
+.stl-tool-button:nth-child(3) { color: #f5d6f0; }
+.stl-tool-button:nth-child(3).active { color: #fff; background: #ee168e; }
+.stl-tool-button:nth-child(n+4) { color: #a8b3ca; }
+.stl-icon-button { width: 36px; height: 36px; min-height: 36px; margin: 0; border-color: #253650; background: #0a1429; pointer-events: auto; }
+.stl-toolbar-piece { display: inline-flex; align-items: center; align-self: stretch; padding: 0 10px; border-left: 1px solid #253650; color: #9ba8bf; font: 9px "DM Mono", monospace; }
+.stl-advanced-tabs { position: absolute; z-index: 7; top: 80px; left: 16px; width: 108px; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; background: transparent; }
+.stl-advanced-tabs button { position: relative; display: flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; min-height: 39px; padding: 8px 13px; border: 1px solid #263751; border-radius: 999px; color: #c4cede; background: rgba(12,21,41,.92); font-size: 9px; }
+.stl-advanced-tabs button:hover, .stl-advanced-tabs button.active { border-color: #354965; color: #fff; background: #142039; }
+.stl-advanced-tabs i { position: absolute; top: 50%; right: 9px; width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; transform: translateY(-50%); }
+.stl-cutter-viewport > .stl-tool-panel { position: absolute; z-index: 7; top: 80px; left: 138px; width: 360px; max-height: calc(100% - 120px); margin: 0; padding: 14px; overflow: auto; border-color: #2b3a56; background: rgba(11,20,41,.94); box-shadow: 0 14px 34px rgba(0,0,0,.28); backdrop-filter: blur(14px); }
+.stl-cutter-viewport > .stl-plane-panel { width: 310px; display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 8px 10px; padding: 0; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.stl-plane-panel .stl-panel-heading, .stl-plane-panel > p { display: none; }
+.stl-plane-panel .stl-segmented { grid-row: 1 / span 2; display: grid; gap: 7px; margin: 0; }
+.stl-plane-panel .stl-segmented button { min-height: 39px; border-radius: 999px; }
+.stl-plane-panel .stl-range-field { align-self: start; margin: 0; padding: 9px 13px; border: 1px solid #263751; border-radius: 999px; background: rgba(12,21,41,.92); }
+.stl-plane-panel .stl-action-row { display: grid; grid-template-columns: 1fr 1.15fr; margin: 0; }
+.stl-plane-panel .stl-action-row button { min-height: 39px; border-radius: 999px; }
+.stl-cutter-viewport > .stl-unions-panel { width: 390px; }
+.stl-cutter-viewport > .stl-beds-panel { width: 370px; }
+.stl-cutter-viewport > .stl-roadmap { width: 340px; }
+.stl-exploded-toggle { border-radius: 999px; }
+.stl-viewport-help { bottom: 15px; }
 
 @media (max-width: 900px) {
   .stl-cutter-layout { grid-template-columns: minmax(290px, 340px) minmax(0, 1fr); }

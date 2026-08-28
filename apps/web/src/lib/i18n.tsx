@@ -462,6 +462,23 @@ Object.assign(vi, {
   'stlCutter.changeHint': 'Các chức năng hiện tại dựa trên STL Cutter mẫu.', 'stlCutter.changeOne': 'Nhập STL, OBJ, FBX và giữ kích thước X/Y/Z gốc.', 'stlCutter.changeTwo': 'Cắt mặt phẳng kín theo X/Y/Z với offset độc lập.', 'stlCutter.changeThree': 'Cắt đường cong tự do, mask cầu cục bộ và quản lý mảnh.', 'stlCutter.changeFour': 'Connector đực/cái dạng kim tự tháp, đuôi én và cầu.', 'stlCutter.changeFive': 'Chia theo bàn in với thể tích X/Y/Z và lề.', 'stlCutter.changeSix': 'Xuất 3MF nhiều object, 3MF theo bàn và STL ZIP tại máy.',
 });
 
+Object.assign(en, {
+  'stlCutter.preview': 'Interactive 3D cutter preview', 'stlCutter.installApp': 'Install app', 'stlCutter.installUnavailable': 'Install becomes available in the production HTTPS build after the browser finishes PWA checks.', 'stlCutter.maskHint': 'Drag to select mesh polygons with a surface or spherical brush, or draw a polygon selection. Erase, invert or remove the mask without changing the solid.', 'stlCutter.maskDrawHelp': 'Drag to select polygons for the local protection mask',
+  'stlCutter.lineDrawHelp': 'Start and finish outside the piece · drag to cut', 'stlCutter.maskSettings': 'Mask settings', 'stlCutter.shrinkMask': 'Shrink mask', 'stlCutter.expandMask': 'Expand mask',
+  'stlCutter.surfaceBrush': 'Surface brush', 'stlCutter.sphereBrush': 'Sphere brush', 'stlCutter.polygonMask': 'Mask polygons', 'stlCutter.clearMask': 'Erase mask', 'stlCutter.invertMask': 'Invert mask', 'stlCutter.deleteMask': 'Remove mask', 'stlCutter.maskedFaces': 'masked faces',
+  'stlCutter.connectorDepth': 'Depth', 'stlCutter.autoFit': 'Automatic fit', 'stlCutter.usableVolume': 'Usable X/Y/Z volume',
+  'stlCutter.pieceLabel': 'Piece', 'stlCutter.selected': 'Selected',
+  'stlCutter.voronoiPattern': 'Voronoi pattern', 'stlCutter.voronoiCells': 'Configure cells', 'stlCutter.randomSeed': 'Random seed', 'stlCutter.colorBrush': 'Color brush tool', 'stlCutter.colorZones': 'Manage zones', 'stlCutter.separateColors': 'Separate colors',
+});
+Object.assign(vi, {
+  'stlCutter.preview': 'Preview cắt 3D tương tác', 'stlCutter.installApp': 'Cài ứng dụng', 'stlCutter.installUnavailable': 'Nút cài đặt sẽ sẵn sàng trên bản HTTPS production sau khi trình duyệt kiểm tra PWA.', 'stlCutter.maskHint': 'Kéo để chọn polygon bằng cọ bề mặt hoặc cọ cầu, hoặc vẽ vùng polygon. Có thể tẩy, đảo hay bỏ mask mà không làm thay đổi khối 3D.', 'stlCutter.maskDrawHelp': 'Kéo để chọn polygon cho mask bảo vệ cục bộ',
+  'stlCutter.lineDrawHelp': 'Bắt đầu và kết thúc ngoài mảnh · kéo để cắt', 'stlCutter.maskSettings': 'Thiết lập mask', 'stlCutter.shrinkMask': 'Thu nhỏ mask', 'stlCutter.expandMask': 'Mở rộng mask',
+  'stlCutter.surfaceBrush': 'Cọ tròn trên bề mặt', 'stlCutter.sphereBrush': 'Cọ hình cầu', 'stlCutter.polygonMask': 'Mask polygon', 'stlCutter.clearMask': 'Tẩy mask', 'stlCutter.invertMask': 'Đảo mask', 'stlCutter.deleteMask': 'Bỏ mask', 'stlCutter.maskedFaces': 'mặt đang mask',
+  'stlCutter.connectorDepth': 'Độ sâu', 'stlCutter.autoFit': 'Tự động điều chỉnh', 'stlCutter.usableVolume': 'Thể tích hữu dụng X/Y/Z',
+  'stlCutter.pieceLabel': 'Mảnh', 'stlCutter.selected': 'Đang chọn',
+  'stlCutter.voronoiPattern': 'Mẫu Voronoi', 'stlCutter.voronoiCells': 'Cấu hình ô', 'stlCutter.randomSeed': 'Seed ngẫu nhiên', 'stlCutter.colorBrush': 'Cọ tô màu', 'stlCutter.colorZones': 'Quản lý vùng', 'stlCutter.separateColors': 'Tách theo màu',
+});
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 

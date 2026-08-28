@@ -1,6 +1,7 @@
 import Module from 'manifold-3d';
 import wasmUrl from 'manifold-3d/manifold.wasm?url';
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 export type CutterAxis = 'x' | 'y' | 'z';
 
@@ -32,6 +33,11 @@ export type BedConfig = {
   height: number;
   margin: number;
 };
+
+export type MaskShape =
+  | { kind: 'surface'; center: [number, number, number]; radius: number }
+  | { kind: 'sphere'; center: [number, number, number]; radius: number }
+  | { kind: 'polygon'; points: Array<[number, number]> };
 
 type WasmModule = Awaited<ReturnType<typeof Module>>;
 
@@ -113,6 +119,11 @@ export function translateMesh(mesh: CutterMesh, offset: [number, number, number]
     vertices[index + 2] += offset[2];
   }
   return { vertices, indices: mesh.indices.slice() };
+}
+
+export function placeMeshOnBed(mesh: CutterMesh): CutterMesh {
+  const bounds = boundsOfMesh(mesh);
+  return translateMesh(mesh, [-bounds.center[0], -bounds.center[1], -bounds.min[2]]);
 }
 
 export function approximateVolume(mesh: CutterMesh): number {
@@ -234,6 +245,25 @@ export async function splitMeshByPlane(mesh: CutterMesh, axis: CutterAxis, offse
   }
 }
 
+export async function splitMeshByLine(mesh: CutterMesh, start: [number, number], end: [number, number]): Promise<[CutterMesh, CutterMesh]> {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const length = Math.hypot(dx, dy);
+  if (length < 0.001) throw new Error('Draw a longer line across the selected piece.');
+  const normal: [number, number, number] = [dy / length, -dx / length, 0];
+  const midpoint: [number, number] = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+  const offset = normal[0] * midpoint[0] + normal[1] * midpoint[1];
+  const wasm = await getWasm();
+  const source = manifoldFromMesh(wasm, mesh);
+  const parts = source.splitByPlane(normal, offset) as any[];
+  try {
+    return [meshFromManifold(parts[0]), meshFromManifold(parts[1])];
+  } finally {
+    disposeAll(parts);
+    disposeAll([source]);
+  }
+}
+
 export async function validateMesh(mesh: CutterMesh): Promise<{ valid: boolean; status: string }> {
   const wasm = await getWasm();
   const source = manifoldFromMesh(wasm, mesh);
@@ -245,19 +275,103 @@ export async function validateMesh(mesh: CutterMesh): Promise<{ valid: boolean; 
   }
 }
 
+function smoothOpenCurve(points: Array<[number, number]>, iterations = 2): Array<[number, number]> {
+  let result = points.filter((point, index) => index === 0 || Math.hypot(point[0] - points[index - 1][0], point[1] - points[index - 1][1]) > 0.05);
+  for (let iteration = 0; iteration < iterations && result.length > 2; iteration += 1) {
+    const next: Array<[number, number]> = [result[0]];
+    for (let index = 0; index < result.length - 1; index += 1) {
+      const current = result[index];
+      const following = result[index + 1];
+      next.push(
+        [current[0] * 0.75 + following[0] * 0.25, current[1] * 0.75 + following[1] * 0.25],
+        [current[0] * 0.25 + following[0] * 0.75, current[1] * 0.25 + following[1] * 0.75],
+      );
+    }
+    next.push(result[result.length - 1]);
+    result = next.length > 192 ? next.filter((_, index) => index % 2 === 0 || index === next.length - 1) : next;
+  }
+  return result;
+}
+
 function makeCurvePolygon(points: Array<[number, number]>, bounds: CutterBounds): Array<[number, number]> {
   if (points.length < 2) throw new Error('Draw a curve with at least two points.');
-  const pad = Math.max(...bounds.size) * 2 + 10;
-  const left = bounds.min[0] - pad;
-  const bottom = bounds.min[1] - pad;
-  const top = bounds.max[1] + pad;
-  const path = points.map(([x, y]) => [x, y] as [number, number]);
+  const path = smoothOpenCurve(points).map(([x, y]) => [x, y] as [number, number]);
   const first = path[0];
   const last = path[path.length - 1];
-  const atTop = first[1] > last[1] ? first : last;
-  const atBottom = first[1] > last[1] ? last : first;
-  const ordered = first === atTop ? path : path.slice().reverse();
-  return [...ordered, [left, atBottom[1] - pad], [left, top]];
+  const dx = last[0] - first[0];
+  const dy = last[1] - first[1];
+  const length = Math.hypot(dx, dy);
+  if (length < 0.001) throw new Error('The curve endpoints must be on opposite sides of the piece.');
+  const pad = Math.max(...bounds.size) * 5 + 50;
+  const normal: [number, number] = [-dy / length, dx / length];
+  return [
+    ...path,
+    [last[0] + normal[0] * pad, last[1] + normal[1] * pad],
+    [first[0] + normal[0] * pad, first[1] + normal[1] * pad],
+  ];
+}
+
+function pointInsidePolygon(point: [number, number], polygon: Array<[number, number]>): boolean {
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index, index += 1) {
+    const [x1, y1] = polygon[index];
+    const [x2, y2] = polygon[previous];
+    if ((y1 > point[1]) !== (y2 > point[1]) && point[0] < ((x2 - x1) * (point[1] - y1)) / ((y2 - y1) || Number.EPSILON) + x1) inside = !inside;
+  }
+  return inside;
+}
+
+export function closestSurfacePoint(mesh: CutterMesh, point: [number, number]): [number, number, number] {
+  let best: [number, number, number] = [point[0], point[1], boundsOfMesh(mesh).center[2]];
+  let bestDistance = Infinity;
+  for (let index = 0; index + 2 < mesh.indices.length; index += 3) {
+    const vertices = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    const center: [number, number, number] = [0, 0, 0];
+    for (const vertex of vertices) {
+      center[0] += mesh.vertices[vertex * 3] / 3;
+      center[1] += mesh.vertices[vertex * 3 + 1] / 3;
+      center[2] += mesh.vertices[vertex * 3 + 2] / 3;
+    }
+    const distance = Math.hypot(center[0] - point[0], center[1] - point[1]);
+    if (distance < bestDistance) { bestDistance = distance; best = center; }
+  }
+  return best;
+}
+
+export function trianglesInsideMask(mesh: CutterMesh, shapes: MaskShape[], inverted = false): number[] {
+  const selected: number[] = [];
+  for (let triangle = 0; triangle * 3 + 2 < mesh.indices.length; triangle += 1) {
+    const center: [number, number, number] = [0, 0, 0];
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertex = mesh.indices[triangle * 3 + corner];
+      center[0] += mesh.vertices[vertex * 3] / 3;
+      center[1] += mesh.vertices[vertex * 3 + 1] / 3;
+      center[2] += mesh.vertices[vertex * 3 + 2] / 3;
+    }
+    const matches = shapes.some((shape) => {
+      if (shape.kind === 'polygon') return shape.points.length > 2 && pointInsidePolygon([center[0], center[1]], shape.points);
+      const planarDistance = Math.hypot(center[0] - shape.center[0], center[1] - shape.center[1]);
+      return shape.kind === 'surface' ? planarDistance <= shape.radius : Math.hypot(planarDistance, center[2] - shape.center[2]) <= shape.radius;
+    });
+    if (inverted ? !matches : matches) selected.push(triangle);
+  }
+  return selected;
+}
+
+export function geometryFromTriangleSelection(mesh: CutterMesh, triangles: number[]): THREE.BufferGeometry {
+  const selected = new Set(triangles);
+  const vertices: number[] = [];
+  for (let triangle = 0; triangle * 3 + 2 < mesh.indices.length; triangle += 1) {
+    if (!selected.has(triangle)) continue;
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertex = mesh.indices[triangle * 3 + corner];
+      vertices.push(mesh.vertices[vertex * 3], mesh.vertices[vertex * 3 + 1], mesh.vertices[vertex * 3 + 2]);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 export async function splitMeshByCurve(mesh: CutterMesh, points: Array<[number, number]>): Promise<[CutterMesh, CutterMesh]> {
@@ -305,7 +419,7 @@ export async function divideMeshByBeds(mesh: CutterMesh, config: BedConfig): Pro
   const usable: [number, number, number] = [
     Math.max(1, config.width - config.margin * 2),
     Math.max(1, config.depth - config.margin * 2),
-    Math.max(1, config.height - config.margin * 2),
+    Math.max(1, config.height),
   ];
   const boundaries: Array<[CutterAxis, number][]> = (['x', 'y', 'z'] as CutterAxis[]).map((axis) => {
     const index = axisIndex(axis);
@@ -342,11 +456,9 @@ export async function divideMeshByBeds(mesh: CutterMesh, config: BedConfig): Pro
 
 export function makeDemoMesh(kind: 'cube' | 'bevel' | 'vase' | 'cylinder'): CutterMesh {
   let geometry: THREE.BufferGeometry;
-  if (kind === 'cube') geometry = new THREE.BoxGeometry(50, 50, 50);
-  else if (kind === 'bevel') {
-    geometry = new THREE.BoxGeometry(50, 50, 50, 4, 4, 4);
-    geometry.scale(0.96, 0.96, 0.96);
-  } else if (kind === 'cylinder') geometry = new THREE.CylinderGeometry(24, 24, 60, 48, 4);
+  if (kind === 'cube') geometry = new THREE.BoxGeometry(50, 50, 50, 10, 10, 10);
+  else if (kind === 'bevel') geometry = new RoundedBoxGeometry(50, 50, 50, 5, 3);
+  else if (kind === 'cylinder') geometry = new THREE.CylinderGeometry(24, 24, 60, 48, 4);
   else {
     const profile = [
       new THREE.Vector2(0, -30), new THREE.Vector2(18, -30), new THREE.Vector2(22, -22),
