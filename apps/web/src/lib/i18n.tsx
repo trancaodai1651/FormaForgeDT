@@ -479,6 +479,9 @@ Object.assign(vi, {
   'stlCutter.voronoiPattern': 'Mẫu Voronoi', 'stlCutter.voronoiCells': 'Cấu hình ô', 'stlCutter.randomSeed': 'Seed ngẫu nhiên', 'stlCutter.colorBrush': 'Cọ tô màu', 'stlCutter.colorZones': 'Quản lý vùng', 'stlCutter.separateColors': 'Tách theo màu',
 });
 
+Object.assign(en, { 'admin.split3mf': 'Split 3MF', 'admin.split3mfPageDescription': 'Separate multi-color 3MF regions, create manual cuts and connectors, then export a print-ready project.' });
+Object.assign(vi, { 'admin.split3mf': 'Tách 3MF', 'admin.split3mfPageDescription': 'Tách vùng màu 3MF, tạo đường cắt và khớp nối, rồi xuất project sẵn sàng in.' });
+
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
 

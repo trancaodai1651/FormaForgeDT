@@ -11,6 +11,7 @@
 | Paramacraft | `/paramacraft*`, `/admin/paramacraft` | `apps/web/src/pages/paramacraft` | Parametric editor |
 | Price Reader | `/price-reader` | `apps/web/src/pages/price-reader` | Customer price reader |
 | Hunyuan 3D | `/admin/hunyuan-3d` | `apps/web/src/pages/hunyuan-3d` | Desktop-only generation gate |
+| Split 3MF | `/admin/split-3mf` | `apps/web/src/pages/split-3mf` | Admin-only multi-color 3MF splitting and export |
 | Downloads | `/downloads` | `apps/web/src/pages/downloads` | Web/desktop/extension links |
 
 ## Data and build

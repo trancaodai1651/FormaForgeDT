@@ -21,6 +21,7 @@ const workspaces: WorkspaceLink[] = [
   { to: '/admin/tulip-creator', label: 'Tulip Creator', labelKey: 'admin.tulipCreator', mark: 'TC' },
   { to: '/admin/home-item', label: 'Home Item', labelKey: 'admin.homeItem', mark: 'HI' },
   { to: '/admin/stl-cutter', label: 'STL Cutter', labelKey: 'admin.stlCutter', mark: 'STL' },
+  { to: '/admin/split-3mf', label: 'Split 3MF', labelKey: 'admin.split3mf', mark: '3MF' },
 ];
 
 export function AdminWorkspaceNav({ compact = false }: AdminWorkspaceNavProps) {

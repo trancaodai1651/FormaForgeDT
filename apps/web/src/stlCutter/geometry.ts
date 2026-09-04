@@ -17,7 +17,7 @@ export type CutterBounds = {
   center: [number, number, number];
 };
 
-export type ConnectorKind = 'pyramid' | 'dovetail' | 'sphere';
+export type ConnectorKind = 'pyramid' | 'dovetail' | 'sphere' | 'cylinder' | 'box';
 
 export type ConnectorConfig = {
   enabled: boolean;
@@ -199,10 +199,14 @@ function translateAlongAxis(point: [number, number, number], axis: CutterAxis, d
   return next;
 }
 
-function connectorSolid(wasm: WasmModule, kind: ConnectorKind, size: number, depth: number, axis: CutterAxis, center: [number, number, number]): any {
+function connectorSolidForNormal(wasm: WasmModule, kind: ConnectorKind, size: number, depth: number, normal: [number, number, number], center: [number, number, number]): any {
   let solid: any;
   if (kind === 'sphere') {
     solid = wasm.Manifold.sphere(Math.max(0.5, size / 2), 32);
+  } else if (kind === 'cylinder') {
+    solid = wasm.Manifold.cylinder(Math.max(1, depth), Math.max(0.5, size / 2), Math.max(0.5, size / 2), 32, true);
+  } else if (kind === 'box') {
+    solid = wasm.Manifold.cube([Math.max(1, size), Math.max(1, size * .72), Math.max(1, depth)], true);
   } else if (kind === 'pyramid') {
     solid = wasm.Manifold.cube([Math.max(1, size), Math.max(1, size), Math.max(1, depth)], true)
       .scale([1, 1, 0.01])
@@ -210,8 +214,14 @@ function connectorSolid(wasm: WasmModule, kind: ConnectorKind, size: number, dep
   } else {
     solid = wasm.Manifold.cube([Math.max(1, size), Math.max(1, size * 0.72), Math.max(1, depth)], true);
   }
-  const rotations: Record<CutterAxis, [number, number, number]> = { x: [0, 90, 0], y: [90, 0, 0], z: [0, 0, 0] };
-  return solid.rotate(rotations[axis]).translate(center);
+  const direction = new THREE.Vector3(...normal).normalize();
+  const rotation = new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction));
+  rotation.setPosition(...center);
+  return solid.transform(rotation.elements as unknown as [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number]);
+}
+
+function connectorSolid(wasm: WasmModule, kind: ConnectorKind, size: number, depth: number, axis: CutterAxis, center: [number, number, number]): any {
+  return connectorSolidForNormal(wasm, kind, size, depth, normalForAxis(axis), center);
 }
 
 function addConnectors(wasm: WasmModule, split: [any, any], axis: CutterAxis, offset: number, sourceBounds: CutterBounds, config: ConnectorConfig): [any, any] {
@@ -242,6 +252,75 @@ export async function splitMeshByPlane(mesh: CutterMesh, axis: CutterAxis, offse
   } finally {
     if (!connector.enabled) disposeAll(parts);
     disposeAll([source]);
+  }
+}
+
+export async function splitMeshByPlaneNormal(
+  mesh: CutterMesh,
+  normalInput: [number, number, number],
+  offset: number,
+  connector: ConnectorConfig = { enabled: false, kind: 'pyramid', size: 6, clearance: 0.2, depth: 4 },
+  plugSide: 'positive' | 'negative' = 'positive',
+): Promise<[CutterMesh, CutterMesh]> {
+  const normalVector = new THREE.Vector3(...normalInput).normalize();
+  const normal: [number, number, number] = [normalVector.x, normalVector.y, normalVector.z];
+  const wasm = await getWasm();
+  const source = manifoldFromMesh(wasm, mesh);
+  const bounds = boundsOfMesh(mesh);
+  const parts = source.splitByPlane(normal, offset) as any[];
+  let output = parts as [any, any];
+  try {
+    if (connector.enabled) {
+      const centerVector = new THREE.Vector3(...bounds.center);
+      centerVector.addScaledVector(normalVector, offset - centerVector.dot(normalVector));
+      const depth = Math.max(1, connector.depth);
+      const clearance = Math.max(0, connector.clearance);
+      const sign = plugSide === 'positive' ? -1 : 1;
+      const plugCenter = centerVector.clone().addScaledVector(normalVector, sign * depth * .42);
+      const socketCenter = plugCenter.clone();
+      const peg = connectorSolidForNormal(wasm, connector.kind, connector.size, depth, normal, plugCenter.toArray() as [number, number, number]);
+      const socket = connectorSolidForNormal(wasm, connector.kind, connector.size + clearance * 2, depth + clearance * 2, normal, socketCenter.toArray() as [number, number, number]);
+      output = plugSide === 'positive'
+        ? [parts[0].add(peg), parts[1].subtract(socket)]
+        : [parts[0].subtract(socket), parts[1].add(peg)];
+      disposeAll([...parts, peg, socket]);
+    }
+    return [meshFromManifold(output[0]), meshFromManifold(output[1])];
+  } finally {
+    if (output !== parts) disposeAll(output);
+    else disposeAll(parts);
+    disposeAll([source]);
+  }
+}
+
+export async function applyConnectorPair(
+  firstMesh: CutterMesh,
+  secondMesh: CutterMesh,
+  centerInput: [number, number, number],
+  normalInput: [number, number, number],
+  connector: ConnectorConfig,
+  plugSide: 'first' | 'second' = 'first',
+): Promise<[CutterMesh, CutterMesh]> {
+  if (!connector.enabled) return [firstMesh, secondMesh];
+  const wasm = await getWasm();
+  const first = manifoldFromMesh(wasm, firstMesh);
+  const second = manifoldFromMesh(wasm, secondMesh);
+  const normalVector = new THREE.Vector3(...normalInput).normalize();
+  const normal = normalVector.toArray() as [number, number, number];
+  const depth = Math.max(1, connector.depth);
+  const clearance = Math.max(0, connector.clearance);
+  const sign = plugSide === 'first' ? -1 : 1;
+  const center = new THREE.Vector3(...centerInput).addScaledVector(normalVector, sign * depth * .42);
+  const peg = connectorSolidForNormal(wasm, connector.kind, connector.size, depth, normal, center.toArray() as [number, number, number]);
+  const socket = connectorSolidForNormal(wasm, connector.kind, connector.size + clearance * 2, depth + clearance * 2, normal, center.toArray() as [number, number, number]);
+  let output: [any, any] | null = null;
+  try {
+    output = plugSide === 'first'
+      ? [first.add(peg), second.subtract(socket)]
+      : [first.subtract(socket), second.add(peg)];
+    return [meshFromManifold(output[0]), meshFromManifold(output[1])];
+  } finally {
+    disposeAll([first, second, peg, socket, ...(output ?? [])]);
   }
 }
 

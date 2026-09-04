@@ -5,6 +5,12 @@ export type ExportPart = {
   name: string;
   mesh: CutterMesh;
   color: string;
+  materials?: Array<{
+    name: string;
+    color: string;
+    startTriangle: number;
+    triangleCount: number;
+  }>;
 };
 
 function safeName(name: string): string {
@@ -71,32 +77,58 @@ function colorHex(color: string): string {
   return `#${value.toUpperCase()}FF`;
 }
 
-function meshXml(mesh: CutterMesh): string {
+function meshXml(mesh: CutterMesh, materialByTriangle: number[]): string {
   const vertices = Array.from({ length: Math.floor(mesh.vertices.length / 3) }, (_, index) => `<vertex x="${mesh.vertices[index * 3]}" y="${mesh.vertices[index * 3 + 1]}" z="${mesh.vertices[index * 3 + 2]}"/>`).join('');
-  const triangles = Array.from({ length: Math.floor(mesh.indices.length / 3) }, (_, index) => `<triangle v1="${mesh.indices[index * 3]}" v2="${mesh.indices[index * 3 + 1]}" v3="${mesh.indices[index * 3 + 2]}"/>`).join('');
+  const triangles = Array.from({ length: Math.floor(mesh.indices.length / 3) }, (_, index) => {
+    const material = materialByTriangle[index] ?? materialByTriangle[0] ?? 0;
+    return `<triangle v1="${mesh.indices[index * 3]}" v2="${mesh.indices[index * 3 + 1]}" v3="${mesh.indices[index * 3 + 2]}" pid="1" p1="${material}" p2="${material}" p3="${material}"/>`;
+  }).join('');
   return `<mesh><vertices>${vertices}</vertices><triangles>${triangles}</triangles></mesh>`;
 }
 
-function buildThreeMfArchive(parts: ExportPart[], title: string, modelSettings?: string): Uint8Array {
+function buildThreeMfArchive(parts: ExportPart[], title: string, modelSettings?: string, preservedEntries?: Record<string, Uint8Array>): Uint8Array {
   const usable = parts.filter((part) => part.mesh.indices.length >= 3);
-  const materials = usable.map((part) => `<base name="${escapeXml(part.name)}" displaycolor="${colorHex(part.color)}"/>`).join('');
-  const objects = usable.map((part, index) => `<object id="${index + 1}" type="model" pid="1" pindex="${index}">${meshXml(part.mesh)}</object>`).join('');
+  const materialEntries: Array<{ name: string; color: string }> = [];
+  const planned = usable.map((part) => {
+    const slices = part.materials?.filter((slice) => slice.triangleCount > 0) ?? [];
+    const sliceIndexes = slices.map((slice) => {
+      const index = materialEntries.length;
+      materialEntries.push({ name: slice.name, color: slice.color });
+      return index;
+    });
+    const fallbackIndex = sliceIndexes[0] ?? materialEntries.length;
+    if (!slices.length) materialEntries.push({ name: part.name, color: part.color });
+    const materialByTriangle = Array.from({ length: Math.floor(part.mesh.indices.length / 3) }, () => fallbackIndex);
+    slices.forEach((slice, sliceIndex) => {
+      const materialIndex = sliceIndexes[sliceIndex];
+      const end = Math.min(materialByTriangle.length, slice.startTriangle + slice.triangleCount);
+      for (let triangle = Math.max(0, slice.startTriangle); triangle < end; triangle += 1) materialByTriangle[triangle] = materialIndex;
+    });
+    return { part, fallbackIndex, materialByTriangle };
+  });
+  const materials = materialEntries.map((material) => `<base name="${escapeXml(material.name)}" displaycolor="${colorHex(material.color)}"/>`).join('');
+  const objects = planned.map(({ part, fallbackIndex, materialByTriangle }, index) => `<object id="${index + 1}" name="${escapeXml(part.name)}" type="model" pid="1" pindex="${fallbackIndex}">${meshXml(part.mesh, materialByTriangle)}</object>`).join('');
   const items = usable.map((_, index) => `<item objectid="${index + 1}"/>`).join('');
   const model = `<?xml version="1.0" encoding="UTF-8"?>\n<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02"><metadata name="Title">${escapeXml(title)}</metadata><metadata name="Designer">FormaForgeDT</metadata><metadata name="Application">FormaForgeDT STL Cutter</metadata><resources><basematerials id="1">${materials}</basematerials>${objects}</resources><build>${items}</build></model>`;
   const relationships = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>`;
   const contentTypes = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/><Default Extension="config" ContentType="text/xml"/><Default Extension="txt" ContentType="text/plain"/></Types>`;
-  const entries: Record<string, Uint8Array> = {
-    '[Content_Types].xml': strToU8(contentTypes),
+  const sourceContentTypes = Object.entries(preservedEntries ?? {}).find(([name]) => name.toLowerCase() === '[content_types].xml')?.[1];
+  const entries: Record<string, Uint8Array> = Object.fromEntries(Object.entries(preservedEntries ?? {}).filter(([name]) => {
+    const lower = name.toLowerCase();
+    return lower !== '[content_types].xml' && lower !== '_rels/.rels' && !lower.endsWith('3dmodel.model') && lower !== 'metadata/generator.txt';
+  }).map(([name, bytes]) => [name, bytes.slice()]));
+  Object.assign(entries, {
+    '[Content_Types].xml': sourceContentTypes?.slice() ?? strToU8(contentTypes),
     '_rels/.rels': strToU8(relationships),
     '3D/3dmodel.model': strToU8(model),
     'Metadata/generator.txt': strToU8('FormaForgeDT STL Cutter · units: millimeter'),
-  };
+  });
   if (modelSettings) entries['Metadata/model_settings.config'] = strToU8(modelSettings);
   return zipSync(entries, { level: 6 });
 }
 
-export function buildThreeMf(parts: ExportPart[], title = 'STL Cutter project'): Uint8Array {
-  return buildThreeMfArchive(parts, title);
+export function buildThreeMf(parts: ExportPart[], title = 'STL Cutter project', preservedEntries?: Record<string, Uint8Array>): Uint8Array {
+  return buildThreeMfArchive(parts, title, undefined, preservedEntries);
 }
 
 export function buildMultiBedThreeMf(parts: ExportPart[], bed: BedConfig, title = 'STL Cutter beds'): Uint8Array {

@@ -1,0 +1,1 @@
+export { SplitThreeMfPage } from './SplitThreeMfPage';
