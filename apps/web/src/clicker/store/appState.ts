@@ -60,6 +60,10 @@ export const store = createStore<UiState>({
   // A modest cleanup is the safe print default: it removes pixel stair-steps
   // without erasing the image details that users still expect to see.
   smoothing: 0.25,
+  multiColorEnabled: false,
+  stackColorLayers: true,
+  colorLayerHeightMm: 0.8,
+  colorLayerGapMm: 0,
   photoFlatten: false,
   keychain: { enabled: false, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0, hybridPosition: 'top' },
   removeBg: true,

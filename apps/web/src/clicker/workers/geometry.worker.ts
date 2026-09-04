@@ -227,7 +227,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
   }
 };
 
-// Let the host attach its message handler before the initial handshake. This
-// matters when the worker is booted from a nested Shadow DOM runtime where the
-// host module may finish evaluating a few ticks after the worker module.
-setTimeout(() => post({ type: 'ready' }), 0);
+// The host sends an explicit `ping` after installing its message handler. Do
+// not also emit an eager handshake here: two `ready` messages make the host
+// transfer the same asset ArrayBuffers twice, and the second transfer fails
+// with DataCloneError because those buffers are already detached.

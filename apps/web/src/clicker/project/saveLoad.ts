@@ -47,7 +47,8 @@ export function saveProject() {
       hybridKeycapSpacingMm: s.hybridKeycapSpacingMm, hybridKeycapClearanceMm: s.hybridKeycapClearanceMm, imageMargin: s.imageMargin,
       borderWidth: s.borderWidth, baseHeight: s.baseHeight, mergeTopFrame: s.mergeTopFrame, keepMeshesSeparate: s.keepMeshesSeparate, 
       tolerance: s.tolerance, stemTolerance: s.stemTolerance, switches: s.switches, keychain: s.keychain, 
-      smoothing: s.smoothing, photoFlatten: s.photoFlatten, removeBg: s.removeBg, importMode: s.importMode, 
+      smoothing: s.smoothing, multiColorEnabled: s.multiColorEnabled, stackColorLayers: s.stackColorLayers, colorLayerHeightMm: s.colorLayerHeightMm, colorLayerGapMm: s.colorLayerGapMm,
+      photoFlatten: s.photoFlatten, removeBg: s.removeBg, importMode: s.importMode,
       currentText: appData.currentText, currentFontId: appData.currentFontId, 
       currentSvgText: appData.currentSvgText, currentSvgName: appData.currentSvgName, 
       imageSource: appData.imageSource,
@@ -155,7 +156,10 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       activeSwitchIndex: 0, keychain: set.keychain && typeof set.keychain === 'object'
         ? { offsetMm: 0, hybridPosition: 'top', ...set.keychain }
         : { enabled: set.keychain === true, style: 'loop', angleDeg: 90, holeDiameterMm: 5.2, offsetMm: 0, hybridPosition: 'top' },
-      smoothing: set.smoothing ?? store.get().smoothing, photoFlatten: set.photoFlatten ?? store.get().photoFlatten, removeBg: set.removeBg ?? store.get().removeBg,
+      smoothing: set.smoothing ?? store.get().smoothing, multiColorEnabled: !!set.multiColorEnabled, stackColorLayers: set.stackColorLayers ?? store.get().stackColorLayers,
+      colorLayerHeightMm: Math.max(0.2, Math.min(4, set.colorLayerHeightMm ?? store.get().colorLayerHeightMm)),
+      colorLayerGapMm: Math.max(0, Math.min(2, set.colorLayerGapMm ?? store.get().colorLayerGapMm)),
+      photoFlatten: set.photoFlatten ?? store.get().photoFlatten, removeBg: set.removeBg ?? store.get().removeBg,
       currentIconName: appData.currentIconName || 'circle', colorMode: set.colorMode ?? 'normal',
       limitedColors: set.limitedColors ?? [], bodyColorRgb: set.bodyColorRgb ?? [120, 124, 130],
       paletteOverrides: set.paletteOverrides ?? [], partOverrides: set.partOverrides ?? {},

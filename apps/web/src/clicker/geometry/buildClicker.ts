@@ -298,6 +298,7 @@ export function buildClicker(
   const colorDistanceSq = (a: RGB, b: RGB) => (
     (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
   );
+  const rasterImageMode = params.rasterImageMode === true;
   const componentLevel = (r: BuildRegion) => params.componentHeights?.[r.partName] ?? 0;
   const monoReference = regions.length > 0
     ? regions.reduce((best, current) => (current.coverage > best.coverage ? current : best))
@@ -310,7 +311,7 @@ export function buildClicker(
       && Math.abs(componentLevel(r) - monoLevel) <= 0.0001
     )),
   );
-  const geometryRegions: BuildRegion[] = useSolidMonochromeTop && monoReference
+  const allGeometryRegions: BuildRegion[] = useSolidMonochromeTop && monoReference
     ? [{
         filamentRgb: monoReference.filamentRgb,
         coverage: 1,
@@ -318,6 +319,16 @@ export function buildClicker(
         partName: 'top-color-mono',
       }]
     : regions;
+
+  // In raster Image mode the dominant colour is already the continuous top
+  // carrier (`top-base`). Rebuilding that same colour as a second inlay creates
+  // coplanar duplicate faces around every accent, which is what lets the flag
+  // colour leak into the star in the preview and in slicers. Keep only the
+  // non-carrier colours as independent top meshes. SVG/icon/text keep the old
+  // per-region behaviour because they may intentionally use a custom carrier.
+  const geometryRegions: BuildRegion[] = rasterImageMode && monoReference
+    ? allGeometryRegions.filter((r) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) > 16)
+    : allGeometryRegions;
 
   // --- Tạo Các Mảng Màu (Inlays) ---
   for (const { r } of geometryRegions.map(r => ({ r })).sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1))) {
@@ -347,12 +358,18 @@ export function buildClicker(
     // 0.02 mm expansion created a real perimeter gap; the vertical overlap
     // below is the robust way to avoid coplanar seams without shrinking the
     // printed artwork.
-    const cutFp = ctx.simp(ctx.track(fp.intersect(plate)));
+    const cutSource = rasterImageMode
+      ? ctx.grow(fp, Math.max(0.04, params.colorBleed * 0.35))
+      : fp;
+    const cutFp = ctx.simp(ctx.track(cutSource.intersect(plate)));
     if (sectionIsEmpty(cutFp)) continue;
     placedFootprint2D = placedFootprint2D
       ? ctx.simp(ctx.track(placedFootprint2D.add(cutFp)))
       : cutFp;
 
+    // Keep raster artwork coplanar by default. The Extrude tool writes an
+    // explicit component height; only that user-selected level moves a color
+    // above or below the carrier surface.
     const level = useSolidMonochromeTop ? monoLevel : componentLevel(r);
     const heightShift = level * params.stepHeight;
     const imagePlaneZ = imageBottomZ + Math.min(0, heightShift);
@@ -399,7 +416,11 @@ export function buildClicker(
 
   // --- Khắc rãnh trên khối nền chính ---
   let base = capVolume;
-  if (!(params as any).mergeTopFrame) {
+  // Raster Image always needs the accent cavities even when the user asks to
+  // merge the top frame and artwork. Without the cut, the carrier remains
+  // underneath the accent at the same Z and the renderer/slicer can show it
+  // through the star as a colour leak.
+  if (!(params as any).mergeTopFrame || rasterImageMode) {
     for (const [level, hole2D] of holesByLevel.entries()) {
       const heightShift = level * params.stepHeight;
       const bottomZ = imageBottomZ + Math.min(0, heightShift);

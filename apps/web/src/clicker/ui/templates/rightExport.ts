@@ -4,6 +4,7 @@ export const renderRightExport = () => `
       <button class="primary" id="export" style="flex: 1; padding: 10px 4px; font-size: 13px;">Download 3MF</button>
       <button class="primary" id="exportStl" style="flex: 1; padding: 10px 4px; font-size: 13px; background-color: #10b981; color: #ffffff; border: none;">Download STL ZIP</button>
     </div>
+    <p id="exportModeHint" class="hint-text" style="margin: 0 0 10px; line-height: 1.4;"></p>
     <div id="projectSettingsContainer">
       <div class="btn-row">
         <button id="saveProj" class="secondary utility-btn" type="button"><span>Save project</span></button>

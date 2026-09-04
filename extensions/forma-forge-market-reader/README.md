@@ -13,7 +13,7 @@ Chrome does not install a ZIP directly; it must be unzipped before using **Load 
 
 ## Use
 
-Click the extension icon to open the full-height Chrome side panel on the right. When a supported product tab opens, changes URL or becomes active, the panel automatically captures every SKU/variant without requiring a button click. Use **Đọc giá trang này** as a manual refresh when needed. Each product and variant keeps the original marketplace text together with its Vietnamese translation, plus current price, original price, attributes and stock when available. The side panel shows the lowest price, a CNY/VND conversion updated from the latest public reference rate, Vietnamese labels and detailed promotions. Use **Dịch trang** to translate visible Chinese text; repeated labels are cached and unique texts are translated concurrently to reduce wait time.
+Click the extension icon to open the full-height Chrome side panel on the right. When a supported product tab opens, changes URL or becomes active, the panel automatically captures every SKU/variant without requiring a button click. Use **Đọc giá trang này** as a manual refresh when needed. Each product and variant keeps the original marketplace text together with its Vietnamese translation, plus current price, original price, attributes and stock when available. The side panel shows the lowest price, a CNY/VND conversion updated from the latest public reference rate and Vietnamese labels. Use **Dịch trang** to translate visible Chinese text; repeated labels are cached and unique texts are translated concurrently to reduce wait time.
 
 Supported pages: Taobao, Tmall, 1688, JD, Pinduoduo and Xiaohongshu product pages.
 
@@ -21,8 +21,8 @@ Supported pages: Taobao, Tmall, 1688, JD, Pinduoduo and Xiaohongshu product page
 
 - The page receives a small FormaForge VND overlay and inline VND labels next to detected CNY prices. The exchange rate is refreshed from the public reference endpoint and falls back to the last cached rate when offline.
 - **Trợ lý nhắn tin** supports Trung → Việt, Việt → Trung, Trung → English and English → Trung. Translations use the same cache and custom endpoint configured in Options.
-- **Báo giá PDF theo phân loại** creates one PDF page per detected variant and renders the product/variant names, original text, CNY/VND price, stock, attributes and an attached product image.
-- **Tải ảnh ZIP** downloads all detected product images and variant thumbnails into one ZIP archive.
+- **Báo giá PDF + ảnh từng phân loại** creates one PDF page per detected variant and renders the product/variant names, original text, CNY/VND price, stock, attributes and the exact image for that variant when the marketplace provides one. If a variant has no separate image, the page uses the product image and marks it as a shared product image.
+- **Tải ZIP ảnh từng phân loại** downloads the product gallery and every detected variant image as separate files in one ZIP archive. Gallery images use the translated product title (`bo-ly-thuy-tinh.jpg`, `bo-ly-thuy-tinh-2.jpg`); variant images use their translated labels (`mau-do.jpg`). All names are normalized to lowercase ASCII without Vietnamese diacritics, and repeated labels receive a numeric suffix instead of overwriting an image.
 
 The PDF and ZIP exporters fetch image bytes in the extension service worker, so marketplace CDN images do not depend on page CORS settings. If a marketplace blocks a particular CDN asset, the remaining available assets are still exported.
 

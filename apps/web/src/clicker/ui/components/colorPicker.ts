@@ -87,7 +87,7 @@ export function showColorPopoverAt(
   setTimeout(() => getClickerDocument().addEventListener('mousedown', dismiss), 50);
 }
 
-export function renderPalette(palette: PaletteEntry[], bodyColorRgb: RGB, cb: UiCallbacks, colorMode?: 'normal' | 'limited', limitedColors?: RGB[]) {
+export function renderPalette(palette: PaletteEntry[], bodyColorRgb: RGB, cb: UiCallbacks, colorMode?: 'normal' | 'limited', limitedColors?: RGB[], showLayerControls = false) {
   const pal = $('palette');
   if (!pal) return;
   pal.innerHTML = '';
@@ -114,7 +114,10 @@ export function renderPalette(palette: PaletteEntry[], bodyColorRgb: RGB, cb: Ui
     palette.forEach((entry, i) => {
       const row = getClickerDocument().createElement('div');
       row.className = 'fil-row';
-      row.innerHTML = `<span class="slot-no">${i + 1}</span><span class="swatch" style="background:${rgbHex(entry.quantRgb)}" title="${rgbText(entry.quantRgb)}"></span><span class="arrow">â†’</span><button type="button" class="fil-chip" title="${rgbText(entry.filamentRgb)}" style="background:${rgbHex(entry.filamentRgb)}"></button><span class="rgb-code">${rgbText(entry.filamentRgb)}</span>`;
+      const layerControls = showLayerControls
+        ? `<span class="layer-order-buttons"><button type="button" data-layer-order="up" data-layer-index="${i}" title="Move layer up" aria-label="Move layer ${i + 1} up">▲</button><button type="button" data-layer-order="down" data-layer-index="${i}" title="Move layer down" aria-label="Move layer ${i + 1} down">▼</button></span>`
+        : '';
+      row.innerHTML = `<span class="slot-no">${showLayerControls ? `Layer ${i + 1}` : i + 1}</span><span class="swatch" style="background:${rgbHex(entry.quantRgb)}" title="${rgbText(entry.quantRgb)}"></span><span class="arrow">â†’</span><button type="button" class="fil-chip" title="${rgbText(entry.filamentRgb)}" style="background:${rgbHex(entry.filamentRgb)}"></button><span class="rgb-code">${rgbText(entry.filamentRgb)}</span>${layerControls}`;
       
       const chip = row.querySelector('.fil-chip')!;
       chip.addEventListener('click', (e) => {

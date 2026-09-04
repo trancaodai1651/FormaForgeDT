@@ -313,8 +313,33 @@ export function buildHybridClicker(
     }
   }
 
+  // The traced colour regions are a partition of the raster mask, not a
+  // guaranteed watertight fill after independent contouring.  Keeping a
+  // white solid underneath them makes every tiny contour mismatch visible as
+  // white pepper-like holes in the imported artwork.  Use the image outline
+  // as a continuous carrier in the dominant image material, then cut only
+  // the accent regions from that carrier.  The outer padding remains white.
+  const dominantImageColor = imageRegions.length > 0
+    ? imageRegions.reduce((best, region) => region.coverage > best.coverage ? region : best, imageRegions[0]).filamentRgb
+    : bodyColor;
+  const imageSurfaceLift = 0.04;
+  const imageTop = imageTopZ + imageSurfaceLift;
+  const imageCarrierBottom = -baseThickness;
+  let imageCarrier = ctx.track(wasm.Manifold.extrude(
+    imageSection,
+    Math.max(0.25, imageTop - imageCarrierBottom),
+  ).translate([0, 0, imageCarrierBottom]));
+
   let badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
+  // Remove the white body from the image footprint.  This leaves a stable
+  // white border ring while ensuring the carrier is the only material behind
+  // the coloured artwork.
+  const imageCore = ctx.track(wasm.Manifold.extrude(
+    imageSection,
+    imageThickness + 0.12,
+  ).translate([0, 0, -baseThickness - 0.04]));
+  badgeBody = ctx.track(badgeBody.subtract(imageCore));
   if (params.keychain?.enabled) {
     // Image + Blocks keeps the ring attached to the imported image head, never
     // to the last text block. The user can choose either end of the head.
@@ -396,13 +421,11 @@ export function buildHybridClicker(
       }
     }
   }
-  const imageHeadTop = imageTopZ;
   // The imported image is the flat-keychain plate in Image + Blocks mode.
   // Keep the plate itself flat and switch-free. Image colour layers start at
   // the badge top plane; the image Extrude control grows them upward from
   // that plane, so the setting produces a visible printable relief.
   const imageTopScale = 1;
-  const imageTop = imageHeadTop;
 
   const movableParts = blockResult.parts.filter((part) => !(part.kind === 'body' && part.group === 'base'));
   for (const part of movableParts) {
@@ -420,6 +443,15 @@ export function buildHybridClicker(
   let placedImage2D: any = null;
   for (let index = 0; index < imageRegions.length; index++) {
     const region = imageRegions[index];
+    const sameAsCarrier = (
+      (region.filamentRgb[0] - dominantImageColor[0]) ** 2
+      + (region.filamentRgb[1] - dominantImageColor[1]) ** 2
+      + (region.filamentRgb[2] - dominantImageColor[2]) ** 2
+    ) <= 9;
+    // The carrier already provides every component of the dominant colour.
+    // Rebuilding those components would reintroduce coincident faces and the
+    // same depth-buffer/slicer artefact this continuous carrier avoids.
+    if (sameAsCarrier) continue;
     const rings = region.rings
       .filter((ring) => ring.length >= 3 && Math.abs(getRingArea(ring)) > 0.0001)
       .map((ring) => ring.map(([x, y]) => [
@@ -456,6 +488,7 @@ export function buildHybridClicker(
       if (!layer.isEmpty()) {
         const cavity = ctx.track(wasm.Manifold.extrude(topLayer, inlayDepth + 0.02)
           .translate([0, 0, imageLayerBottom]));
+        imageCarrier = ctx.track(imageCarrier.subtract(cavity));
         badgeBody = ctx.track(badgeBody.subtract(cavity));
         parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
         placedImage2D = placedImage2D
@@ -467,6 +500,7 @@ export function buildHybridClicker(
     }
   }
 
+  parts.push(toPart(imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
   const mergedBody = ctx.track(badgeBody.add(lowerBody));
   parts.push(toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'));
 

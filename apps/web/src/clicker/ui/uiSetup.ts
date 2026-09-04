@@ -7,7 +7,8 @@ import { loadFileToImage } from '../image/decode';
 import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
 import { importFontFile } from '../image/letter';
-import { downloadThreeMF, downloadSTLSplit } from '../export';
+import { downloadThreeMF, downloadSTLMaterialsZip, downloadSTLSplit } from '../export';
+import { downloadThreeMFObjects } from '../features/multiColor/export/threemfExport';
 import { hexToRgb, downloadBlob } from '../utils/helpers';
 import { saveProject, loadProject } from '../project/saveLoad';
 import type { ClickerPart } from '../types';
@@ -72,15 +73,34 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
           onCancel: () => store.set({ status: 'Ready.' }),
           onComplete: (res) => {
             appData.originalImage = res.adjusted;
-            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [] });
+            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], componentHeights: {} });
             reprocess();
           }
         });
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; reprocess(); }),
-    onColorCount: (n) => { store.set({ colorCount: n }); debouncedReprocess(); },
+    onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; store.set({ componentHeights: {} }); reprocess(); }),
+    onMultiColorToggle: (on) => { store.set({ multiColorEnabled: on, componentHeights: {} }); reprocess(); },
+    onColorCount: (n) => { store.set({ colorCount: Math.max(2, Math.min(12, n)) }); debouncedReprocess(); },
+    onStackColorLayers: (on) => { store.set({ stackColorLayers: on, componentHeights: {} }); debouncedRebuild(); },
+    onColorLayerHeight: (value) => { store.set({ colorLayerHeightMm: Math.max(0.2, Math.min(4, value)) }); debouncedRebuild(); },
+    onColorLayerGap: (value) => { store.set({ colorLayerGapMm: Math.max(0, Math.min(2, value)) }); debouncedRebuild(); },
+    onLayerOrder: (index, delta) => {
+      const s = store.get();
+      if (!s.multiColorEnabled || (s.importMode !== 'image' && s.importMode !== 'hybrid')) return;
+      const regions = appData.regionSet?.regions;
+      if (!regions || !regions[index]) return;
+      const target = Math.max(0, Math.min(regions.length - 1, index + delta));
+      if (target === index || !regions[target]) return;
+      const [region] = regions.splice(index, 1);
+      regions.splice(target, 0, region);
+      const palette = [...s.palette];
+      const [paletteEntry] = palette.splice(index, 1);
+      if (paletteEntry) palette.splice(target, 0, paletteEntry);
+      store.set({ palette, componentHeights: {} });
+      debouncedRebuild();
+    },
     onFilament: (i, hex) => { if (store.get().palette[i]) applyModelRecolor({ kind: 'region', index: i, compIndex: 0 }, hexToRgb(hex), -1, viewer); },
     onShape: (kind) => { store.set({ baseShape: kind }); debouncedRebuild(); },
     onBorderWidth: (mm) => { store.set({ borderWidth: mm }); debouncedRebuild(); },
@@ -128,8 +148,26 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on); },
     onSection: (axis, pos) => viewer.setSection(axis, pos),
     
-    onExport: () => { if (!appData.latestParts.length) return; downloadThreeMF(appData.latestParts, 'clicker.3mf'); },
-    onExportSTL: () => { if (!appData.latestParts.length) return; downloadSTLSplit(appData.latestParts, 'clicker.stl'); },
+    onExport: () => {
+      if (!appData.latestParts.length) return;
+      const mode = store.get().importMode;
+      if (store.get().multiColorEnabled && (mode === 'image' || mode === 'hybrid')) {
+        downloadThreeMFObjects(appData.latestParts, mode === 'hybrid' ? 'clicker-image-blocks.3mf' : 'clicker-image.3mf');
+        store.set({ status: 'Multi-color 3MF exported with one filament material per image color.' });
+        return;
+      }
+      downloadThreeMF(appData.latestParts, 'clicker.3mf');
+    },
+    onExportSTL: () => {
+      if (!appData.latestParts.length) return;
+      const mode = store.get().importMode;
+      if (store.get().multiColorEnabled && (mode === 'image' || mode === 'hybrid')) {
+        downloadSTLMaterialsZip(appData.latestParts, mode === 'hybrid' ? 'clicker-image-blocks.stl' : 'clicker-image.stl');
+        store.set({ status: 'Multi-color STL ZIP exported with shared placement for every filament.' });
+        return;
+      }
+      downloadSTLSplit(appData.latestParts, 'clicker.stl');
+    },
     onRenderPng: async () => { const blob = await viewer.renderToPng(); if (blob) downloadBlob(blob, 'clicker-render.png'); },
     onAiPrompt: async () => { await navigator.clipboard.writeText("Create a simple, flat vector-style illustration suitable for a small multi-color 3D print..."); store.set({ status: 'AI prompt copied âœ“' }); },
     

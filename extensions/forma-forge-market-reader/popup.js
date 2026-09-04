@@ -25,6 +25,58 @@ function productPriceLabel(product) {
   return prices.length ? prices.map((price) => priceLabel(price, rate)).join(' · ') : 'Chưa thấy giá CNY';
 }
 
+function imageExtension(url, mime = '') {
+  const normalizedMime = String(mime || '').toLowerCase().split(';', 1)[0];
+  if (normalizedMime === 'image/png') return 'png';
+  if (normalizedMime === 'image/webp') return 'webp';
+  if (normalizedMime === 'image/gif') return 'gif';
+  if (normalizedMime === 'image/avif') return 'avif';
+  const extension = String(url || '').split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension) ? (extension === 'jpeg' ? 'jpg' : extension) : 'jpg';
+}
+
+function imageStem(value, fallback = 'anh-san-pham') {
+  const stem = String(value || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, (character) => character === 'Đ' ? 'D' : 'd')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return stem || fallback;
+}
+
+function reserveImageFileName(value, extension, usedNames, fallback = 'anh-san-pham') {
+  const stem = imageStem(value, fallback);
+  const ext = ['jpg', 'png', 'webp', 'gif', 'avif'].includes(String(extension || '').toLowerCase())
+    ? String(extension).toLowerCase()
+    : 'jpg';
+  let name = `${stem}.${ext}`;
+  let suffix = 2;
+  while (usedNames.has(name)) name = `${stem}-${suffix++}.${ext}`;
+  usedNames.add(name);
+  return name;
+}
+
+function imageUrlValue(value, depth = 0) {
+  if (depth > 3 || value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) return value.map((item) => imageUrlValue(item, depth + 1)).find(Boolean) || '';
+  if (typeof value !== 'object') return '';
+  for (const key of ['url', 'imageUrl', 'image_url', 'imgUrl', 'img_url', 'image', 'specImg', 'skuImage', 'sku_image', 'skuImageUrl', 'imageInfo', 'imgInfo', 'pic', 'picUrl', 'thumb', 'thumbnail', 'preview', 'src', 'value']) {
+    const candidate = imageUrlValue(value[key], depth + 1);
+    if (candidate) return candidate;
+  }
+  return '';
+}
+
+function translatedProductImageLabel(product) {
+  const candidates = [product?.title, product?.titleOriginal]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  return candidates.find((value) => !/[\u3400-\u9fff]/.test(value)) || candidates[0] || '';
+}
+
 function exchangeRateLabel(product) {
   const rate = Number(exchangeRateState.rate || product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
   const date = exchangeRateState.date ? ` · cập nhật ${exchangeRateState.date}` : '';
@@ -45,7 +97,7 @@ function variantRows(product) {
       stock: Number.isFinite(Number(value.stock)) ? Number(value.stock) : undefined,
       skuAttributes: value.skuAttributes && typeof value.skuAttributes === 'object' ? value.skuAttributes : {},
       skuAttributesOriginal: value.skuAttributesOriginal && typeof value.skuAttributesOriginal === 'object' ? value.skuAttributesOriginal : (value.skuAttributes || {}),
-      imageUrl: String(value.imageUrl || value.image_url || '').trim()
+      imageUrl: imageUrlValue(value.imageUrl || value.image_url || value.image || value.img || value.pic || value.thumb || value.thumbnail)
     };
   });
   return (Array.isArray(product?.pricesCny) ? product.pricesCny : []).map((price, index) => ({
@@ -61,17 +113,42 @@ function variantRows(product) {
 
 function productImageRefs(product) {
   const refs = [];
-  const add = (value, fileName = '') => {
-    const url = String(value || '').trim();
-    if (!/^https?:\/\//i.test(url) || refs.some((item) => item.url === url)) return;
-    refs.push({ url, fileName: fileName || `product-image-${String(refs.length + 1).padStart(2, '0')}.jpg` });
+  const usedNames = new Set();
+  const productUrls = new Set();
+  const productLabel = translatedProductImageLabel(product);
+  const variants = variantRows(product);
+  const variantUrls = new Set(variants.map((variant) => variant.imageUrl).filter(Boolean));
+  const addProduct = (value, index) => {
+    const url = imageUrlValue(value);
+    if (!/^https?:\/\//i.test(url) || productUrls.has(url) || variantUrls.has(url)) return;
+    productUrls.add(url);
+    refs.push({
+      url,
+      kind: 'product',
+      fileName: reserveImageFileName(productLabel, imageExtension(url), usedNames, `san-pham-${String(index + 1).padStart(2, '0')}`)
+    });
+  };
+  const addVariant = (variant, index) => {
+    const url = String(variant.imageUrl || '').trim();
+    if (!/^https?:\/\//i.test(url)) return;
+    refs.push({
+      url,
+      kind: 'variant',
+      variantId: variant.id,
+      variantIndex: index,
+      label: variant.label,
+      fileName: reserveImageFileName(variant.label, imageExtension(url), usedNames, `phan-loai-${String(index + 1).padStart(2, '0')}`)
+    });
   };
   (Array.isArray(product?.images) ? product.images : []).forEach((item) => {
-    const value = item && typeof item === 'object' ? item : { url: item };
-    add(value.url, value.fileName);
+    addProduct(item, refs.filter((ref) => ref.kind === 'product').length);
   });
-  variantRows(product).forEach((variant, index) => add(variant.imageUrl, `variant-${String(index + 1).padStart(2, '0')}.jpg`));
-  return refs.slice(0, 80);
+  variants.forEach(addVariant);
+  const productCount = refs.findIndex((ref) => ref.kind === 'variant');
+  const productRefs = productCount < 0 ? refs : refs.slice(0, productCount);
+  const variantRefs = productCount < 0 ? [] : refs.slice(productCount);
+  if (variantRefs.length >= 120) return variantRefs.slice(0, 120);
+  return [...productRefs.slice(0, 120 - variantRefs.length), ...variantRefs];
 }
 
 function promotionRows(product) {
@@ -348,6 +425,15 @@ async function renderQuotePage(product, variant, asset, index, total) {
       context.font = '16px Arial, sans-serif';
       context.fillText('Không tải được ảnh phân loại', 270, y + 400);
     }
+    if (asset.kind !== 'variant') {
+      context.fillStyle = '#9aa3af';
+      context.font = '12px Arial, sans-serif';
+      context.fillText('Ảnh chung sản phẩm · chưa có ảnh riêng cho phân loại này', 48, y + 684);
+    }
+  } else {
+    context.fillStyle = '#9aa3af';
+    context.font = '16px Arial, sans-serif';
+    context.fillText('Không có ảnh phân loại để tải từ CDN', 270, y + 400);
   }
   context.fillStyle = '#7a8491';
   context.font = '12px Arial, sans-serif';
@@ -401,35 +487,66 @@ function cleanFileName(value, fallback) {
   return String(value || fallback).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 90) || fallback;
 }
 
+async function ensureTranslatedExportProduct() {
+  if (!lastProduct) return null;
+  const sourceProduct = lastProduct;
+  try {
+    const translatedProduct = await translateProductDetails(sourceProduct);
+    if (translatedProduct && translatedProduct !== sourceProduct && lastProduct === sourceProduct) {
+      applyExchangeRate(translatedProduct);
+      lastProduct = translatedProduct;
+      render(translatedProduct);
+      await chrome.storage.local.set({ lastProduct: translatedProduct });
+    }
+  } catch {
+    // Export can still use the captured snapshot when the translation service is offline.
+  }
+  return lastProduct;
+}
+
 async function downloadAllProductImages() {
-  if (!lastProduct) return;
-  const refs = productImageRefs(lastProduct);
+  const product = await ensureTranslatedExportProduct();
+  if (!product) return;
+  const refs = productImageRefs(product);
   if (!refs.length) throw new Error('Không tìm thấy ảnh sản phẩm để tải.');
   status(`Đang tải ${refs.length} ảnh sản phẩm để tạo ZIP…`);
   const assets = await fetchImageAssets(refs);
   if (!assets.length) throw new Error('CDN sản phẩm không cho phép tải ảnh.');
-  const files = assets.map((asset, index) => ({ name: cleanFileName(asset.fileName, `product-image-${index + 1}.jpg`), bytes: dataUrlBytes(asset.dataUrl) }));
+  const usedNames = new Set();
+  const files = assets.map((asset, index) => ({
+    name: reserveImageFileName(
+      asset.kind === 'variant' ? asset.label : translatedProductImageLabel(product),
+      imageExtension(asset.url, asset.mime),
+      usedNames,
+      asset.kind === 'variant' ? `phan-loai-${String(asset.variantIndex + 1).padStart(2, '0')}` : `san-pham-${String(index + 1).padStart(2, '0')}`
+    ),
+    bytes: dataUrlBytes(asset.dataUrl)
+  }));
   const zip = createStoredZip(files);
-  downloadBlob(new Blob([zip], { type: 'application/zip' }), `FormaForge_Product_${cleanFileName(lastProduct.sourceProductId, 'images')}.zip`);
+  downloadBlob(new Blob([zip], { type: 'application/zip' }), `FormaForge_Product_${cleanFileName(product.sourceProductId, 'images')}.zip`);
   status(`Đã tải ZIP gồm ${files.length} ảnh sản phẩm.`);
 }
 
 async function downloadVariantQuote() {
-  if (!lastProduct) return;
-  const rows = variantRows(lastProduct);
+  const product = await ensureTranslatedExportProduct();
+  if (!product) return;
+  const rows = variantRows(product);
   if (!rows.length) throw new Error('Chưa có phân loại để tạo báo giá.');
-  const refs = productImageRefs(lastProduct);
+  const refs = productImageRefs(product);
   status(`Đang chuẩn bị ${rows.length} trang PDF báo giá…`);
   const assets = await fetchImageAssets(refs);
-  const assetsByUrl = new Map(assets.map((asset) => [asset.url, asset]));
-  const fallbackAsset = assets[0];
+  const assetsByVariantId = new Map(assets.filter((asset) => asset.kind === 'variant' && asset.variantId).map((asset) => [asset.variantId, asset]));
+  const assetsByUrl = new Map();
+  assets.forEach((asset) => { if (!assetsByUrl.has(asset.url)) assetsByUrl.set(asset.url, asset); });
+  const fallbackAsset = assets.find((asset) => asset.kind === 'product') || assets[0];
   const pages = [];
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index];
-    pages.push(await renderQuotePage(lastProduct, row, assetsByUrl.get(row.imageUrl) || fallbackAsset, index, rows.length));
+    const asset = assetsByVariantId.get(row.id) || assetsByUrl.get(row.imageUrl) || fallbackAsset;
+    pages.push(await renderQuotePage(product, row, asset, index, rows.length));
   }
   const pdf = buildImagePdf(pages);
-  downloadBlob(new Blob([pdf], { type: 'application/pdf' }), `FormaForge_Quote_${cleanFileName(lastProduct.sourceProductId, 'product')}.pdf`);
+  downloadBlob(new Blob([pdf], { type: 'application/pdf' }), `FormaForge_Quote_${cleanFileName(product.sourceProductId, 'product')}.pdf`);
   status(`Đã tải PDF báo giá gồm ${pages.length} phân loại.`);
 }
 
@@ -450,7 +567,6 @@ function render(product) {
   $('save').textContent = savedProducts.some((item) => item.url === product.url) ? 'Đã lưu sản phẩm' : 'Lưu sản phẩm';
   $('result').classList.remove('hidden');
   const rows = variantRows(product);
-  const promotions = promotionRows(product);
   const rates = rows.map((row) => row.priceCny).filter((price) => Number.isFinite(price) && price > 0);
   const rate = Number(product.exchangeRateVnd) || DEFAULT_EXCHANGE_RATE_VND;
   const originalTitle = product.titleOriginal && product.titleOriginal !== product.title
@@ -474,11 +590,8 @@ function render(product) {
       return `<article class="variant-row">${thumbnail}<div><strong>${escapeHtml(variant.label)}</strong>${originalLabel}${attributes ? `<small>${escapeHtml(attributes)}</small>` : ''}${originalAttributeMarkup}${stock}</div><span>${Number.isFinite(variant.priceCny) ? escapeHtml(priceLabel(variant.priceCny, rate)) : 'Chưa có giá'}${original}</span></article>`;
     }).join('')
     : '<p>Chưa đọc được danh sách phân loại.</p>';
-  const promotionMarkup = promotions.length
-    ? promotions.map((promotion) => `<article class="promotion-item"><strong>${escapeHtml(promotion.title)}</strong><small>${escapeHtml(promotion.description)}</small>${promotion.discountCny ? `<span>Giảm ${escapeHtml(priceLabel(promotion.discountCny, rate))}</span>` : ''}${promotion.finalPriceCny ? `<span>Giá sau ưu đãi: ${escapeHtml(priceLabel(promotion.finalPriceCny, rate))}</span>` : ''}</article>`).join('')
-    : '<p>Chưa phát hiện thông tin khuyến mãi chi tiết.</p>';
-  const exportMarkup = `<div class="product-export-actions"><button type="button" data-export-pdf>Báo giá PDF theo phân loại</button><button type="button" data-export-images class="secondary">Tải ảnh ZIP</button></div>`;
-  $('result').innerHTML = `<h2>${escapeHtml(product.title)}${originalTitle}</h2><p>${escapeHtml(product.source)} · ID: ${escapeHtml(product.sourceProductId || '—')}</p><p>Giá thấp nhất trong ${rows.length || rates.length || 0} phân loại:</p><strong class="price-lines">${rates.length ? escapeHtml(priceLabel(Math.min(...rates), rate)) : 'Chưa thấy giá CNY'}</strong><p class="exchange-rate">${escapeHtml(exchangeRateLabel(product))}</p><section class="result-section"><div class="result-section-title">Tất cả phân loại <span>${rows.length}</span></div><div class="variant-list">${variantMarkup}</div></section><section class="result-section"><div class="result-section-title">Chi tiết khuyến mãi <span>${promotions.length}</span></div><div class="promotion-list">${promotionMarkup}</div></section>${exportMarkup}`;
+  const exportMarkup = `<div class="product-export-actions"><button type="button" data-export-pdf>Báo giá PDF + ảnh từng phân loại</button><button type="button" data-export-images class="secondary">Tải ZIP ảnh từng phân loại</button></div>`;
+  $('result').innerHTML = `<h2>${escapeHtml(product.title)}${originalTitle}</h2><p>${escapeHtml(product.source)} · ID: ${escapeHtml(product.sourceProductId || '—')}</p><p>Giá thấp nhất trong ${rows.length || rates.length || 0} phân loại:</p><strong class="price-lines">${rates.length ? escapeHtml(priceLabel(Math.min(...rates), rate)) : 'Chưa thấy giá CNY'}</strong><p class="exchange-rate">${escapeHtml(exchangeRateLabel(product))}</p><section class="result-section"><div class="result-section-title">Tất cả phân loại <span>${rows.length}</span></div><div class="variant-list">${variantMarkup}</div></section>${exportMarkup}`;
 }
 
 function renderSavedProducts() {

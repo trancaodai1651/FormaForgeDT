@@ -20,7 +20,15 @@
     "https://api.frankfurter.dev/*",
     "https://*.alicdn.com/*",
     "https://*.tbcdn.cn/*",
-    "https://*.taobaocdn.com/*"
+    "https://*.taobaocdn.com/*",
+    "https://*.jd.com/*",
+    "https://*.jdimg.com/*",
+    "https://*.360buyimg.com/*",
+    "https://*.pddpic.com/*",
+    "https://*.yangkeduo.com/*",
+    "https://*.pinduoduo.com/*",
+    "https://*.xiaohongshu.com/*",
+    "https://*.xhscdn.com/*"
   ],
   "content_scripts": [
     {

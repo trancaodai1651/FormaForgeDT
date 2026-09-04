@@ -42,6 +42,14 @@ export const renderRightImport = () => `
     </div>
 
     <div id="imagePanel" class="mode-panel">
+      <div id="imageMultiColorCallout" hidden style="margin: 0 0 12px; padding: 11px 12px; border: 1px solid rgba(240,185,103,.55); border-radius: 10px; background: rgba(240,185,103,.08);">
+        <strong style="display:block; color: var(--accent); font-size: 12px;">MULTI-COLOR IMAGE</strong>
+        <span id="multiColorCalloutText" class="hint-text" style="display:block; margin-top: 4px; line-height: 1.4;">Enable this toggle to split the image into separate printable color layers.</span>
+        <div class="switch-row" style="margin-top: 10px;">
+          <span class="switch-label">Enable Multi-color layers</span>
+          <label class="toggle"><input id="multiColorEnabled" type="checkbox" /><span class="slider"></span></label>
+        </div>
+      </div>
       <div class="drop" id="drop">
         <div class="drop-title">${tx('Upload image', 'Tải hình ảnh lên')}</div>
         <div class="drop-text">${tx('Drop an image, or', 'Thả hình ảnh vào đây, hoặc')} <u>${tx('click to browse', 'bấm để chọn')}</u></div>

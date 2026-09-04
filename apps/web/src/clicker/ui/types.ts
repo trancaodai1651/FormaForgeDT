@@ -17,6 +17,8 @@ export interface UiState {
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;
   smoothing: number; photoFlatten: boolean; keychain: KeychainParams; removeBg: boolean; view: ViewMode; showSwitch: boolean;
+  /** Image/Image + Blocks multi-color layer stack controls. */
+  multiColorEnabled: boolean; stackColorLayers: boolean; colorLayerHeightMm: number; colorLayerGapMm: number;
   importMode: 'image' | 'svg' | 'icon' | 'text' | 'blocks' | 'hybrid'; currentIconName: string; colorMode: 'normal' | 'limited';
   limitedColors: RGB[]; bodyColorRgb: RGB; paletteOverrides: RGB[]; baseColorOverride: RGB | null;
   partOverrides: Record<string, RGB>; editMode: EditMode; edgeSettings: EdgeSetting[]; extrudeChamfer: boolean;
@@ -43,7 +45,7 @@ export interface UiCallbacks {
   onBottomModeChange(mode: 'match' | 'custom'): void;
   onBottomUpload(file: File): void;
   onUpload(file: File): void; onSample(load: () => Promise<RgbaImage>): void;
-  onColorCount(n: number): void; onSmoothing(v: number): void;
+  onColorCount(n: number): void; onSmoothing(v: number): void; onMultiColorToggle(on: boolean): void; onStackColorLayers(on: boolean): void; onColorLayerHeight(value: number): void; onColorLayerGap(value: number): void; onLayerOrder(index: number, delta: number): void;
   onFilament(index: number, hex: string): void; onShape(kind: BaseShapeKind): void;
   onWidth(mm: number): void; onTopThickness(mm: number): void; onImageDepth(mm: number): void;
   onBaseHeight(mm: number): void; onImageMargin(mm: number): void; onBorderWidth(mm: number): void;

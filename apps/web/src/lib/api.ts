@@ -6,7 +6,12 @@ export type AdminGeometry = { projects: Array<{ id: string; name: string; versio
 export type PriceReaderParsed = { source: string; sourceLabel: string; sourceProductId: string; normalizedUrl: string };
 export type PriceReaderApiError = Error & { code?: string; parsed?: PriceReaderParsed };
 
-const apiBase = import.meta.env.VITE_API_URL as string | undefined;
+const configuredApiBase = import.meta.env.VITE_API_URL as string | undefined;
+// Node's Fastify dev server listens on IPv4 (0.0.0.0). Some Chromium setups
+// resolve `localhost` to ::1 first, which makes an otherwise healthy local API
+// look like a network failure. Keep remote/prod URLs unchanged and normalize
+// only the local development hostname.
+const apiBase = configuredApiBase?.replace(/^http:\/\/localhost(?=[:/]|$)/i, 'http://127.0.0.1');
 export const apiConfigured = Boolean(apiBase);
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!apiBase) throw new Error('API chưa được cấu hình. Hãy chạy services/api hoặc đặt VITE_API_URL.');

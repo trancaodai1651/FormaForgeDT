@@ -33,17 +33,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function fetchImageAssets(images) {
-  const uniqueImages = [...new Map(images
+  const requestedImages = images
     .map((item, index) => {
       const value = item && typeof item === 'object' ? item : { url: item };
       const url = String(value.url || '').trim();
       return [url, { ...value, url, index }];
     })
     .filter(([url]) => /^https?:\/\//i.test(url))
-    .slice(0, 80)
-    .map(([url, value]) => [url, value])).values()];
+    .slice(0, 120)
+    .map(([, value]) => value);
+  const uniqueImages = [...new Map(requestedImages.map((item) => [item.url, item])).values()];
 
-  return mapWithConcurrency(uniqueImages, 4, async (item) => {
+  const downloaded = await mapWithConcurrency(uniqueImages, 4, async (item) => {
     try {
       const response = await fetch(item.url, { cache: 'no-store', credentials: 'omit' });
       if (!response.ok) throw new Error(`Image service returned ${response.status}`);
@@ -53,6 +54,11 @@ async function fetchImageAssets(images) {
     } catch (error) {
       return { ...item, error: error instanceof Error ? error.message : 'Image unavailable' };
     }
+  });
+  const downloadedByUrl = new Map(downloaded.map((asset) => [asset.url, asset]));
+  return requestedImages.map((item) => {
+    const asset = downloadedByUrl.get(item.url);
+    return asset ? { ...asset, ...item } : { ...item, error: 'Image unavailable' };
   });
 }
 

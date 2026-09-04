@@ -90,6 +90,13 @@ export function createUi(
     
     // Cáº­p nháº­t giÃ¡ trá»‹ Input & Range
     if ($('smooth')) $<HTMLInputElement>('smooth').value = String(state.smoothing); setVal('smoothVal', Math.round(state.smoothing * 100) + '%');
+    if ($('multiColorEnabled')) $<HTMLInputElement>('multiColorEnabled').checked = state.multiColorEnabled;
+    if ($('ccount')) $<HTMLSelectElement>('ccount').value = String(state.colorCount);
+    if ($('stackColorLayers')) $<HTMLInputElement>('stackColorLayers').checked = state.stackColorLayers;
+    if ($('colorLayerHeight')) $<HTMLInputElement>('colorLayerHeight').value = String(state.colorLayerHeightMm);
+    setVal('colorLayerHeightVal', `${state.colorLayerHeightMm.toFixed(1)} mm`);
+    if ($('colorLayerGap')) $<HTMLInputElement>('colorLayerGap').value = String(state.colorLayerGapMm);
+    setVal('colorLayerGapVal', `${state.colorLayerGapMm.toFixed(2)} mm`);
     if ($('width')) $<HTMLInputElement>('width').value = String(state.capWidthMm); setVal('widthVal', state.capWidthMm + ' mm');
     if ($('baseHeight')) $<HTMLInputElement>('baseHeight').value = String((state as any).baseHeight ?? 16); setVal('baseHeightVal', ((state as any).baseHeight ?? 16).toFixed(1) + ' mm');
     if ($('topthick')) $<HTMLInputElement>('topthick').value = String(state.topThickness); setVal('topthickVal', state.topThickness.toFixed(1) + ' mm');
@@ -384,8 +391,52 @@ export function createUi(
     if ($('profileHeightVal')) $('profileHeightVal').textContent = `${pHeight.toFixed(1)} mm`;
 
     // Cáº­p nháº­t Tráº¡ng thÃ¡i NÃºt
-    if ($('export')) $<HTMLButtonElement>('export').disabled = !state.hasParts || state.building;
-    if ($('exportStl')) $<HTMLButtonElement>('exportStl').disabled = !state.hasParts || state.building;
+    const imageMode = state.importMode === 'image' || state.importMode === 'hybrid';
+    const imageMultiColorMode = imageMode && state.multiColorEnabled;
+    const colorLayerStackControls = $('colorLayerStackControls');
+    if (colorLayerStackControls) colorLayerStackControls.hidden = !imageMultiColorMode;
+    const colorCountField = $('colorCountField');
+    if (colorCountField) (colorCountField as HTMLElement).style.display = imageMode && !state.multiColorEnabled ? 'none' : '';
+    const colorSection = $<HTMLDetailsElement>('sectionColors');
+    if (colorSection) {
+      // Open the relevant controls when entering Image or Image + Blocks so the
+      // multi-color feature is discoverable without requiring a hidden-panel click.
+      const modeKey = imageMultiColorMode ? 'image-multicolor' : imageMode ? 'image-single-color' : 'other';
+      if (colorSection.dataset.modeKey !== modeKey) {
+        colorSection.open = imageMode;
+        colorSection.dataset.modeKey = modeKey;
+      }
+    }
+    const imageMultiColorCallout = $('imageMultiColorCallout');
+    if (imageMultiColorCallout) imageMultiColorCallout.hidden = !imageMode;
+    const multiColorCalloutText = $('multiColorCalloutText');
+    if (multiColorCalloutText) multiColorCalloutText.textContent = state.multiColorEnabled
+      ? 'Each detected color becomes a printable layer. Set the layer order and spacing below.'
+      : 'Enable this toggle to split the image into separate printable color layers.';
+    const multiColorSettingsHint = $('multiColorSettingsHint');
+    if (multiColorSettingsHint) multiColorSettingsHint.textContent = imageMultiColorMode
+      ? 'Import an image to split it into separate printable color layers. Each layer keeps its own filament color in 3MF and STL ZIP exports.'
+      : 'Load an image or vector to assign filament colors to each generated part.';
+    const export3mf = $<HTMLButtonElement>('export');
+    const exportStl = $<HTMLButtonElement>('exportStl');
+    if (export3mf) {
+      export3mf.disabled = !state.hasParts || state.building;
+      export3mf.textContent = imageMultiColorMode ? 'Multi-color 3MF' : 'Download 3MF';
+    }
+    if (exportStl) {
+      exportStl.disabled = !state.hasParts || state.building;
+      exportStl.textContent = imageMultiColorMode ? 'Color STL ZIP' : 'Download STL ZIP';
+    }
+    if ($('colorSettingsTitle')) {
+      $('colorSettingsTitle')!.textContent = imageMultiColorMode
+        ? '1 · Multi-color & Smoothing'
+        : '1 · Colors & Smoothing';
+    }
+    if ($('exportModeHint')) {
+      $('exportModeHint')!.textContent = imageMultiColorMode
+        ? '3MF keeps every image color as a filament material. STL ZIP creates one shared-origin file per filament color.'
+        : '3MF preserves object colors. STL ZIP contains the printable base and top pieces.';
+    }
     if ($('undoBtn')) $<HTMLButtonElement>('undoBtn').disabled = !state.canUndo;
     if ($('redoBtn')) $<HTMLButtonElement>('redoBtn').disabled = !state.canRedo;
     if ($('refreshBtn')) $<HTMLButtonElement>('refreshBtn').disabled = !state.canRefresh;
@@ -397,7 +448,7 @@ export function createUi(
     }
 
     // Render Báº£ng mÃ u
-    renderPalette(state.palette, state.bodyColorRgb, cb, state.colorMode, state.limitedColors);
+    renderPalette(state.palette, state.bodyColorRgb, cb, state.colorMode, state.limitedColors, imageMultiColorMode);
 
     // Edit Mode UI
     getClickerDocument().querySelectorAll('.edit-mode-btn').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.editmode === state.editMode));

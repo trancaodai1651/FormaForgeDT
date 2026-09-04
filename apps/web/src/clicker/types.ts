@@ -200,6 +200,8 @@ export interface BuildParams {
   extrudeChamfer: boolean;
   mergeTopFrame: boolean;
   keepMeshesSeparate: boolean;
+  /** Raster Clicker/Image uses the dominant colour as a continuous carrier. */
+  rasterImageMode?: boolean;
   isFlatKeychain?: boolean;
   /** Total printable plate thickness for Flat keychain mode, independent of image preprocessing. */
   flatKeychainThicknessMm?: number;

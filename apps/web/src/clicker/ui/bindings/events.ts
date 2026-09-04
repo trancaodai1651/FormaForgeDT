@@ -113,6 +113,16 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   // --- Color Count & Smoothing ---
   const ccount = $<HTMLSelectElement>('ccount');
   ccount?.addEventListener('change', () => cb.onColorCount(+ccount.value));
+  $<HTMLInputElement>('multiColorEnabled')?.addEventListener('change', (e: Event) => cb.onMultiColorToggle((e.target as HTMLInputElement).checked));
+  $<HTMLInputElement>('stackColorLayers')?.addEventListener('change', (e: Event) => cb.onStackColorLayers((e.target as HTMLInputElement).checked));
+  $<HTMLInputElement>('colorLayerHeight')?.addEventListener('input', (e: Event) => cb.onColorLayerHeight(+(e.target as HTMLInputElement).value));
+  $<HTMLInputElement>('colorLayerGap')?.addEventListener('input', (e: Event) => cb.onColorLayerGap(+(e.target as HTMLInputElement).value));
+  $('palette')?.addEventListener('click', (e: MouseEvent) => {
+    const button = (e.target as HTMLElement).closest<HTMLElement>('[data-layer-order]');
+    if (!button) return;
+    e.preventDefault();
+    cb.onLayerOrder(Number(button.dataset.layerIndex), button.dataset.layerOrder === 'up' ? 1 : -1);
+  });
 
   const smooth = $<HTMLInputElement>('smooth'); 
   smooth?.addEventListener('input', () => cb.onSmoothing(+smooth.value));

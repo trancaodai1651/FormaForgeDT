@@ -98,7 +98,7 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
       store.set({ selectedParts: [partName] });
       const part = appData.latestParts[index];
       if (!part) return;
-      const target = partColorTarget(part.name);
+      const target = partColorTarget(part.name, s);
       if (!target) return;
       
       const options = getAvailableColorOptions(s);
@@ -124,6 +124,8 @@ export function reprocess() {
   setPendingHistoryReset(true);
   store.set({ baseColorOverride: null });
   const s = store.get();
+  const imageMode = s.importMode === 'image' || s.importMode === 'hybrid';
+  const imageMultiColorMode = imageMode && s.multiColorEnabled;
 
   if (s.importMode === 'image' || s.importMode === 'hybrid') {
     const useSvgHead = s.importMode === 'hybrid' && appData.imageSource === 'svg' && !!appData.currentSvgText;
@@ -151,11 +153,11 @@ export function reprocess() {
         height: sourceImage.height,
       };
       appData.regionSet = sameImageAsCustomBase
-        ? processImage(imgClone, 2, { removeBg: true, smoothing: s.smoothing })
-        : processImage(imgClone, s.colorCount, {
+        ? processImage(imgClone, imageMultiColorMode ? 2 : 1, { removeBg: true, smoothing: s.smoothing })
+        : processImage(imgClone, imageMultiColorMode ? s.colorCount : 1, {
             removeBg: s.removeBg,
             smoothing: s.smoothing,
-            customColors: s.colorMode === 'limited' ? s.limitedColors : undefined,
+            customColors: imageMultiColorMode && s.colorMode === 'limited' ? s.limitedColors : undefined,
             photoFlatten: s.photoFlatten,
           });
     }
@@ -204,6 +206,7 @@ export function rebuild(quiet = false) {
   if (!appData.assetsReady) { store.set({ status: 'Waiting for switch assetsâ€¦' }); return; }
   
   const s = store.get();
+  const imageMultiColorMode = s.multiColorEnabled && (s.importMode === 'image' || s.importMode === 'hybrid');
   const regions: BuildRegion[] = [];
   appData.regionSet.regions.forEach((r, i) => {
     const baseColor = s.palette[i]?.filamentRgb ?? r.quantRgb;
@@ -231,6 +234,18 @@ export function rebuild(quiet = false) {
     ? appData.bottomRegionSet.outline
     : undefined;
 
+  // Image and Image + Blocks can be printed as a physical colour stack. Keep
+  // explicit user extrude edits, while assigning untouched colour components
+  // to their palette order (bottom -> top) automatically.
+  const componentHeights = { ...s.componentHeights };
+  if (imageMultiColorMode && s.stackColorLayers) {
+    appData.regionSet.regions.forEach((region, regionIndex) => region.components.forEach((_, componentIndex) => {
+      const partName = `top-color-${regionIndex}-${componentIndex}`;
+      if (!(partName in componentHeights)) componentHeights[partName] = regionIndex;
+    }));
+  }
+  const colorLayerStepMm = Math.max(0.2, s.colorLayerHeightMm + s.colorLayerGapMm);
+
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
     imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
@@ -249,9 +264,13 @@ export function rebuild(quiet = false) {
     imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
-    stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: 0.6, travel: 4.0, floorThickness: 1.6,
+    stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: imageMultiColorMode && s.stackColorLayers ? colorLayerStepMm : 0.6, travel: 4.0, floorThickness: 1.6,
     switches: s.switches, keychain: s.keychain, baseFilamentRgb: capBaseColor, bodyColorRgb: s.bodyColorRgb ?? [120, 124, 130],
-    edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights: s.componentHeights,
+    edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights,
+    // The carrier/accent raster repair is only needed for multi-color image
+    // mode. In normal single-color mode keep the traced image as a regular
+    // top part so it remains visible in the preview and exports.
+    rasterImageMode: s.importMode === 'image' && s.multiColorEnabled,
     
     // ðŸŸ¢ 2. TRUYá»€N THÃ”NG Sá» CÄ‚N CHá»ˆNH & DANH SÃCH MÃ€U Äáº¾ SANG WORKER
     bottomOffsetX: s.bottomOffsetX ?? 0,
@@ -405,7 +424,9 @@ export function applyModelRecolor(target: ColorTarget, rgb: RGB, partIndex: numb
     const i = target.index;
     const overrides = s.partOverrides ? { ...s.partOverrides } : {};
 
-    if (partIndex >= 0 && appData.latestParts[partIndex]) {
+    const pickedPart = partIndex >= 0 ? appData.latestParts[partIndex] : null;
+    const pickedPaletteCarrier = pickedPart?.name === 'top-base' || pickedPart?.name === 'hybrid-image-base';
+    if (partIndex >= 0 && pickedPart && !pickedPaletteCarrier) {
       const part = appData.latestParts[partIndex];
       viewer.setPartColor(partIndex, rgb);
       appData.latestParts[partIndex] = { ...appData.latestParts[partIndex], colorRgb: rgb };
@@ -445,11 +466,16 @@ export const debouncedReprocess = debounce(reprocess, 220);
 // ---- Helpers Nhá» Ná»™i Bá»™ Engine ----
 function relLuminance(rgb: RGB): number { return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]; }
 function contrastingFrame(ink: RGB): RGB { return relLuminance(ink) > 150 ? DARK_FRAME : LIGHT_FRAME; }
-function dominantInk(s: ReturnType<typeof store.get>): RGB {
-  if (s.palette.length === 0) return [180, 180, 185];
+function dominantPaletteIndex(s: ReturnType<typeof store.get>): number {
+  if (s.palette.length === 0) return 0;
   let domIdx = 0;
   for (let i = 1; i < s.palette.length; i++) if (s.palette[i].coverage > s.palette[domIdx].coverage) domIdx = i;
-  return s.palette[domIdx]?.filamentRgb ?? [180, 180, 185];
+  return domIdx;
+}
+
+function dominantInk(s: ReturnType<typeof store.get>): RGB {
+  if (s.palette.length === 0) return [180, 180, 185];
+  return s.palette[dominantPaletteIndex(s)]?.filamentRgb ?? [180, 180, 185];
 }
 function deriveFrameColor(s: ReturnType<typeof store.get>): RGB { const ink = dominantInk(s); return s.importMode === 'image' || s.importMode === 'hybrid' ? ink : contrastingFrame(ink); }
 
@@ -457,13 +483,14 @@ function syncBaseColor(viewer: any) {
   const s = store.get();
   if (s.baseColorOverride || s.palette.length === 0) return;
   const baseRgb = deriveFrameColor(s);
-  const bi = appData.latestParts.findIndex((p: ClickerPart) => p.name === 'top-base');
-  if (bi >= 0) {
-    appData.latestParts[bi] = { ...appData.latestParts[bi], colorRgb: baseRgb };
-    viewer.setPartColor(bi, baseRgb);
+  for (let index = 0; index < appData.latestParts.length; index++) {
+    const part = appData.latestParts[index];
+    if (part.name !== 'top-base' && part.name !== 'hybrid-image-base') continue;
+    appData.latestParts[index] = { ...part, colorRgb: baseRgb };
+    viewer.setPartColor(index, baseRgb);
   }
 }
-function partColorTarget(name: string): ColorTarget | null {
+function partColorTarget(name: string, s: ReturnType<typeof store.get>): ColorTarget | null {
   if (
     name === 'base-body'
     || name === 'blocks-base'
@@ -473,9 +500,11 @@ function partColorTarget(name: string): ColorTarget | null {
   ) return { kind: 'body' };
   if (/^block-\d+(?:-wall)?$/.test(name)) return { kind: 'body' };
   if (name === 'hybrid-continuous-base' || name === 'hybrid-image-deck') return { kind: 'body' };
+  if (name === 'hybrid-image-base') return { kind: 'region', index: dominantPaletteIndex(s), compIndex: 0 };
   if (/^hybrid-image-(\d+)$/.test(name)) return { kind: 'region', index: Number(name.slice('hybrid-image-'.length)), compIndex: 0 };
   if (/^block-color-\d+$/.test(name)) return { kind: 'region', index: 0, compIndex: 0 };
   if (/^cap-\d+$/.test(name)) return { kind: 'region', index: 0, compIndex: 0 };
+  if (name === 'top-base' && s.importMode === 'image') return { kind: 'region', index: dominantPaletteIndex(s), compIndex: 0 };
   if (name === 'top-base') return { kind: 'base' };
   const m = /^top-color-(\d+)(?:-(\d+))?$/.exec(name);
   if (m) return { kind: 'region', index: +m[1], compIndex: m[2] ? +m[2] : 0 };

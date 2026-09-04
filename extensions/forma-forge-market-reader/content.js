@@ -47,8 +47,34 @@ function unique(values, limit = 20) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))].slice(0, limit);
 }
 
+function imageCandidate(value, depth = 0) {
+  if (depth > 3 || value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map((item) => imageCandidate(item, depth + 1)).find(Boolean) || '';
+  if (typeof value !== 'object') return '';
+  const keys = ['url', 'imageUrl', 'image_url', 'imgUrl', 'img_url', 'image', 'specImg', 'skuImage', 'sku_image', 'skuImageUrl', 'imageInfo', 'imgInfo', 'pic', 'picUrl', 'thumb', 'thumbnail', 'preview', 'src', 'value'];
+  for (const key of keys) {
+    const candidate = imageCandidate(value[key], depth + 1);
+    if (candidate) return candidate;
+  }
+  return '';
+}
+
+function imageCandidates(value, depth = 0) {
+  if (depth > 3 || value === null || value === undefined) return [];
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => imageCandidates(item, depth + 1));
+  if (typeof value !== 'object') return [];
+  const keys = ['url', 'imageUrl', 'image_url', 'imgUrl', 'img_url', 'image', 'specImg', 'skuImage', 'sku_image', 'skuImageUrl', 'imageInfo', 'imgInfo', 'pic', 'picUrl', 'thumb', 'thumbnail', 'preview', 'src', 'value'];
+  for (const key of keys) {
+    const candidates = imageCandidates(value[key], depth + 1);
+    if (candidates.length) return candidates;
+  }
+  return [];
+}
+
 function normalizeImageUrl(value) {
-  const raw = String(value || '').trim();
+  const raw = String(imageCandidate(value) || '').trim();
   if (!raw || raw.startsWith('data:')) return '';
   try {
     return new URL(raw.startsWith('//') ? `https:${raw}` : raw, location.href).href;
@@ -65,7 +91,17 @@ function imageFileName(url, index = 0) {
 function findProductImages(variantDetails = []) {
   const source = [...document.scripts].map((script) => script.textContent || '').join('\n');
   const item = embeddedObject(source, 'item');
-  const embeddedImages = Array.isArray(item?.images) ? item.images : [];
+  const embeddedImages = [
+    ...(Array.isArray(item?.images) ? item.images : []),
+    ...(Array.isArray(item?.imageList) ? item.imageList : []),
+    ...(Array.isArray(item?.pics) ? item.pics : []),
+    ...(Array.isArray(item?.galleryImages) ? item.galleryImages : []),
+    ...(Array.isArray(item?.detailImages) ? item.detailImages : []),
+    item?.mainImage,
+    item?.image,
+    item?.pic,
+    item?.picUrl,
+  ].flatMap(imageCandidates).filter(Boolean);
   const variantImages = variantDetails.map((variant) => variant.imageUrl).filter(Boolean);
   const domImages = [...document.querySelectorAll('img, [data-src], [data-ks-lazyload], [data-original], [data-zoom-image]')]
     .map((element) => element.getAttribute('src') || element.getAttribute('data-src') || element.getAttribute('data-ks-lazyload') || element.getAttribute('data-original') || element.getAttribute('data-zoom-image'))
@@ -162,7 +198,7 @@ function findVariantDetails() {
       name: String(filter.name || filter.code),
       options: new Map((filter.options || []).map((option) => [String(option.code ?? option.vid), {
         name: String(option.name || option.code || option.vid),
-        imageUrl: normalizeImageUrl(option.image || option.imageUrl)
+        imageUrl: normalizeImageUrl(option.image || option.imageUrl || option.img || option.pic || option.thumb || option.thumbnail || option.specImg || option.skuImage || option.imageInfo)
       }]))
     });
   });
@@ -171,7 +207,7 @@ function findVariantDetails() {
     const skuId = String(sku.skuId || index);
     const attributes = {};
     const labels = [];
-    let imageUrl = '';
+    let imageUrl = normalizeImageUrl(sku.image || sku.imageUrl || sku.image_url || sku.imgUrl || sku.pic || sku.thumbnail || sku.specImg || sku.skuImage || sku.sku_image || sku.skuImageUrl || sku.imageInfo || sku.imgInfo);
     String(sku.propPath || '').split(/[|;]/).forEach((segment) => {
       const [propertyCode, valueCode] = segment.split(':');
       if (!propertyCode || !valueCode) return;
@@ -183,6 +219,7 @@ function findVariantDetails() {
       imageUrl ||= option.imageUrl;
     });
     const info = sku2info[skuId] || {};
+    imageUrl ||= normalizeImageUrl(info.image || info.imageUrl || info.image_url || info.imgUrl || info.pic || info.thumbnail || info.specImg || info.skuImage || info.sku_image || info.skuImageUrl || info.imageInfo || info.imgInfo);
     const prices = variantPrice(info);
     return {
       id: `sku-${skuId}`,

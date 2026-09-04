@@ -1,6 +1,7 @@
 import type { ClickerMode } from './clicker/bootstrap';
 import { AdminWorkspaceNav } from './AdminWorkspaceNav';
 import { ClickerWorkspacePage } from './ClickerWorkspacePage';
+import { AdminGuard } from './AdminGuard';
 import { useI18n } from './lib/i18n';
 
 function AdminToolContent({ mode }: { mode: ClickerMode }) {
@@ -12,5 +13,5 @@ function AdminToolContent({ mode }: { mode: ClickerMode }) {
 }
 
 export function AdminToolPage({ mode }: { mode: ClickerMode }) {
-  return <AdminToolContent mode={mode} />;
+  return <AdminGuard>{() => <AdminToolContent mode={mode} />}</AdminGuard>;
 }
