@@ -94,6 +94,7 @@
 .home-item-share-card p, .home-item-material-intro p { margin: 0; color: #9aacC9; font-size: 11px; line-height: 1.55; }
 .home-item-outline-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 35px; padding: 0 13px; border: 1px solid #205d88; border-radius: 8px; color: #5cc5ff; background: rgba(14, 102, 157, .16); font: 700 10px Inter, sans-serif; cursor: pointer; }
 .home-item-outline-button:hover { border-color: #47baf6; color: #fff; background: rgba(14, 128, 196, .25); }
+.home-item-local-badge { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: #8fd9b2; font: 700 10px Inter, sans-serif; }
 .home-item-community-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .home-item-community-card { display: grid; gap: 3px; min-width: 0; padding: 8px; border: 1px solid #1c2d49; border-radius: 10px; color: #fff; background: #0a1325; text-align: left; cursor: pointer; }
 .home-item-community-card:hover { border-color: #2b8cc3; background: #0d1b32; transform: translateY(-1px); }

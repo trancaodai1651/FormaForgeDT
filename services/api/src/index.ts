@@ -40,7 +40,6 @@ app.post('/api/admin/price-reader/products/:id/refresh', async (request, reply) 
 app.delete('/api/admin/price-reader/products/:id', async (request, reply) => { try { await assertAdmin(request.headers.authorization); await deleteTrackedPriceProduct((request.params as { id: string }).id); return reply.code(204).send(); } catch (error) { return reply.code(400).send({ message: error instanceof Error ? error.message : 'Không thể xóa sản phẩm.' }); } });
 app.post('/api/price-reader/inspect', async (request, reply) => {
   try {
-    await assertAuthenticated(request.headers.authorization);
     const url = (request.body as { url?: unknown } | null)?.url;
     if (typeof url !== 'string' || !url.trim()) return reply.code(400).send({ message: 'Thiếu đường dẫn sản phẩm.', code: 'INVALID_URL' });
     return reply.send(await inspectPriceUrl(url));

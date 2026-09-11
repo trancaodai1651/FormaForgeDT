@@ -33,7 +33,8 @@ function isDesktopShell() {
   return Boolean(appWindow.__TAURI_INTERNALS__ || appWindow.__TAURI__);
 }
 
-export function Hunyuan3DPage() {
+export function Hunyuan3DPage({ publicAccess = false }: { publicAccess?: boolean } = {}) {
+  if (publicAccess) return <Hunyuan3DWorkspace />;
   return <AdminGuard>{() => <Hunyuan3DWorkspace />}</AdminGuard>;
 }
 

@@ -19,12 +19,18 @@ jobs:
         with: { version: 10.15.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
+      - uses: actions/configure-pages@v5
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:web
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+      - name: Verify project Pages build
+        shell: bash
+        run: |
+          test -s apps/web/dist/index.html
+          grep -q '/FormaForgeDT/' apps/web/dist/index.html
       - uses: actions/upload-pages-artifact@v3
         with: { path: apps/web/dist }
       - id: deployment

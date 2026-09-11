@@ -1,6 +1,6 @@
 import {
-  Box, Check, ChevronDown, Circle, Download, Eye, EyeOff, Info, Lightbulb,
-  LogIn, Palette, RotateCcw, Rotate3d, Save, Settings2, Share2, Sparkles, SlidersHorizontal,
+  Box, Check, Circle, Download, Eye, EyeOff, Info, Lightbulb,
+  Palette, RotateCcw, Rotate3d, Save, Settings2, Share2, Sparkles, SlidersHorizontal,
   UserRound, UsersRound, Waves, Diamond, CircleDot,
 } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
@@ -201,7 +201,7 @@ function DesignPanel({ config, copy, updateGroup }: { config: HomeItemConfig; co
 
 function CommunityPanel({ copy, onLoad }: { copy: Copy; onLoad: (preset: typeof COMMUNITY_PRESETS[number]) => void }) {
   return <div className="home-item-panel-content">
-    <section className="home-item-share-card"><h3><Share2 size={16} /> {copy.shareDesign}</h3><p>{copy.shareHint}</p><button type="button" className="home-item-outline-button"><LogIn size={15} /> {copy.signIn}</button></section>
+    <section className="home-item-share-card"><h3><Share2 size={16} /> {copy.shareDesign}</h3><p>{copy.shareHint}</p><span className="home-item-local-badge"><Check size={15} /> {copy.saveLocally}</span></section>
     <SectionLabel>{copy.recent}</SectionLabel>
     <div className="home-item-community-grid">{COMMUNITY_PRESETS.map((preset) => <button type="button" className="home-item-community-card" key={preset.key} onClick={() => onLoad(preset)}><span className={`home-item-mini-art ${preset.pattern} ${preset.shape}`} style={{ '--card-color': preset.color } as React.CSSProperties} /><strong>{copy.presets[preset.key]}</strong><small>{preset.author}</small><em>{copy.load}</em></button>)}</div>
   </div>;
@@ -212,12 +212,11 @@ function MaterialsPanel({ copy }: { copy: Copy }) {
     <div className="home-item-material-intro"><h3><Palette size={17} /> {copy.materialTitle}</h3><p>{copy.materialHint}</p></div>
     <MaterialCard icon="🏺" title={copy.pastel} tag={copy.pastelTag} text={copy.pastelText} color="#f2d5b7" copy={copy} />
     <MaterialCard icon="🧵" title={copy.qualityPrice} tag={copy.valueTag} text={copy.qualityPriceText} color="#b9cde1" copy={copy} />
-    <p className="home-item-affiliate">{copy.affiliate}</p>
   </div>;
 }
 
-function MaterialCard({ icon, title, tag, text, color, copy }: { icon: string; title: string; tag: string; text: string; color: string; copy: Copy }) {
-  return <article className="home-item-material-card"><span className="home-item-material-icon" style={{ background: color }}>{icon}</span><div><strong>{title}</strong><small>{tag}</small><p>{text}</p><a href="https://www.amazon.com/" target="_blank" rel="noreferrer">{copy.amazon} <ChevronDown size={14} /></a></div></article>;
+function MaterialCard({ icon, title, tag, text, color }: { icon: string; title: string; tag: string; text: string; color: string; copy: Copy }) {
+  return <article className="home-item-material-card"><span className="home-item-material-icon" style={{ background: color }}>{icon}</span><div><strong>{title}</strong><small>{tag}</small><p>{text}</p></div></article>;
 }
 
 function ExportPanel({ config, copy, onExport, exporting, onColor, onSave, onReset, exportStatus }: { config: HomeItemConfig; copy: Copy; onExport: (quality: HomeItemQuality) => void; exporting: boolean; onColor: (color: string) => void; onSave: () => void; onReset: () => void; exportStatus: string }) {

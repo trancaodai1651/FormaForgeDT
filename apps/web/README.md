@@ -4,7 +4,7 @@
 
 ## Các vùng chính
 
-- `src/pages/storefront`: trang bán hàng và tài khoản.
+- `src/pages/public-tools`: trang công cụ public và thư mục workspace.
 - `src/pages/module-studio`: studio module lamp và sketch.
 - `src/pages/clicker`: Clicker Lab, Flex Keychain Text, Flex Organizer và SVG layers.
 - `src/pages/flex-lamp`: Flex Lamp workspace.

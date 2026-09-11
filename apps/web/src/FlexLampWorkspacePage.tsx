@@ -173,12 +173,12 @@ function RangeField({ label, value, min, max, step = 1, unit, onChange }: { labe
   return <label className="flex-lamp-range"><span><span>{label}</span><strong>{Number.isInteger(value) ? value : value.toFixed(1)}{unit && ` ${unit}`}</strong></span><input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>;
 }
 
-function FlexLampModeChooser({ email, onChoose, onLanguage, language, onSignOut }: { email: string; onChoose: (mode: LampMode) => void; onLanguage: () => void; language: 'en' | 'vi'; onSignOut: () => void }) {
+function FlexLampModeChooser({ email, publicAccess, onChoose, onLanguage, language, onSignOut }: { email: string; publicAccess: boolean; onChoose: (mode: LampMode) => void; onLanguage: () => void; language: 'en' | 'vi'; onSignOut: () => void }) {
   const { t } = useI18n();
-  return <main className="flex-lamp-chooser"><header className="flex-lamp-chooser-bar"><Link to="/admin"><ArrowLeft size={15} />{t('admin.backToDashboard')}</Link><div className="flex-lamp-chooser-brand"><span className="flex-lamp-chooser-mark">L</span><div><span>FORMAFORGE / ADMIN</span><strong>{t('admin.flexLamp')}</strong></div></div><div className="flex-lamp-chooser-session"><span><span className="live-dot" />{t('admin.adminOnly')}</span><small>{email}</small><button type="button" onClick={onLanguage}>{language === 'vi' ? 'EN' : 'VI'}</button><button type="button" onClick={onSignOut}><LogOut size={13} />{t('admin.signOut')}</button></div></header><div className="flex-lamp-chooser-content"><span className="eyebrow"><ShieldCheck size={13} /> {t('admin.flexLampEyebrow')}</span><h1>{t('admin.flexLampChooseMode')}</h1><p>{t('admin.flexLampChooseModeHint')}</p><div className="flex-lamp-chooser-cards"><button type="button" onClick={() => onChoose('shade')}><img src={`${FLEX_LAMP_ASSET_BASE}card-shade.png`} alt="" /><span className="flex-lamp-chooser-card-icon"><Sun size={22} /></span><strong>{t('admin.flexLampShade')}</strong><small>{t('admin.flexLampShadeModeHint')}</small><ArrowRight size={17} /></button><button type="button" onClick={() => onChoose('model')}><img src={`${FLEX_LAMP_ASSET_BASE}card-figure.png`} alt="" /><span className="flex-lamp-chooser-card-icon"><Box size={22} /></span><strong>{t('admin.flexLampModel')}</strong><small>{t('admin.flexLampModelModeHint')}</small><ArrowRight size={17} /></button></div></div></main>;
+  return <main className="flex-lamp-chooser"><header className="flex-lamp-chooser-bar"><Link to={publicAccess ? '/' : '/admin'}><ArrowLeft size={15} />{t('admin.backToDashboard')}</Link><div className="flex-lamp-chooser-brand"><span className="flex-lamp-chooser-mark">L</span><div><span>FORMAFORGE / {publicAccess ? 'PUBLIC TOOL' : 'ADMIN'}</span><strong>{t('admin.flexLamp')}</strong></div></div><div className="flex-lamp-chooser-session"><span><span className="live-dot" />{publicAccess ? 'PUBLIC TOOL' : t('admin.adminOnly')}</span>{!publicAccess && <small>{email}</small>}<button type="button" onClick={onLanguage}>{language === 'vi' ? 'EN' : 'VI'}</button>{!publicAccess && <button type="button" onClick={onSignOut}><LogOut size={13} />{t('admin.signOut')}</button>}</div></header><div className="flex-lamp-chooser-content"><span className="eyebrow"><ShieldCheck size={13} /> {t('admin.flexLampEyebrow')}</span><h1>{t('admin.flexLampChooseMode')}</h1><p>{t('admin.flexLampChooseModeHint')}</p><div className="flex-lamp-chooser-cards"><button type="button" onClick={() => onChoose('shade')}><img src={`${FLEX_LAMP_ASSET_BASE}card-shade.png`} alt="" /><span className="flex-lamp-chooser-card-icon"><Sun size={22} /></span><strong>{t('admin.flexLampShade')}</strong><small>{t('admin.flexLampShadeModeHint')}</small><ArrowRight size={17} /></button><button type="button" onClick={() => onChoose('model')}><img src={`${FLEX_LAMP_ASSET_BASE}card-figure.png`} alt="" /><span className="flex-lamp-chooser-card-icon"><Box size={22} /></span><strong>{t('admin.flexLampModel')}</strong><small>{t('admin.flexLampModelModeHint')}</small><ArrowRight size={17} /></button></div></div></main>;
 }
 
-function AdminFlexLampContent({ email }: { email: string }) {
+function AdminFlexLampContent({ email, publicAccess = false }: { email: string; publicAccess?: boolean }) {
   const { t, language, toggleLanguage } = useI18n();
   const navigate = useNavigate();
   const [mode, setMode] = useState<LampMode | null>(null);
@@ -255,7 +255,7 @@ function AdminFlexLampContent({ email }: { email: string }) {
   };
 
   const signOut = async () => { await signOutAdmin(); navigate('/admin'); };
-  if (!mode) return <FlexLampModeChooser email={email} onChoose={setMode} onLanguage={toggleLanguage} language={language} onSignOut={() => { void signOut(); }} />;
+  if (!mode) return <FlexLampModeChooser email={email} publicAccess={publicAccess} onChoose={setMode} onLanguage={toggleLanguage} language={language} onSignOut={() => { void signOut(); }} />;
 
   return <main className="flex-lamp-app"><div className="flex-lamp-layout">
         <div className="flex-lamp-viewport">
@@ -265,7 +265,7 @@ function AdminFlexLampContent({ email }: { email: string }) {
           <div className="flex-lamp-canvas-tools" aria-label={t('admin.flexLampView')}>{([['solid', Box], ['matte', Eye], ['xray', X], ['light', Lightbulb]] as const).map(([item, Icon]) => <button type="button" key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)} aria-label={t(`admin.flexLamp${item[0].toUpperCase()}${item.slice(1)}`)}><Icon size={15} /></button>)}</div>
         </div>
         <aside className="flex-lamp-panel">
-          <div className="flex-lamp-panel-brand"><div><strong>{t('admin.flexLamp')}</strong><small>{t('admin.flexLampSubtitle')}</small></div><div className="flex-lamp-panel-brand-actions"><button type="button" onClick={toggleLanguage}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button><Link to="/admin" aria-label={t('admin.backToDashboard')}><ArrowLeft size={14} /></Link></div></div>
+          <div className="flex-lamp-panel-brand"><div><strong>{t('admin.flexLamp')}</strong><small>{t('admin.flexLampSubtitle')}</small></div><div className="flex-lamp-panel-brand-actions"><button type="button" onClick={toggleLanguage}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button><Link to={publicAccess ? '/' : '/admin'} aria-label={t('admin.backToDashboard')}><ArrowLeft size={14} /></Link></div></div>
           <div className="flex-lamp-panel-mode"><span>{t('admin.flexLampMode')}: <strong>{mode === 'shade' ? t('admin.flexLampShade') : t('admin.flexLampModel')}</strong></span><button type="button" onClick={reset}>{t('admin.flexLampReset')}</button></div>
           {mode === 'shade' ? <>
              <section className="flex-lamp-section flex-lamp-pattern-section"><div className="flex-lamp-section-head"><strong>{t('admin.flexLampPattern')}</strong></div><label className="flex-lamp-select"><span>{t('admin.flexLampPatternType')}</span><select aria-label={t('admin.flexLampPatternType')} value={config.pattern} onChange={(event) => { setValue('pattern', event.target.value as FlexLampPattern); clearImage(); }}>{(['circle', 'hexagon', 'vertical', 'diamond', 'wave'] as FlexLampPattern[]).map((pattern) => <option value={pattern} key={pattern}>{t(`admin.flexLampPattern.${pattern}`)}</option>)}</select></label><RangeField label={t('admin.flexLampAround')} value={config.around} min={3} max={80} unit="" onChange={(value) => setValue('around', value)} /><RangeField label={t('admin.flexLampRows')} value={config.rows} min={1} max={40} unit="" onChange={(value) => setValue('rows', value)} /><RangeField label={t('admin.flexLampCellSize')} value={config.cellSize} min={2} max={34} step={.5} unit="mm" onChange={(value) => setValue('cellSize', value)} /><RangeField label={t('admin.flexLampRotation')} value={config.rotation} min={0} max={360} unit="°" onChange={(value) => setValue('rotation', value)} />{image && <RangeField label={t('admin.flexLampImageThreshold')} value={config.imageThreshold} min={.05} max={.9} step={.05} unit="" onChange={(value) => setValue('imageThreshold', value)} />}</section>
@@ -286,6 +286,7 @@ function AdminFlexLampContent({ email }: { email: string }) {
 </main>;
 }
 
-export function AdminFlexLampPage() {
+export function AdminFlexLampPage({ publicAccess = false }: { publicAccess?: boolean } = {}) {
+  if (publicAccess) return <AdminFlexLampContent email="" publicAccess />;
   return <AdminGuard>{(user) => <AdminFlexLampContent email={user.email ?? ''} />}</AdminGuard>;
 }

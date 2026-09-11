@@ -4,14 +4,15 @@ import { ClickerWorkspacePage } from './ClickerWorkspacePage';
 import { AdminGuard } from './AdminGuard';
 import { useI18n } from './lib/i18n';
 
-function AdminToolContent({ mode }: { mode: ClickerMode }) {
+function AdminToolContent({ mode, publicAccess }: { mode: ClickerMode; publicAccess: boolean }) {
   const { t, language } = useI18n();
-  return <main className={`admin-native-workspace admin-native-workspace-${mode}`}>
-    <AdminWorkspaceNav compact />
+  return <main className={`admin-native-workspace admin-native-workspace-${mode}${publicAccess ? ' public-tool-workspace' : ''}`}>
+    {!publicAccess && <AdminWorkspaceNav compact />}
     <ClickerWorkspacePage initialMode={mode} showModeTabs={false} language={language} labels={{ clicker: t('admin.clicker'), flexKeychain: t('admin.clickerFlexKeychain'), flexOrganizer: t('admin.clickerFlexOrganizer'), svgLayers: t('admin.clickerSvgLayers'), imageVectorizer: t('admin.clickerImageVectorizer'), multiColor: t('admin.clickerMultiColor') }} />
   </main>;
 }
 
-export function AdminToolPage({ mode }: { mode: ClickerMode }) {
-  return <AdminGuard>{() => <AdminToolContent mode={mode} />}</AdminGuard>;
+export function AdminToolPage({ mode, publicAccess = false }: { mode: ClickerMode; publicAccess?: boolean }) {
+  if (publicAccess) return <AdminToolContent mode={mode} publicAccess />;
+  return <AdminGuard>{() => <AdminToolContent mode={mode} publicAccess={false} />}</AdminGuard>;
 }

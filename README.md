@@ -1,15 +1,15 @@
-# Hometown Modular Lamp
+# FormaForgeDT
 
-Premium storefront and geometry foundation for modular, FDM-printed lamp shades inspired by Vietnamese places.
+Public-first 3D creation toolbox for designing, previewing and exporting printable models in the browser.
 
 ## Current product surface
 
-- Vite + React + TypeScript storefront with HashRouter routes for catalog, collections, product detail, custom studio, cart, checkout, order confirmation, 3D showcase, contact, story and admin views.
+- Vite + React + TypeScript public toolbox with HashRouter routes for Clicker Lab, MeKey Studio, Multi Color, SVG Layers, Flex workspaces, Module Studio, Paramacraft, Price Reader and the downloads catalog.
 - React Three Fiber viewer with orbit controls, realtime color/light controls and a parametric lamp mesh.
 - `@hometown/geometry` pipeline primitives: profile normalization, shape generation, mesh generation, FDM validation, STL export and GLB metadata export.
 - Supabase-compatible Postgres migration with product, collection, province, hardware, order, email, design-project and settings models.
 - Fastify API with server-side price calculation, rate limiting, validation, Supabase catalog/order persistence when configured, protected admin operations and SMTP email provider.
-- Authenticated price reader for Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu links, with CNY/VND conversion, per-user variant and promotion snapshots, and a configurable licensed data-provider adapter.
+- Public price reader for Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu links, with CNY/VND conversion and a configurable licensed data-provider adapter.
 - Tauri 2 desktop shell configured for Windows NSIS and macOS DMG targets.
 - Responsive Module Lamp Studio at `#/module-studio`: draw a profile, generate a live 3D shade, arrange configurable modules, select E27 or Bambu LED Kit 001 hardware, choose printable joints, and export a project or STL.
 - GitHub Actions for validation and GitHub Pages deployment.
@@ -30,11 +30,11 @@ corepack pnpm dev:api
 
 The API loads `.env` from either the workspace root or `services/api/.env`. The custom studio can download the current validated geometry as STL, 3MF or GLB.
 
-The web app intentionally does not pretend that email or database persistence exists when no API is configured; checkout displays a clear configuration error instead. The authenticated `/admin` route loads live orders and status changes when `VITE_API_URL`, Supabase Auth and an `ADMIN` profile are configured.
+All creation workspaces are available without an account. Optional API-backed price inspection uses `VITE_API_URL`; geometry preview and browser exports remain local-first.
 
 ## Routes
 
-`/`, `/products`, `/products/:slug`, `/collections`, `/collections/:slug`, `/customize/:productId`, `/cart`, `/checkout`, `/order/:id`, `/about`, `/contact`, `/3d-showcase`, `/admin`, `/price-reader`, `/admin/price-reader`.
+`/`, `/downloads`, `/clicker`, `/mekey-studio`, `/multi-color`, `/svg-layers`, `/flex-keychain`, `/flex-organizer`, `/flex-lamp`, `/tulip-creator`, `/home-item`, `/paramacraft`, `/module-studio`, `/hunyuan-3d`, `/split-3mf`, `/price-reader`.
 
 ## GitHub Pages
 
@@ -44,13 +44,13 @@ The `deploy-pages.yml` workflow publishes `apps/web/dist` on every push to `main
 
 ## External credentials
 
-Supabase SQL must be applied in the supplied project, then `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and the public Vite values must be configured in the runtime/deployment environment. SMTP credentials are required before real customer/admin email can be sent. GitHub Pages can host the storefront; it cannot host the Fastify API, so deploy `services/api` separately when production checkout is needed.
+Supabase/API values are optional for the public browser workspaces. GitHub Pages hosts the static toolbox; deploy `services/api` separately when live marketplace data is needed.
 
 See the documentation files for architecture, geometry, hardware, email, database, deployment, desktop and development details.
 
 ## API surface
 
-Authenticated price reader routes (records are scoped to the signed-in user):
+Public price inspection and optional authenticated tracking routes:
 
 - `POST /api/price-reader/inspect`
 - `GET /api/price-reader/products`
@@ -70,10 +70,6 @@ Authenticated price reader routes (records are scoped to the signed-in user):
 - `GET /api/orders/:id` — retrieves an order confirmation payload.
 - `GET /api/admin/orders` — ADMIN-only order queue.
 - `PATCH /api/admin/orders/:id` — ADMIN-only status update.
-# FormaForgeDT
-
-Hometown Modular Lamp platform: storefront, Clicker tools, Paramacraft editor, Price Reader, Module Studio và desktop Tauri.
-
 ## Tải ứng dụng
 
 Mở trang [`/#/downloads`](https://trancaodai1651.github.io/FormaForgeDT/#/downloads) để tải web companion, Windows installer, macOS DMG và Chrome Market Reader. Installer/extension được đính kèm trong [GitHub Releases](https://github.com/trancaodai1651/FormaForgeDT/releases/latest), không commit binary nặng vào source.
