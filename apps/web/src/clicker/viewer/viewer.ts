@@ -44,6 +44,21 @@ export interface Viewer {
   highlightParts(indices: number[]): void;
   /** Clear hover + selection highlights. */
   clearHighlight(): void;
+  /** Scale the current camera distance without changing the orbit target. */
+  zoom(scale: number): void;
+  /** Re-frame the generated assembly using its current bounds. */
+  resetCamera(): void;
+  /** Match CAD top/orbit modes while preserving the current model bounds. */
+  setOrbitMode(enabled: boolean): void;
+  /** Override the shared grid palette for a page-specific workspace. */
+  setGridPalette(accent: number, secondary: number): void;
+  /** Show or hide the shared infinite-workspace grid. */
+  setGridVisible(visible: boolean): void;
+  /** Frame a known physical footprint, such as a printer bed. */
+  frameSize(width: number, depth: number, height?: number): void;
+  /** Draw a dimensionally accurate printer bed behind the generated parts. */
+  setPrintBed(width: number, depth: number, visible: boolean): void;
+  setReferenceRendering(enabled: boolean): void;
   dispose(): void;
 }
 
@@ -81,9 +96,10 @@ function color(rgb: RGB): THREE.Color {
 }
 
 export function createViewer(container: HTMLElement): Viewer {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.localClippingEnabled = true;
   container.appendChild(renderer.domElement);
@@ -112,23 +128,36 @@ export function createViewer(container: HTMLElement): Viewer {
   camera.position.set(60, -60, 45);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  const referenceEnvironment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environment = referenceEnvironment;
 
   const key = new THREE.DirectionalLight(0xffffff, 1.8);
   key.position.set(40, -30, 70);
   scene.add(key);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+  const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+  scene.add(ambient);
+  const fill = new THREE.DirectionalLight(0xffffff, 0);
+  const back = new THREE.DirectionalLight(0xffffff, 0);
+  scene.add(fill, back);
+  let referenceRendering = false;
+  let orbitMode = false;
 
   let gridZ = -20;
   let grid: THREE.GridHelper | null = null;
+  let gridAccentOverride: number | null = null;
+  let gridSecondaryOverride: number | null = null;
+  let gridVisible = true;
+  const printBedGroup = new THREE.Group();
+  scene.add(printBedGroup);
   function rebuildGrid(theme: string, z: number) {
     if (grid) scene.remove(grid);
     gridZ = z;
-    const accentColor = theme === 'dark' ? 0x5b9dff : 0x2563eb;
-    const gridColor = theme === 'dark' ? 0x2d3139 : 0xd1d5db;
+    const accentColor = gridAccentOverride ?? (theme === 'dark' ? 0x5b9dff : 0x2563eb);
+    const gridColor = gridSecondaryOverride ?? (theme === 'dark' ? 0x2d3139 : 0xd1d5db);
     grid = new THREE.GridHelper(300, 30, accentColor, gridColor);
     grid.rotation.x = Math.PI / 2;
     grid.position.z = gridZ;
+    grid.visible = gridVisible;
     // Prevent grid lines from bleeding through model body:
     // draw the grid first and skip depth-writes so opaque geometry always wins.
     grid.renderOrder = -1;
@@ -324,8 +353,8 @@ export function createViewer(container: HTMLElement): Viewer {
       const p = parts[i];
       const mat = new THREE.MeshStandardMaterial({
         color: color(p.colorRgb),
-        metalness: 0.0,
-        roughness: 0.5,
+        metalness: referenceRendering ? 0.1 : 0.0,
+        roughness: referenceRendering ? 0.4 : 0.5,
         side: THREE.DoubleSide, // so the interior shows in section view
       });
       materials.push(mat);
@@ -801,6 +830,116 @@ export function createViewer(container: HTMLElement): Viewer {
     hoveredIndex = null;
     applyHighlight();
   }
+  function zoom(scale: number) {
+    const safeScale = Math.max(0.2, Math.min(5, scale));
+    const offset = camera.position.clone().sub(controls.target).multiplyScalar(safeScale);
+    camera.position.copy(controls.target).add(offset);
+    controls.update();
+  }
+  function resetCamera() {
+    if (referenceRendering) setOrbitMode(orbitMode);
+    else frameCenteredSize(bounds, false);
+  }
+  function setOrbitMode(enabled: boolean) {
+    orbitMode = enabled;
+    controls.enableRotate = enabled;
+    if (referenceRendering) {
+      // The source studio keeps Three.js' Y-up camera in both views. The
+      // orbit tilt is produced solely by the camera position, which preserves
+      // the diagonal lettering seen in its 3D view.
+      camera.up.set(0, 1, 0);
+      root.rotation.set(enabled ? -0.5 : 0, enabled ? 0.3 : 0, 0);
+      // The source workspace keeps the lettering slightly above and left of the
+      // canvas centre (the original font metrics include the baseline rather
+      // than only the visible glyph bounds). Keep that framing consistent while
+      // retaining a stable origin for orbiting and panning.
+      const targetX = enabled ? 2.5 : 2.25;
+      const targetY = enabled ? -4.6 : -5.7;
+      controls.target.set(targetX, targetY, 0);
+      camera.position.set(targetX, enabled ? -64.6 : -5.7, enabled ? 156 : 163);
+      camera.near = 0.1;
+      camera.far = 2000;
+      camera.updateProjectionMatrix();
+      controls.update();
+      return;
+    }
+    camera.up.set(0, enabled ? 0 : 1, enabled ? 1 : 0);
+    const direction = enabled
+      ? new THREE.Vector3(1, -1, 0.72)
+      : new THREE.Vector3(0, 0, 1);
+    frameCenteredSize(bounds, false, direction);
+  }
+  function setGridPalette(accent: number, secondary: number) {
+    gridAccentOverride = accent;
+    gridSecondaryOverride = secondary;
+    rebuildGrid(getClickerDocument().documentElement.getAttribute('data-theme') || 'light', gridZ);
+  }
+  function setGridVisible(visible: boolean) {
+    gridVisible = visible;
+    if (grid) grid.visible = visible;
+  }
+  function frameSize(width: number, depth: number, height = 10) {
+    frameCenteredSize(new THREE.Vector3(width, depth, height), false);
+  }
+  function setPrintBed(width: number, depth: number, visible: boolean) {
+    for (const child of printBedGroup.children) {
+      if (child instanceof THREE.LineSegments) {
+        child.geometry.dispose();
+        (child.material as THREE.Material).dispose();
+      }
+    }
+    clearGroup(printBedGroup);
+    printBedGroup.visible = visible;
+    if (!visible) return;
+
+    const safeWidth = Math.max(1, width);
+    const safeDepth = Math.max(1, depth);
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(safeWidth, safeDepth),
+      new THREE.MeshBasicMaterial({ color: 0xe8e5e1, side: THREE.DoubleSide }),
+    );
+    plane.position.z = -GRID_GAP;
+    plane.renderOrder = -3;
+    printBedGroup.add(plane);
+
+    const vertices: number[] = [];
+    const addLine = (x1: number, y1: number, x2: number, y2: number) => vertices.push(x1, y1, -GRID_GAP + 0.01, x2, y2, -GRID_GAP + 0.01);
+    for (let x = -safeWidth / 2; x <= safeWidth / 2 + 0.001; x += 10) addLine(x, -safeDepth / 2, x, safeDepth / 2);
+    for (let y = -safeDepth / 2; y <= safeDepth / 2 + 0.001; y += 10) addLine(-safeWidth / 2, y, safeWidth / 2, y);
+    addLine(-safeWidth / 2, -safeDepth / 2, safeWidth / 2, -safeDepth / 2);
+    addLine(safeWidth / 2, -safeDepth / 2, safeWidth / 2, safeDepth / 2);
+    addLine(safeWidth / 2, safeDepth / 2, -safeWidth / 2, safeDepth / 2);
+    addLine(-safeWidth / 2, safeDepth / 2, -safeWidth / 2, -safeDepth / 2);
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    const lines = new THREE.LineSegments(lineGeometry, new THREE.LineBasicMaterial({ color: 0xbdb7b0, transparent: true, opacity: 0.52 }));
+    lines.renderOrder = -2;
+    printBedGroup.add(lines);
+  }
+  function setReferenceRendering(enabled: boolean) {
+    referenceRendering = enabled;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = enabled ? 1.05 : 1;
+    scene.environment = enabled ? null : referenceEnvironment;
+    scene.background = new THREE.Color(enabled
+      ? (getClickerDocument().documentElement.getAttribute('data-theme') === 'dark' ? 0x161412 : 0xd8d5d0)
+      : (getClickerDocument().documentElement.getAttribute('data-theme') === 'dark' ? 0x15171c : 0xf3f4f6));
+    if (enabled) {
+      ambient.intensity = 0.45;
+      key.intensity = 1.25;
+      key.position.set(84, 126, 168);
+      fill.intensity = 0.5;
+      fill.position.set(-84, -63, 126);
+      back.intensity = 0.45;
+      back.position.set(0, 168, -63);
+    } else {
+      ambient.intensity = 0.2;
+      key.intensity = 1.8;
+      key.position.set(40, -30, 70);
+      fill.intensity = 0;
+      back.intensity = 0;
+    }
+  }
 
   function dispose() {
     cancelAnimationFrame(raf);
@@ -812,6 +951,7 @@ export function createViewer(container: HTMLElement): Viewer {
     renderer.domElement.removeEventListener('pointerup', onPointerUp);
     clearGroup(capGroup);
     clearGroup(bodyGroup);
+    setPrintBed(1, 1, false);
     clearSwitchMeshes();
     clearImportedModel();
     switchGeometry?.dispose();
@@ -822,7 +962,9 @@ export function createViewer(container: HTMLElement): Viewer {
     renderer.domElement.remove();
   }
   function setTheme(theme: string) {
-    const bgColor = theme === 'dark' ? 0x15171c : 0xf3f4f6;
+    const bgColor = referenceRendering
+      ? (theme === 'dark' ? 0x161412 : 0xd8d5d0)
+      : (theme === 'dark' ? 0x15171c : 0xf3f4f6);
     scene.background = new THREE.Color(bgColor);
     rebuildGrid(theme, gridZ);
   }
@@ -848,6 +990,14 @@ export function createViewer(container: HTMLElement): Viewer {
     highlightPart,
     highlightParts,
     clearHighlight,
+    zoom,
+    resetCamera,
+    setOrbitMode,
+    setGridPalette,
+    setGridVisible,
+    frameSize,
+    setPrintBed,
+    setReferenceRendering,
     dispose,
   };
 }

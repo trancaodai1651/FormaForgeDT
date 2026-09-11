@@ -11,6 +11,7 @@ const workspaces: WorkspaceLink[] = [
   { to: '/admin/svg-layers', label: 'SVG Layers', mark: 'S' },
   { to: '/admin/image-vectorizer', label: 'Vectorizer', mark: 'V' },
   { to: '/admin/flex-keychain', label: 'Flex Keychain', mark: 'K' },
+  { to: '/admin/mekey-studio', label: 'MeKey Studio', labelKey: 'admin.mekeyStudio', mark: 'MK' },
   { to: '/admin/flex-organizer', label: 'Flex Organizer', mark: 'O' },
   { to: '/admin/flex-lamp', label: 'Flex Lamp', mark: 'L' },
   { to: '/admin/paramacraft', label: 'ParamaCraft', mark: 'P' },

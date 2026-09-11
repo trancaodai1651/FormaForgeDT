@@ -481,6 +481,8 @@ Object.assign(vi, {
 
 Object.assign(en, { 'admin.split3mf': 'Split 3MF', 'admin.split3mfPageDescription': 'Separate multi-color 3MF regions, create manual cuts and connectors, then export a print-ready project.' });
 Object.assign(vi, { 'admin.split3mf': 'Tách 3MF', 'admin.split3mfPageDescription': 'Tách vùng màu 3MF, tạo đường cắt và khớp nối, rồi xuất project sẵn sàng in.' });
+Object.assign(en, { 'admin.mekeyStudio': 'MeKey Studio', 'admin.mekeyStudioPageDescription': 'Batch-design layered text keychains, arrange the print bed, and export multi-material 3MF files.' });
+Object.assign(vi, { 'admin.mekeyStudio': 'MeKey Studio', 'admin.mekeyStudioPageDescription': 'Thiết kế hàng loạt móc khóa chữ nhiều lớp, sắp bàn in và xuất 3MF đa vật liệu.' });
 
 type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; toggleLanguage: () => void; t: (key: string, variables?: Record<string, string | number>) => string };
 const I18nContext = createContext<I18nContextValue | null>(null);
