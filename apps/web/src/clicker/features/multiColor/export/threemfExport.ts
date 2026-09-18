@@ -11,10 +11,10 @@ function escapeXml(value: string): string {
 
 function colorHex(rgb: RGB): string {
   const channel = (value: number) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0');
-  // Bambu's color-group importer accepts the 3MF sRGB value with explicit
-  // opaque alpha. Keeping one canonical value also makes duplicate colors map
-  // to the same filament slot across layers and keychain segments.
-  return `#${channel(rgb[0])}${channel(rgb[1])}${channel(rgb[2])}FF`;
+  // Opaque filament colors do not need an alpha channel. The six-digit form
+  // is accepted by the 3MF Materials Extension and is handled consistently
+  // by slicers that use the color group as a filament hint.
+  return `#${channel(rgb[0])}${channel(rgb[1])}${channel(rgb[2])}`;
 }
 
 function colorTable(parts: ClickerPart[]): { colors: RGB[]; indices: number[] } {
@@ -33,22 +33,22 @@ function colorTable(parts: ClickerPart[]): { colors: RGB[]; indices: number[] } 
   return { colors, indices };
 }
 
-function combinedMeshXml(parts: ClickerPart[], minZ: number, colorIndices: number[]): string {
+function combinedMeshXml(parts: ClickerPart[], minZ: number, colorIndex: number): string {
   const vertices: string[] = [];
   const triangles: string[] = [];
   let vertexOffset = 0;
-  for (const [partIndex, part] of parts.entries()) {
+  for (const part of parts) {
     for (let i = 0; i < part.vertProperties.length; i += part.numProp) {
       vertices.push(
         `<vertex x="${formatNumber(part.vertProperties[i])}" y="${formatNumber(part.vertProperties[i + 1])}" z="${formatNumber(part.vertProperties[i + 2] - minZ)}"/>`,
       );
     }
     for (let i = 0; i + 2 < part.triVerts.length; i += 3) {
-      // Repeat the color on every triangle. Bambu Studio uses these explicit
-      // color-group properties while importing third-party 3MF files, even
-      // when the object also has pid/pindex defaults.
+      // Repeat the object material on every triangle as well. This is
+      // redundant for a one-color object, but protects the mapping in
+      // consumers that inspect triangle properties instead of object defaults.
       triangles.push(
-        `<triangle v1="${part.triVerts[i] + vertexOffset}" v2="${part.triVerts[i + 1] + vertexOffset}" v3="${part.triVerts[i + 2] + vertexOffset}" pid="1" p1="${colorIndices[partIndex] ?? 0}" p2="${colorIndices[partIndex] ?? 0}" p3="${colorIndices[partIndex] ?? 0}"/>`,
+        `<triangle v1="${part.triVerts[i] + vertexOffset}" v2="${part.triVerts[i + 1] + vertexOffset}" v3="${part.triVerts[i + 2] + vertexOffset}" pid="1" p1="${colorIndex}" p2="${colorIndex}" p3="${colorIndex}"/>`,
       );
     }
     vertexOffset += Math.floor(part.vertProperties.length / part.numProp);
@@ -57,12 +57,10 @@ function combinedMeshXml(parts: ClickerPart[], minZ: number, colorIndices: numbe
 }
 
 /**
- * MultiColor-only 3MF export. All physical layer/segment meshes are packed
- * into one model object, while each triangle keeps its material index. This
- * is important for Bambu Studio: separate objects at different Z heights are
- * treated as a multi-part assembly and trigger an import prompt. The packed
- * object keeps the assembled geometry and still exposes every colour through
- * the 3MF Materials Extension.
+ * MultiColor-only 3MF export. Each physical color is a separate model object
+ * with an object-level material mapping and matching triangle properties. A
+ * slicer can therefore assign the exact source RGB to one object/filament
+ * without having to infer colors from a mixed triangle-painted object.
  */
 export function buildThreeMFObjects(rawParts: ClickerPart[]): Uint8Array {
   // Empty sanitized parts have no printable triangles and should not create a
@@ -77,18 +75,39 @@ export function buildThreeMFObjects(rawParts: ClickerPart[]): Uint8Array {
   if (!isFinite(minZ)) minZ = 0;
 
   const colorMap = colorTable(parts);
-  // Bambu Studio reads the Materials Extension color group for third-party
-  // 3MF files. The old m:basematerials element was not a valid Bambu color
-  // resource and therefore all objects fell back to one filament color.
   const colors = colorMap.colors
     .map((rgb) => `<m:color color="${colorHex(rgb)}"/>`)
     .join('');
-  const objectId = 2;
-  const objectName = parts.length ? parts.map((part) => part.name).join(' + ') : 'FormaForge Multi Color';
-  const objects = parts.length
-    ? `<object id="${objectId}" name="${escapeXml(objectName)}" type="model" pid="1" pindex="0">${combinedMeshXml(parts, minZ, colorMap.indices)}</object>`
-    : '';
-  const buildItems = parts.length ? `<item objectid="${objectId}"/>` : '';
+  const partsByColor = new Map<number, ClickerPart[]>();
+  for (const [partIndex, part] of parts.entries()) {
+    const colorIndex = colorMap.indices[partIndex] ?? 0;
+    const colorParts = partsByColor.get(colorIndex) ?? [];
+    colorParts.push(part);
+    partsByColor.set(colorIndex, colorParts);
+  }
+  const colorGroups = [...partsByColor.entries()].sort(([a], [b]) => a - b);
+  const objects = colorGroups
+    .map(([colorIndex, colorParts], groupIndex) => {
+      const objectId = 2 + groupIndex;
+      const color = colorHex(colorMap.colors[colorIndex] ?? [0, 0, 0]);
+      const sourceNames = colorParts.map((part) => part.name).join(' + ');
+      const objectName = `color-${String(colorIndex).padStart(2, '0')}-${color}${sourceNames ? ` (${sourceNames})` : ''}`;
+      return `<object id="${objectId}" name="${escapeXml(objectName)}" type="model" pid="1" pindex="${colorIndex}">${combinedMeshXml(colorParts, minZ, colorIndex)}</object>`;
+    })
+    .join('');
+  const buildItems = colorGroups
+    .map((_, groupIndex) => `<item objectid="${2 + groupIndex}"/>`)
+    .join('');
+  const materialManifest = JSON.stringify(
+    colorGroups.map(([colorIndex, colorParts]) => ({
+      index: colorIndex,
+      rgb: colorMap.colors[colorIndex],
+      hex: colorHex(colorMap.colors[colorIndex] ?? [0, 0, 0]),
+      parts: colorParts.map((part) => part.name),
+    })),
+    null,
+    2,
+  );
 
   const viteEnv: Record<string, string> = ((import.meta as unknown as { env?: Record<string, string> }).env) ?? {};
   const buildId = viteEnv.VITE_BUILD_ID ?? 'dev';
@@ -110,8 +129,9 @@ export function buildThreeMFObjects(rawParts: ClickerPart[]): Uint8Array {
   const contentTypes =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
-    `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+      `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
       `<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>` +
+      `<Default Extension="json" ContentType="application/json"/>` +
       `<Default Extension="txt" ContentType="text/plain"/></Types>`;
   const relationships =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
@@ -125,6 +145,7 @@ export function buildThreeMFObjects(rawParts: ClickerPart[]): Uint8Array {
       '_rels/.rels': strToU8(relationships),
       '3D/3dmodel.model': strToU8(model),
       'Metadata/generator.txt': strToU8(`FormaForgeDT Multi Color\nBuild: ${buildId}\nCreated: ${creationDate}`),
+      'Metadata/materials.json': strToU8(materialManifest),
     },
     { level: 6 },
   );

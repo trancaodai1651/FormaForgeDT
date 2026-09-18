@@ -13,7 +13,7 @@ export interface UiState {
   baseShape: BaseShapeKind; bottomBaseMode: 'match' | 'custom';
   bottomExpandPercent: number; bottomPaddingMm: number; bottomSolidOnly: boolean;
   bottomOffsetX: number; bottomOffsetY: number; bottomRotation: number;
-  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageThicknessMm: number; hybridImagePaddingMm: number; hybridKeychainHeightMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseStyle: HybridBaseStyle; hybridVaseProfile: HybridVaseProfile; hybridVaseWavinessMm: number; hybridVaseThicknessMm: number; hybridVaseGapMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
+  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageLateralOffsetMm: number; hybridImageThicknessMm: number; hybridImagePaddingMm: number; hybridKeychainHeightMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseStyle: HybridBaseStyle; hybridVaseProfile: HybridVaseProfile; hybridVaseWavinessMm: number; hybridVaseThicknessMm: number; hybridVaseGapMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;
   smoothing: number; photoFlatten: boolean; keychain: KeychainParams; removeBg: boolean; view: ViewMode; showSwitch: boolean;
@@ -35,7 +35,7 @@ export interface UiState {
   blockKeycapUnit: number;
   keycapImageName: string; keycapImageSlotIndices: number[];
   keycapLogoNames: string[]; keycapLogoAssignments: Array<number | null>; keycapLogoSizeMm: number;
-  previewSource: 'generated' | 'imported'; importedModelName: string; importedModelFormat: '' | 'STL' | '3MF';
+  previewSource: 'generated' | 'imported'; importedModelName: string; useImportedBlock: boolean; importedModelFormat: '' | 'STL' | '3MF';
   importedModelMeshCount: number; importedModelTriangleCount: number; importedModelColor: string;
   importedModelRotateX: number; importedModelRotateY: number; importedModelRotateZ: number;
   selectedParts: string[]; canUndo: boolean; canRedo: boolean; canRefresh: boolean;
@@ -59,7 +59,7 @@ export interface UiCallbacks {
   onRemoveBg(on: boolean): void; onPhotoFlatten(on: boolean): void; onView(mode: ViewMode): void; onShowSwitch(on: boolean): void;
   onSection(axis: SectionAxis, pos: number): void; onExport(): void; onExportSTL(): void;
   onRenderPng(): void; onAiPrompt(): void; onSaveProject(): void; onLoadProject(file: File): void;
-  onBodyColor(hex: string): void; onImportMode(mode: 'image' | 'svg' | 'icon' | 'text' | 'blocks' | 'hybrid'): void;
+  onBodyColor(hex: string): void; onImportMode(mode: 'image' | 'svg' | 'icon' | 'text' | 'blocks' | 'hybrid' | 'hybrid-imported'): void;
   onSvgUpload(file: File): void; onSelectSvg(svgText: string, name: string): void;
   onKeycapImageUpload(files: File[]): void; onClearKeycapImage(): void;
   onKeycapLogoAssign(slotIndex: number, logoIndex: number | null): void;
@@ -79,6 +79,8 @@ export interface UiCallbacks {
   onBlockKeycapProfile(profile: 'standard' | 'low' | 'thocky' | 'choc-v1'): void;
   onBlockKeySize(unit: number): void;
   onHybridImageSize(sizeMm: number): void;
+  onHybridImageLateralOffset(value: number): void;
+  onImportedKeychainOffset(value: number): void;
   onHybridImageThickness(value: number): void;
   onHybridImagePadding(value: number): void;
   onHybridKeychainHeight(value: number): void;
@@ -102,7 +104,7 @@ export interface UiCallbacks {
   onHybridKeycapClearance(value: number): void;
   onBlockModuleThickness(value: number): void;
   onBlockModuleSideThickness(value: number): void;
-  onModelImport(file: File): void; onModelColor(hex: string): void;
+  onModelImport(file: File): void; onUseImportedBlock(on: boolean): void; onModelColor(hex: string): void;
   onModelPreviewSource(source: 'generated' | 'imported'): void; onModelClear(): void;
   onModelRotation(axis: 'x' | 'y' | 'z', value: number): void; onModelTransformReset(): void;
   onGenerate(): void; onUndo(): void; onRedo(): void; onRefresh(): void; onBackToHome(): void;

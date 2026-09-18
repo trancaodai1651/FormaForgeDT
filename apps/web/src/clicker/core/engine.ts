@@ -14,6 +14,27 @@ export const worker = new Worker(new URL('../workers/geometry.worker.ts', import
 const LIGHT_FRAME: RGB = [240, 240, 240];
 const DARK_FRAME: RGB = [38, 38, 42];
 
+function hasValidPreviewBounds(parts: ClickerPart[]): boolean {
+  if (!parts.length) return true;
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (const part of parts) {
+    const stride = part.numProp;
+    const vertices = part.vertProperties;
+    if (stride < 3 || vertices.length === 0 || vertices.length % stride || part.triVerts.length === 0) return false;
+    for (let i = 0; i < vertices.length; i += stride) {
+      for (let axis = 0; axis < 3; axis++) {
+        const value = vertices[i + axis];
+        if (!Number.isFinite(value)) return false;
+        min[axis] = Math.min(min[axis], value);
+        max[axis] = Math.max(max[axis], value);
+      }
+    }
+    if (!part.triVerts.every((index) => index < vertices.length / stride)) return false;
+  }
+  return max.every((value, axis) => value > min[axis] && value - min[axis] < 5000);
+}
+
 // ---- Khá»Ÿi táº¡o Engine & Worker ----
 export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultClickerFn: () => void) {
   worker.onmessage = (e: MessageEvent<GeometryResponse>) => {
@@ -47,10 +68,34 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
         break;
       case 'parts':
       case 'blocksParts':
+        if (store.get().useImportedBlock && !msg.parts.length) {
+          viewer.setPreviewSource('imported');
+          store.set({ building: false, hasParts: false, previewSource: 'imported', status: msg.warnings?.[0] ?? 'Upload an image to attach to the block.' });
+          break;
+        }
+        if (!hasValidPreviewBounds(msg.parts)) {
+          store.set({ building: false, status: 'Generated mesh is invalid. Showing the imported block instead.' });
+          if (store.get().useImportedBlock) {
+            viewer.setPreviewSource('imported');
+            store.set({ previewSource: 'imported' });
+          }
+          break;
+        }
+        try {
+          viewer.setParts(msg.parts, !appData.isInitialLoad, store.get().useImportedBlock);
+        } catch (error) {
+          if (store.get().useImportedBlock) viewer.setPreviewSource('imported');
+          store.set({ building: false, previewSource: store.get().useImportedBlock ? 'imported' : 'generated', status: `Could not display generated mesh: ${error instanceof Error ? error.message : String(error)}` });
+          break;
+        }
         appData.latestParts = msg.parts;
-        viewer.setParts(msg.parts, !appData.isInitialLoad);
+        if (store.get().importMode === 'hybrid' && store.get().useImportedBlock && msg.parts.length) {
+          viewer.setPreviewSource('generated');
+          store.set({ previewSource: 'generated' });
+        }
         viewer.setView(store.get().view);
         viewer.setSwitchPlacements(msg.switchPlacements ?? []);
+        viewer.showSwitch(store.get().showSwitch && !store.get().useImportedBlock);
         store.set({
           building: false,
           hasParts: msg.parts.length > 0,
@@ -124,6 +169,10 @@ export function reprocess() {
   setPendingHistoryReset(true);
   store.set({ baseColorOverride: null });
   const s = store.get();
+  if (s.importMode === 'hybrid' && s.useImportedBlock && !appData.importedBlockParts.length) {
+    store.set({ building: false, hasParts: false, status: 'Choose an STL or 3MF block to attach the image.' });
+    return;
+  }
   const imageMode = s.importMode === 'image' || s.importMode === 'hybrid';
   const imageMultiColorMode = imageMode && s.multiColorEnabled;
 
@@ -146,15 +195,18 @@ export function reprocess() {
         && s.bottomBaseMode === 'custom'
         && appData.bottomImage
         && sameImagePixels(appData.originalImage, appData.bottomImage);
-      const sourceImage = sameImageAsCustomBase ? downscaleImage(appData.originalImage, 512) : appData.originalImage;
+      const sourceImage = sameImageAsCustomBase || (s.importMode === 'hybrid' && s.useImportedBlock)
+        ? downscaleImage(appData.originalImage, 512)
+        : appData.originalImage;
+      const processColorCount = s.colorCount;
       const imgClone = {
         data: new Uint8ClampedArray(sourceImage.data),
         width: sourceImage.width,
         height: sourceImage.height,
       };
       appData.regionSet = sameImageAsCustomBase
-        ? processImage(imgClone, imageMultiColorMode ? 2 : 1, { removeBg: true, smoothing: s.smoothing })
-        : processImage(imgClone, imageMultiColorMode ? s.colorCount : 1, {
+        ? processImage(imgClone, processColorCount, { removeBg: true, smoothing: s.smoothing })
+        : processImage(imgClone, processColorCount, {
             removeBg: s.removeBg,
             smoothing: s.smoothing,
             customColors: imageMultiColorMode && s.colorMode === 'limited' ? s.limitedColors : undefined,
@@ -186,7 +238,7 @@ export function reprocess() {
     } catch (e: any) { store.set({ building: false, status: 'Error: ' + e.message }); return; }
   }
 
-  if (!appData.regionSet) return;
+  if (!appData.regionSet || appData.regionSet.regions.length === 0) return;
   const palette: PaletteEntry[] = s.importMode === 'blocks'
     ? [{ quantRgb: [247, 247, 245], filamentRgb: s.paletteOverrides[0] ?? [247, 247, 245], coverage: 1 }]
     : appData.regionSet.regions.map((r, i) => ({
@@ -202,19 +254,43 @@ export function reprocess() {
 }
 
 export function rebuild(quiet = false) {
+  if (store.get().importMode === 'hybrid' && store.get().useImportedBlock && !appData.importedBlockParts.length) {
+    store.set({ building: false, hasParts: false, status: 'Choose an STL or 3MF block to attach the image.' });
+    return;
+  }
   if (!appData.regionSet || appData.regionSet.regions.length === 0) return;
   if (!appData.assetsReady) { store.set({ status: 'Waiting for switch assetsâ€¦' }); return; }
   
   const s = store.get();
   const imageMultiColorMode = s.multiColorEnabled && (s.importMode === 'image' || s.importMode === 'hybrid');
+  const flatRasterImageMode = !s.multiColorEnabled && (s.importMode === 'image' || s.importMode === 'hybrid') && appData.imageSource === 'raster';
+  const stackColorLayers = imageMultiColorMode && s.stackColorLayers;
+  const sourceRegions = appData.regionSet.regions.map((region, sourceIndex) => ({ region, sourceIndex }));
+  // The region array is the user's physical order: first = bottom, last = top.
+  // Do not sort by coverage here; the palette controls can intentionally put a
+  // small accent below a large background (or the reverse).
+  const orderedRegions = sourceRegions;
   const regions: BuildRegion[] = [];
-  appData.regionSet.regions.forEach((r, i) => {
-    const baseColor = s.palette[i]?.filamentRgb ?? r.quantRgb;
-    r.components.forEach((comp, j) => {
-      const partName = `top-color-${i}-${j}`;
-      regions.push({ filamentRgb: s.partOverrides?.[partName] ?? baseColor, coverage: r.coverage, rings: comp.rings, partName });
+  if (stackColorLayers) {
+    orderedRegions.forEach(({ region: r, sourceIndex }) => {
+      const baseColor = s.palette[sourceIndex]?.filamentRgb ?? r.quantRgb;
+      const partName = `top-color-${sourceIndex}-0`;
+      regions.push({
+        filamentRgb: s.partOverrides?.[partName] ?? baseColor,
+        coverage: r.coverage,
+        rings: r.components.flatMap((component) => component.rings),
+        partName,
+      });
     });
-  });
+  } else {
+    sourceRegions.forEach(({ region: r, sourceIndex }) => {
+      const baseColor = s.palette[sourceIndex]?.filamentRgb ?? r.quantRgb;
+      r.components.forEach((comp, componentIndex) => {
+        const partName = `top-color-${sourceIndex}-${componentIndex}`;
+        regions.push({ filamentRgb: s.partOverrides?.[partName] ?? baseColor, coverage: r.coverage, rings: comp.rings, partName });
+      });
+    });
+  }
 
   // ðŸŸ¢ 1. BÃ“C TÃCH CÃC VÃ™NG MÃ€U CHO Cáº¢ PHáº¦N Äáº¾
   const bottomRegions: BuildRegion[] = [];
@@ -238,19 +314,23 @@ export function rebuild(quiet = false) {
   // explicit user extrude edits, while assigning untouched colour components
   // to their palette order (bottom -> top) automatically.
   const componentHeights = { ...s.componentHeights };
-  if (imageMultiColorMode && s.stackColorLayers) {
-    appData.regionSet.regions.forEach((region, regionIndex) => region.components.forEach((_, componentIndex) => {
-      const partName = `top-color-${regionIndex}-${componentIndex}`;
-      if (!(partName in componentHeights)) componentHeights[partName] = regionIndex;
-    }));
+  if (flatRasterImageMode) {
+    regions.forEach(({ partName }) => { componentHeights[partName] = 0; });
+  }
+  if (stackColorLayers) {
+    orderedRegions.forEach(({ sourceIndex }, layerIndex) => {
+      const partName = `top-color-${sourceIndex}-0`;
+      if (!(partName in componentHeights)) componentHeights[partName] = layerIndex;
+    });
   }
   const colorLayerStepMm = Math.max(0.2, s.colorLayerHeightMm + s.colorLayerGapMm);
 
   const params: BuildParams = {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
     imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
+    hybridImageLateralOffsetMm: s.hybridImageLateralOffsetMm,
     hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
-    hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm,
+    hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: flatRasterImageMode ? 0 : s.hybridImageExtrudeMm,
     hybridBaseWidthMm: s.hybridBaseWidthMm,
     hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
     hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,
@@ -267,10 +347,11 @@ export function rebuild(quiet = false) {
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: imageMultiColorMode && s.stackColorLayers ? colorLayerStepMm : 0.6, travel: 4.0, floorThickness: 1.6,
     switches: s.switches, keychain: s.keychain, baseFilamentRgb: capBaseColor, bodyColorRgb: s.bodyColorRgb ?? [120, 124, 130],
     edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights,
-    // The carrier/accent raster repair is only needed for multi-color image
-    // mode. In normal single-color mode keep the traced image as a regular
-    // top part so it remains visible in the preview and exports.
-    rasterImageMode: s.importMode === 'image' && s.multiColorEnabled,
+    // Raster art uses a continuous carrier and coplanar colour inlays when
+    // Multi-color is off. Only the enabled stack raises physical colour layers.
+    rasterImageMode: s.importMode === 'image' && appData.imageSource === 'raster',
+    monochromeImageRelief: false,
+    stackColorLayers,
     
     // ðŸŸ¢ 2. TRUYá»€N THÃ”NG Sá» CÄ‚N CHá»ˆNH & DANH SÃCH MÃ€U Äáº¾ SANG WORKER
     bottomOffsetX: s.bottomOffsetX ?? 0,
@@ -408,6 +489,7 @@ export function rebuild(quiet = false) {
           keycapImageSlotIndices: s.keycapImageSlotIndices,
           keycapImageRegionsBySlot,
         },
+        importedBlockParts: s.useImportedBlock ? appData.importedBlockParts : undefined,
       });
     } else {
       worker.postMessage({ type: 'buildClicker', regions, outline: appData.regionSet.outline, params, bottomOutline });
@@ -473,11 +555,24 @@ function dominantPaletteIndex(s: ReturnType<typeof store.get>): number {
   return domIdx;
 }
 
+function bottomLayerPaletteIndex(s: ReturnType<typeof store.get>): number {
+  // Palette order is bottom -> top and is user-controlled by the layer list.
+  return 0;
+}
+
 function dominantInk(s: ReturnType<typeof store.get>): RGB {
   if (s.palette.length === 0) return [180, 180, 185];
   return s.palette[dominantPaletteIndex(s)]?.filamentRgb ?? [180, 180, 185];
 }
-function deriveFrameColor(s: ReturnType<typeof store.get>): RGB { const ink = dominantInk(s); return s.importMode === 'image' || s.importMode === 'hybrid' ? ink : contrastingFrame(ink); }
+function deriveFrameColor(s: ReturnType<typeof store.get>): RGB {
+  const isImageStack = s.multiColorEnabled
+    && s.stackColorLayers
+    && (s.importMode === 'image' || s.importMode === 'hybrid');
+  const ink = isImageStack
+    ? s.palette[bottomLayerPaletteIndex(s)]?.filamentRgb ?? [180, 180, 185]
+    : dominantInk(s);
+  return s.importMode === 'image' || s.importMode === 'hybrid' ? ink : contrastingFrame(ink);
+}
 
 function syncBaseColor(viewer: any) {
   const s = store.get();

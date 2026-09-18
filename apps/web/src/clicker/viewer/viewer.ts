@@ -17,7 +17,7 @@ export interface ImportedModelInfo {
 }
 
 export interface Viewer {
-  setParts(parts: ClickerPart[], preserveCamera?: boolean): void;
+  setParts(parts: ClickerPart[], preserveCamera?: boolean, fastNormals?: boolean): void;
   setView(mode: ViewMode): void;
   setSection(axis: SectionAxis, pos: number): void;
   setSwitch(mesh: MeshData | null): void;
@@ -25,6 +25,7 @@ export interface Viewer {
   /** Place one preview switch mesh per (clamped) placement the geometry was built with. */
   setSwitchPlacements(placements: SwitchPlacement[]): void;
   importModel(file: File): Promise<ImportedModelInfo>;
+  getImportedBlockParts(): ClickerPart[];
   setImportedModelColor(hex: string): void;
   setPreviewSource(source: 'generated' | 'imported'): void;
   clearImportedModel(): void;
@@ -68,7 +69,7 @@ export interface Viewer {
 const GRID_GAP = 1.0;
 const MODULAR_SPLIT_EXTRA = 9;
 
-function partToGeometry(p: ClickerPart): THREE.BufferGeometry {
+function partToGeometry(p: ClickerPart, fastNormals = false): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
   let positions: Float32Array;
   if (p.numProp === 3) {
@@ -84,8 +85,12 @@ function partToGeometry(p: ClickerPart): THREE.BufferGeometry {
   }
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setIndex(new THREE.BufferAttribute(p.triVerts, 1));
-  // Crease-split normals: keep the domed top / round walls smooth while keeping
-  // hard edges crisp (preview shading only â€” matches the keycap generator).
+  // Crease splitting duplicates every triangle and can freeze the browser on
+  // a dense traced image. Indexed normals keep large artwork interactive.
+  if (fastNormals || p.triVerts.length > 36_000) {
+    geo.computeVertexNormals();
+    return geo;
+  }
   const creased = toCreasedNormals(geo, (35 * Math.PI) / 180);
   geo.dispose();
   return creased;
@@ -253,10 +258,11 @@ export function createViewer(container: HTMLElement): Viewer {
     // Rebuilds recenter the generated geometry. Preserve the user's pan delta
     // relative to the old model center so changing a slider never teleports a
     // deliberately panned model back to an arbitrary screen position.
-    if (preserveCamera && previousPan) target.add(previousPan);
+    if (preserveCamera && previousPan && previousPan.toArray().every(Number.isFinite)) target.add(previousPan);
     const offset = previousOffset?.clone() ?? camera.position.clone().sub(controls.target);
-    const previousDistance = offset.length();
-    const direction = offset.lengthSq() > 0.0001
+    const finiteOffset = offset.toArray().every(Number.isFinite);
+    const previousDistance = finiteOffset ? offset.length() : 0;
+    const direction = finiteOffset && offset.lengthSq() > 0.0001
       ? offset.normalize()
       : new THREE.Vector3(1, -1, 0.75).normalize();
     const verticalFov = THREE.MathUtils.degToRad(camera.fov);
@@ -335,7 +341,7 @@ export function createViewer(container: HTMLElement): Viewer {
     }
   }
 
-  function setParts(parts: ClickerPart[], preserveCamera = false) {
+  function setParts(parts: ClickerPart[], preserveCamera = false, fastNormals = false) {
     const previousCamera = camera.position.clone();
     const previousOffset = previousCamera.sub(controls.target);
     const previousCenter = new THREE.Vector3(0, 0, Math.max(0, bounds.z / 2));
@@ -358,7 +364,7 @@ export function createViewer(container: HTMLElement): Viewer {
         side: THREE.DoubleSide, // so the interior shows in section view
       });
       materials.push(mat);
-      const mesh = new THREE.Mesh(partToGeometry(p), mat);
+      const mesh = new THREE.Mesh(partToGeometry(p, fastNormals), mat);
       mesh.userData.partIndex = i; // raycast hit -> part/material index
       mesh.userData.partName = p.name; // essential for live preview and syncing heights
       const moduleMatch = /^(?:flex-module|keycap)-(\d+)/.exec(p.name);
@@ -618,6 +624,39 @@ export function createViewer(container: HTMLElement): Viewer {
       meshCount,
       triangleCount: Math.round(triangleCount),
     };
+  }
+
+  function getImportedBlockParts(): ClickerPart[] {
+    importedRoot.updateMatrixWorld(true);
+    const parts: ClickerPart[] = [];
+    const rgb = new THREE.Color(storeImportedColor()).getHex();
+    importedRoot.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const source = child.geometry;
+      const position = source.getAttribute('position');
+      if (!position || position.count < 3) return;
+      const vertices = new Float32Array(position.count * 3);
+      const point = new THREE.Vector3();
+      for (let i = 0; i < position.count; i++) {
+        point.fromBufferAttribute(position, i).applyMatrix4(child.matrixWorld);
+        vertices.set([point.x, point.y, point.z], i * 3);
+      }
+      const index = source.getIndex();
+      const triangles = index
+        ? new Uint32Array(index.array)
+        : Uint32Array.from({ length: position.count }, (_, i) => i);
+      if (triangles.length < 3) return;
+      if (child.matrixWorld.determinant() < 0) {
+        for (let i = 0; i + 2 < triangles.length; i += 3) [triangles[i + 1], triangles[i + 2]] = [triangles[i + 2], triangles[i + 1]];
+      }
+      parts.push({ kind: 'body', group: 'base', colorRgb: [(rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255], name: `imported-block-${parts.length}`, numProp: 3, vertProperties: vertices, triVerts: triangles });
+    });
+    return parts;
+  }
+
+  function storeImportedColor(): string {
+    const material = importedMaterials.values().next().value;
+    return material?.color.getStyle() ?? '#f0b967';
   }
 
   function setModularSplit(on: boolean, vertical = modularVertical) {
@@ -977,6 +1016,7 @@ export function createViewer(container: HTMLElement): Viewer {
     showSwitch,
     setSwitchPlacements,
     importModel,
+    getImportedBlockParts,
     setImportedModelColor,
     setPreviewSource,
     clearImportedModel,

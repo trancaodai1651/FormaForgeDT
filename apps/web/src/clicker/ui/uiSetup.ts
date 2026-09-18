@@ -81,14 +81,20 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     },
     
     onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; store.set({ componentHeights: {} }); reprocess(); }),
-    onMultiColorToggle: (on) => { store.set({ multiColorEnabled: on, componentHeights: {} }); reprocess(); },
+    onMultiColorToggle: (on) => {
+      // Turning on Multi-color always enters the physical layer-stack mode.
+      // Keep the legacy checkbox available for an explicit flat preview, but
+      // never let an old project silently re-enable the former island layout.
+      store.set({ multiColorEnabled: on, stackColorLayers: on ? true : store.get().stackColorLayers, componentHeights: {} });
+      reprocess();
+    },
     onColorCount: (n) => { store.set({ colorCount: Math.max(2, Math.min(12, n)) }); debouncedReprocess(); },
     onStackColorLayers: (on) => { store.set({ stackColorLayers: on, componentHeights: {} }); debouncedRebuild(); },
     onColorLayerHeight: (value) => { store.set({ colorLayerHeightMm: Math.max(0.2, Math.min(4, value)) }); debouncedRebuild(); },
     onColorLayerGap: (value) => { store.set({ colorLayerGapMm: Math.max(0, Math.min(2, value)) }); debouncedRebuild(); },
     onLayerOrder: (index, delta) => {
       const s = store.get();
-      if (!s.multiColorEnabled || (s.importMode !== 'image' && s.importMode !== 'hybrid')) return;
+      if (!s.multiColorEnabled || !s.stackColorLayers || (s.importMode !== 'image' && s.importMode !== 'hybrid')) return;
       const regions = appData.regionSet?.regions;
       if (!regions || !regions[index]) return;
       const target = Math.max(0, Math.min(regions.length - 1, index + delta));
@@ -145,7 +151,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     },
     onPhotoFlatten: (on) => { store.set({ photoFlatten: on }); if ((store.get().importMode === 'image' || store.get().importMode === 'hybrid') && appData.originalImage) debouncedReprocess(); },
     onView: (mode) => { store.set({ view: mode }); viewer.setView(mode); },
-    onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on); },
+    onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on && !store.get().useImportedBlock); },
     onSection: (axis, pos) => viewer.setSection(axis, pos),
     
     onExport: () => {
@@ -175,7 +181,23 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onLoadProject: (file) => loadProject(file, reprocess, rebuild, ui),
     onBodyColor: (hex) => { const idx = appData.latestParts.findIndex((p) => p.name === 'base-body'); if (idx >= 0) applyModelRecolor({ kind: 'body' }, hexToRgb(hex), idx, viewer); else store.set({ bodyColorRgb: hexToRgb(hex) }); },
     
-    onImportMode: (mode) => { const s = store.get(); store.set({ importMode: mode, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'rounded' : s.blockKeycapShape }); reprocess(); },
+    onImportMode: (selectedMode) => {
+      const s = store.get();
+      const useImportedBlock = selectedMode === 'hybrid-imported';
+      const mode = useImportedBlock ? 'hybrid' : selectedMode;
+      const hasImageHead = !!appData.originalImage || (appData.imageSource === 'svg' && !!appData.currentSvgText);
+      const previewSource = useImportedBlock && !hasImageHead && appData.importedBlockParts.length ? 'imported' : 'generated';
+      store.set({ importMode: mode, useImportedBlock, previewSource, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'rounded' : s.blockKeycapShape });
+      viewer.setPreviewSource(previewSource);
+      viewer.showSwitch(s.showSwitch && !useImportedBlock);
+      if (useImportedBlock && !appData.importedBlockParts.length) {
+        appData.latestParts = [];
+        viewer.setParts([], true);
+        store.set({ hasParts: false, building: false, status: 'Choose an STL or 3MF block, then upload an image.' });
+        return;
+      }
+      reprocess();
+    },
     onSvgUpload: async (file) => {
       try {
         store.set({ building: true, status: 'Reading SVG...' });
@@ -284,6 +306,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockModuleThickness: (value) => { store.set({ blockModuleThicknessMm: Math.max(8, Math.min(40, value)) }); debouncedRebuild(); },
     onBlockModuleSideThickness: (value) => { store.set({ blockModuleSideThicknessMm: Math.max(0, Math.min(33, value)) }); debouncedRebuild(); },
     onModelImport: async (file) => {
+      const wasAttached = store.get().useImportedBlock;
       store.set({ building: true, status: `Importing ${file.name}…` });
       try {
         const info = await viewer.importModel(file);
@@ -292,6 +315,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
         viewer.setImportedModelRotation('x', s.importedModelRotateX);
         viewer.setImportedModelRotation('y', s.importedModelRotateY);
         viewer.setImportedModelRotation('z', s.importedModelRotateZ);
+        appData.importedBlockParts = viewer.getImportedBlockParts();
         store.set({
           building: false,
           status: `${info.name} ready for preview.`,
@@ -301,28 +325,57 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
           importedModelMeshCount: info.meshCount,
           importedModelTriangleCount: info.triangleCount,
         });
+        if (s.useImportedBlock && s.importMode === 'hybrid') {
+          // Keep the uploaded block visible until an image head is actually built.
+          viewer.setPreviewSource('imported');
+          reprocess();
+        }
       } catch (error) {
+        appData.importedBlockParts = [];
         store.set({
           building: false,
           previewSource: 'generated',
           importedModelName: '', importedModelFormat: '', importedModelMeshCount: 0, importedModelTriangleCount: 0,
           status: `Could not import model: ${error instanceof Error ? error.message : String(error)}`,
         });
+        if (wasAttached) reprocess();
       }
     },
-    onModelColor: (hex) => { viewer.setImportedModelColor(hex); store.set({ importedModelColor: hex }); },
+    onUseImportedBlock: (on) => {
+      if (on && !appData.importedBlockParts.length) { store.set({ status: 'Import an STL or 3MF block first.' }); return; }
+      store.set({ useImportedBlock: on, importMode: 'hybrid', previewSource: 'generated', view: 'assembled' });
+      viewer.setPreviewSource('generated');
+      reprocess();
+    },
+    onModelColor: (hex) => {
+      viewer.setImportedModelColor(hex);
+      appData.importedBlockParts = viewer.getImportedBlockParts();
+      store.set({ importedModelColor: hex });
+      if (store.get().useImportedBlock) debouncedRebuild();
+    },
     onModelPreviewSource: (source) => { viewer.setPreviewSource(source); store.set({ previewSource: source }); },
     onModelClear: () => {
       viewer.clearImportedModel();
+      appData.importedBlockParts = [];
+      const wasAttached = store.get().useImportedBlock;
       store.set({ previewSource: 'generated', importedModelName: '', importedModelFormat: '', importedModelMeshCount: 0, importedModelTriangleCount: 0, status: 'Imported preview removed.' });
+      if (wasAttached) {
+        appData.latestParts = [];
+        viewer.setParts([], true);
+        store.set({ hasParts: false, building: false, status: 'Choose an STL or 3MF block to attach the image.' });
+      }
     },
     onModelRotation: (axis, value) => {
       viewer.setImportedModelRotation(axis, value);
+      appData.importedBlockParts = viewer.getImportedBlockParts();
       store.set({ [`importedModelRotate${axis.toUpperCase()}`]: Math.max(0, Math.min(360, value)) } as any);
+      if (store.get().useImportedBlock) debouncedRebuild();
     },
     onModelTransformReset: () => {
       viewer.resetImportedModelTransform();
+      appData.importedBlockParts = viewer.getImportedBlockParts();
       store.set({ importedModelRotateX: 0, importedModelRotateY: 0, importedModelRotateZ: 0 });
+      if (store.get().useImportedBlock) debouncedRebuild();
     },
     onBlockBaseCornerRadius: (value) => { store.set({ blockBaseCornerRadiusMm: Math.max(0.5, Math.min(8, value)) }); debouncedRebuild(); },
     onBlockKeycapHeight: (value) => { store.set({ blockKeycapHeightMm: Math.max(6, Math.min(18, value)) }); debouncedRebuild(); },
@@ -332,6 +385,8 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockKeycapProfile: (profile) => { store.set({ blockKeycapProfile: profile }); debouncedRebuild(); },
     onBlockKeySize: (unit) => { store.set({ blockKeycapUnit: Math.max(1, Math.min(6.5, unit)) }); debouncedRebuild(); },
     onHybridImageSize: (sizeMm) => { store.set({ hybridImageSizeMm: Math.max(30, Math.min(140, sizeMm)) }); debouncedRebuild(); },
+    onHybridImageLateralOffset: (value) => { store.set({ hybridImageLateralOffsetMm: Math.max(-25, Math.min(25, value)) }); debouncedRebuild(); },
+    onImportedKeychainOffset: (value) => { store.set({ keychain: { ...store.get().keychain, offsetMm: Math.max(-15, Math.min(15, value)) } }); debouncedRebuild(); },
     onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base, Math.min(24, value)) }); debouncedRebuild(); },
     onHybridImagePadding: (value) => { store.set({ hybridImagePaddingMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridKeychainHeight: (value) => { store.set({ hybridKeychainHeightMm: Math.max(1, Math.min(15, value)) }); debouncedRebuild(); },

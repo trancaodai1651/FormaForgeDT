@@ -24,6 +24,7 @@ export const store = createStore<UiState>({
   imageDepth: 0.8,
   flatKeychainThicknessMm: 3.2,
   hybridImageSizeMm: 50,
+  hybridImageLateralOffsetMm: 0,
   hybridImageThicknessMm: 17,
   hybridImagePaddingMm: 1.2,
   hybridKeychainHeightMm: 4,
@@ -37,11 +38,14 @@ export const store = createStore<UiState>({
   hybridBaseEndPaddingMm: 14,
   hybridBaseThicknessMm: 9,
   hybridBaseCornerRadiusMm: 5,
-  hybridBaseStyle: 'rounded',
+  // RIBBED is the printable default for image carriers. It keeps the image
+  // head independent while giving the surrounding base the chunky ribs used
+  // by the reference design.
+  hybridBaseStyle: 'vase',
   hybridVaseProfile: 'straight',
   hybridVaseWavinessMm: 2.5,
   hybridVaseThicknessMm: 3,
-  hybridVaseGapMm: 2,
+  hybridVaseGapMm: 0.6,
   hybridBaseWallHeightMm: 8,
   hybridNeckLengthMm: 3,
   hybridBaseImageOverlapMm: 7,
@@ -61,6 +65,8 @@ export const store = createStore<UiState>({
   // without erasing the image details that users still expect to see.
   smoothing: 0.25,
   multiColorEnabled: false,
+  // Multicolor is a physical bottom-to-top mask stack: the smallest colour
+  // covers the complete image first, then each upper layer leaves cut-outs.
   stackColorLayers: true,
   colorLayerHeightMm: 0.8,
   colorLayerGapMm: 0,
@@ -114,6 +120,7 @@ export const store = createStore<UiState>({
   keycapLogoSizeMm: 10,
   previewSource: 'generated',
   importedModelName: '',
+  useImportedBlock: false,
   importedModelFormat: '',
   importedModelMeshCount: 0,
   importedModelTriangleCount: 0,
@@ -143,6 +150,7 @@ export const appData = {
   bottomRegionSet: null as RegionSet | null, // 👈 Thêm biến lưu viền của ảnh đế
   regionSet: null as RegionSet | null,
   latestParts: [] as ClickerPart[],
+  importedBlockParts: [] as ClickerPart[],
   assetsReady: false,
   defaultClickerLoaded: false,
   

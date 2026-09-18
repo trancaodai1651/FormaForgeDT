@@ -12,6 +12,11 @@ export function bindGlobalEvents(cb: UiCallbacks) {
     if (modelFile) modelFile.value = '';
   };
   modelFile?.addEventListener('change', () => importModelFile(modelFile.files?.[0]));
+  const importedBlockFile = $<HTMLInputElement>('importedBlockFile');
+  importedBlockFile?.addEventListener('change', () => {
+    importModelFile(importedBlockFile.files?.[0]);
+    importedBlockFile.value = '';
+  });
   $('modelPreviewDrop')?.addEventListener('dragover', (event: DragEvent) => {
     event.preventDefault();
     (event.currentTarget as HTMLElement).classList.add('dragging');
@@ -42,6 +47,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   const modelColor = $<HTMLInputElement>('modelPreviewColor');
   modelColor?.addEventListener('input', () => cb.onModelColor(modelColor.value));
   $('modelPreviewClear')?.addEventListener('click', () => cb.onModelClear());
+  $('useImportedBlock')?.addEventListener('click', () => cb.onUseImportedBlock(!store.get().useImportedBlock));
   for (const axis of ['x', 'y', 'z'] as const) {
     $<HTMLInputElement>(`modelRotate${axis.toUpperCase()}`)?.addEventListener('input', (event: Event) => {
       cb.onModelRotation(axis, +(event.target as HTMLInputElement).value);
@@ -83,6 +89,12 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('blockKeycapProfile')?.addEventListener('change', (e: Event) => cb.onBlockKeycapProfile((e.target as HTMLSelectElement).value as 'standard' | 'low' | 'thocky' | 'choc-v1'));
   $('blockKeySize')?.addEventListener('change', (e: Event) => cb.onBlockKeySize(+(e.target as HTMLSelectElement).value));
   $('hybridImageSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
+  $('importedHeadSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
+  $('importedHeadThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
+  $('importedHeadLateral')?.addEventListener('input', (e: Event) => cb.onHybridImageLateralOffset(+(e.target as HTMLInputElement).value));
+  $('importedHeadKeychain')?.addEventListener('change', (e: Event) => cb.onKeychainToggle((e.target as HTMLInputElement).checked));
+  $('importedHeadKeychainSize')?.addEventListener('input', (e: Event) => cb.onKeychainHoleDiameter(+(e.target as HTMLInputElement).value));
+  $('importedHeadKeychainOffset')?.addEventListener('input', (e: Event) => cb.onImportedKeychainOffset(+(e.target as HTMLInputElement).value));
   $('hybridImageThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
   $('hybridImagePadding')?.addEventListener('input', (e: Event) => cb.onHybridImagePadding(+(e.target as HTMLInputElement).value));
   $('hybridKeychainHeight')?.addEventListener('input', (e: Event) => cb.onHybridKeychainHeight(+(e.target as HTMLInputElement).value));
@@ -122,6 +134,10 @@ export function bindGlobalEvents(cb: UiCallbacks) {
     if (!button) return;
     e.preventDefault();
     cb.onLayerOrder(Number(button.dataset.layerIndex), button.dataset.layerOrder === 'up' ? 1 : -1);
+  });
+  $('importedBlockOrientation')?.addEventListener('click', (e: MouseEvent) => {
+    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-imported-orient]');
+    if (target?.dataset.importedOrient) cb.onBlockOrientation(target.dataset.importedOrient as 'horizontal' | 'vertical');
   });
 
   const smooth = $<HTMLInputElement>('smooth'); 

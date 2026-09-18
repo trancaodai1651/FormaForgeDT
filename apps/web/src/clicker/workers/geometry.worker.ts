@@ -190,6 +190,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
         msg.outline,
         msg.params,
         msg.blockParams,
+        msg.importedBlockParts,
       );
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) transfer.push(p.vertProperties.buffer, p.triVerts.buffer);

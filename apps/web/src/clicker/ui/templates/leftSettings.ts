@@ -5,12 +5,12 @@ export const renderLeftSettings = () => `
     <details class="section section-collapsible" id="sectionColors">
       <summary class="label collapsible-head" id="colorSettingsTitle">1 · Colors &amp; Smoothing</summary>
       <div class="collapsible-body">
-        <p id="multiColorSettingsHint" class="hint" style="margin: 0 0 12px; line-height: 1.45;">Import an image to split it into separate printable color layers. Each layer keeps its own filament color in 3MF and STL ZIP exports.</p>
+        <p id="multiColorSettingsHint" class="hint" style="margin: 0 0 12px; line-height: 1.45;">Image colors remain flat when Multi-color is off. Enable Multi-color to print separate bottom-to-top filament layers.</p>
         <div id="colorLayerStackControls" hidden style="margin-bottom: 14px; padding: 10px 11px; border: 1px solid rgba(240,185,103,.35); border-radius: 10px; background: rgba(240,185,103,.05);">
-          <div class="switch-row" style="margin-bottom: 10px;"><span class="switch-label">Stack each color layer</span><label class="toggle"><input id="stackColorLayers" type="checkbox" checked /><span class="slider"></span></label></div>
+          <div class="switch-row" style="margin-bottom: 10px;"><span class="switch-label">Layered color stack</span><label class="toggle"><input id="stackColorLayers" type="checkbox" checked /><span class="slider"></span></label></div>
           <div class="prow-stacked" style="margin-bottom: 9px;"><div class="prow-header"><label for="colorLayerHeight">Layer height</label><input type="text" class="val" id="colorLayerHeightVal" /></div><input type="range" id="colorLayerHeight" min="0.2" max="4" step="0.1" /></div>
           <div class="prow-stacked" style="margin-bottom: 0;"><div class="prow-header"><label for="colorLayerGap">Layer gap</label><input type="text" class="val" id="colorLayerGapVal" /></div><input type="range" id="colorLayerGap" min="0" max="2" step="0.05" /></div>
-          <p class="hint" style="margin: 9px 0 0; line-height: 1.4;">Layers are ordered bottom → top. Use the arrows beside each palette layer to change the order.</p>
+          <p class="hint" style="margin: 9px 0 0; line-height: 1.4;">The colour list below is ordered bottom → top. Use ▲/▼ beside a colour to choose which filament is underneath or on top. Every upper layer leaves cut-outs for the colours below.</p>
         </div>
         <div class="field" id="colorCountField">
           <label for="ccount">Colors ${tip('How many distinct filament colors the image is split into. Each color becomes a separate part in the export.')}</label>

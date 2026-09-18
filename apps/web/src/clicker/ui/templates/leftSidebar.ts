@@ -167,7 +167,7 @@ export const renderLeftSidebar = () => `
         <div class="prow-header"><label for="hybridTextExtrude">${tx('Text relief / extrude', 'Đùn nổi chữ')}</label><input type="text" class="val" id="hybridTextExtrudeVal" /></div>
         <input type="range" id="hybridTextExtrude" min="0" max="5" step="0.05" />
       </div>
-      <div class="label" style="margin-top: 16px;">${tx('Continuous rounded base', 'Base liền khối bo góc')}</div>
+      <div class="label" style="margin-top: 16px;">${tx('Continuous ribbed base', 'Base liền khối có gân')}</div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridBaseWidth">${tx('Base width', 'Chiều rộng base')}</label><input type="text" class="val" id="hybridBaseWidthVal" /></div>
         <input type="range" id="hybridBaseWidth" min="20" max="60" step="0.5" />

@@ -128,7 +128,7 @@ export function buildClicker(
     customBasePlate = ctx.simp(ctx.track(scaledBase.add(requiredCover)));
   }
 
-  const baseStyle = params.hybridBaseStyle ?? 'rounded';
+  const baseStyle = params.hybridBaseStyle ?? 'vase';
   const baseRadius = Math.max(0.15, Math.min(14, params.hybridBaseCornerRadiusMm ?? 5));
   const baseSource = customBasePlate
     ? ctx.simp(customBasePlate)
@@ -299,6 +299,8 @@ export function buildClicker(
     (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
   );
   const rasterImageMode = params.rasterImageMode === true;
+  const monochromeImageRelief = params.monochromeImageRelief === true;
+  const stackImageMode = rasterImageMode && params.stackColorLayers === true;
   const componentLevel = (r: BuildRegion) => params.componentHeights?.[r.partName] ?? 0;
   const monoReference = regions.length > 0
     ? regions.reduce((best, current) => (current.coverage > best.coverage ? current : best))
@@ -306,6 +308,7 @@ export function buildClicker(
   const monoLevel = monoReference ? componentLevel(monoReference) : 0;
   const useSolidMonochromeTop = Boolean(
     monoReference
+    && !monochromeImageRelief
     && regions.every((r) => (
       colorDistanceSq(r.filamentRgb, monoReference.filamentRgb) <= 9
       && Math.abs(componentLevel(r) - monoLevel) <= 0.0001
@@ -326,12 +329,25 @@ export function buildClicker(
   // colour leak into the star in the preview and in slicers. Keep only the
   // non-carrier colours as independent top meshes. SVG/icon/text keep the old
   // per-region behaviour because they may intentionally use a custom carrier.
-  const geometryRegions: BuildRegion[] = rasterImageMode && monoReference
+  const geometryRegions: BuildRegion[] = rasterImageMode && monoReference && !stackImageMode && !monochromeImageRelief
     ? allGeometryRegions.filter((r) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) > 16)
     : allGeometryRegions;
 
+  // Engine regions already follow the explicit bottom -> top palette order in
+  // stack mode. Preserve it there; retain coverage ordering for legacy flat
+  // inlays where that ordering controls the overlap subtraction.
+  const orderedGeometryRegions = geometryRegions.map((r, regionIndex) => ({ r, regionIndex }));
+  if (!stackImageMode) {
+    orderedGeometryRegions.sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1) || a.regionIndex - b.regionIndex);
+  }
+  const stackFullFootprint2D = stackImageMode
+    ? ctx.simp(ctx.track(fatImageArea.intersect(plate)))
+    : null;
+  let stackLowerFootprint2D: any = null;
+  let monochromeReliefSolid: any = null;
+
   // --- Tạo Các Mảng Màu (Inlays) ---
-  for (const { r } of geometryRegions.map(r => ({ r })).sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1))) {
+  for (const [{ r }, layerIndex] of orderedGeometryRegions.map((entry, index) => [entry, index] as const)) {
     let fp: any;
     if (useSolidMonochromeTop) {
       // Use the already-clean silhouette instead of re-tracing its individual
@@ -349,8 +365,24 @@ export function buildClicker(
 
     if (sectionIsEmpty(fp)) continue;
 
-    if (placedFootprint2D) {
-      fp = ctx.simp(ctx.track(fp.subtract(placedFootprint2D)));
+    if (stackImageMode) {
+      // Each upper object is a complete remaining silhouette. The previous
+      // color masks are holes in that object, so the lower color remains
+      // visible wherever the source artwork placed it.
+      const currentColorMask = fp;
+      const remainingFootprint = stackFullFootprint2D && stackLowerFootprint2D
+        ? ctx.simp(ctx.track(stackFullFootprint2D.subtract(stackLowerFootprint2D)))
+        : stackFullFootprint2D;
+      stackLowerFootprint2D = stackLowerFootprint2D
+        ? ctx.simp(ctx.track(stackLowerFootprint2D.add(currentColorMask)))
+        : currentColorMask;
+      if (layerIndex === 0) continue;
+      fp = remainingFootprint;
+    } else {
+      if (placedFootprint2D) {
+        fp = ctx.simp(ctx.track(fp.subtract(placedFootprint2D)));
+      }
+      if (sectionIsEmpty(fp)) continue;
     }
     if (sectionIsEmpty(fp)) continue;
 
@@ -358,7 +390,7 @@ export function buildClicker(
     // 0.02 mm expansion created a real perimeter gap; the vertical overlap
     // below is the robust way to avoid coplanar seams without shrinking the
     // printed artwork.
-    const cutSource = rasterImageMode
+    const cutSource = rasterImageMode && !monochromeImageRelief
       ? ctx.grow(fp, Math.max(0.04, params.colorBleed * 0.35))
       : fp;
     const cutFp = ctx.simp(ctx.track(cutSource.intersect(plate)));
@@ -410,12 +442,22 @@ export function buildClicker(
       const radius = Math.min(es ? es.radius : 0.5, (topZ - bottomZ) * 0.49, 3.0);
       if (radius >= 0.05) { const modBlock = createEdgeBevelBlock(ctx, fp, radius, eStyle, topZ, false); if (modBlock) inlay = ctx.track(inlay.subtract(modBlock)); }
     }
-    parts.push(toPart(inlay, 'cap', 'top', r.filamentRgb, r.partName));
-    holesByLevel.set(level, holesByLevel.get(level) ? ctx.track(holesByLevel.get(level).add(cutFp)) : cutFp);
+    if (monochromeImageRelief) {
+      monochromeReliefSolid = monochromeReliefSolid
+        ? ctx.track(monochromeReliefSolid.add(inlay))
+        : inlay;
+    } else {
+      parts.push(toPart(inlay, 'cap', 'top', r.filamentRgb, r.partName));
+      holesByLevel.set(level, holesByLevel.get(level) ? ctx.track(holesByLevel.get(level).add(cutFp)) : cutFp);
+    }
   }
 
   // --- Khắc rãnh trên khối nền chính ---
-  let base = capVolume;
+  // The relief and carrier are the same filament. Emit one solid so no
+  // coincident inlay/cavity walls can appear in either preview or export.
+  let base = monochromeReliefSolid
+    ? ctx.simp(ctx.track(capVolume.add(monochromeReliefSolid)))
+    : capVolume;
   // Raster Image always needs the accent cavities even when the user asks to
   // merge the top frame and artwork. Without the cut, the carrier remains
   // underneath the accent at the same Z and the renderer/slicer can show it

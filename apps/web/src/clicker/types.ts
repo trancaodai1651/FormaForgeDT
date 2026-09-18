@@ -144,6 +144,7 @@ export interface BuildParams {
   imageDepth: number;
   /** Absolute image badge size in Image + Blocks mode (largest dimension, mm). */
   hybridImageSizeMm?: number;
+  hybridImageLateralOffsetMm?: number;
   /** Total thickness of the imported-image head. It may match the carrier base. */
   hybridImageThicknessMm?: number;
   /** Padding from the imported image silhouette to its flat keychain plate. */
@@ -202,6 +203,10 @@ export interface BuildParams {
   keepMeshesSeparate: boolean;
   /** Raster Clicker/Image uses the dominant colour as a continuous carrier. */
   rasterImageMode?: boolean;
+  /** Single-colour raster images keep their traced accents as a shallow relief. */
+  monochromeImageRelief?: boolean;
+  /** Image multicolor uses a bottom-to-top full-silhouette mask stack. */
+  stackColorLayers?: boolean;
   isFlatKeychain?: boolean;
   /** Total printable plate thickness for Flat keychain mode, independent of image preprocessing. */
   flatKeychainThicknessMm?: number;
@@ -399,6 +404,7 @@ export type GeometryRequest =
       outline: Ring[];
       params: BuildParams;
       blockParams: BlocksBuildParams;
+      importedBlockParts?: ClickerPart[];
     }
   | { type: 'buildFlexKeychain'; params: FlexKeychainBuildParams };
 

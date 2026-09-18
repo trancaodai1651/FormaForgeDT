@@ -3,6 +3,12 @@ import { store, appData } from '../store/appState';
 import { downloadBlob } from '../utils/helpers';
 import type { RgbaImage } from '../image/decode';
 
+function colorKey(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length < 3) return null;
+  const channels = value.slice(0, 3).map(Number);
+  return channels.every(Number.isFinite) ? channels.map((channel) => Math.round(channel)).join(',') : null;
+}
+
 export function imageToDataUrl(img: RgbaImage): string {
   const c = getClickerDocument().createElement('canvas');
   c.width = img.width; c.height = img.height;
@@ -35,7 +41,7 @@ export function saveProject() {
       bottomBaseMode: s.bottomBaseMode, bottomExpandPercent: s.bottomExpandPercent, bottomPaddingMm: s.bottomPaddingMm,
       bottomSolidOnly: s.bottomSolidOnly, bottomOffsetX: s.bottomOffsetX,
       bottomOffsetY: s.bottomOffsetY, bottomRotation: s.bottomRotation,
-      topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
+      topThickness: s.topThickness, imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm, hybridImageLateralOffsetMm: s.hybridImageLateralOffsetMm,
       hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
       hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm, hybridTextExtrudeMm: s.hybridTextExtrudeMm, hybridBaseWidthMm: s.hybridBaseWidthMm,
       hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
@@ -129,6 +135,7 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       baseHeight: Math.max(0, Math.min(40, set.baseHeight ?? store.get().baseHeight)),
       flatKeychainThicknessMm: set.flatKeychainThicknessMm ?? store.get().flatKeychainThicknessMm,
       hybridImageSizeMm: set.hybridImageSizeMm ?? store.get().hybridImageSizeMm,
+      hybridImageLateralOffsetMm: set.hybridImageLateralOffsetMm ?? store.get().hybridImageLateralOffsetMm,
       hybridImageThicknessMm: set.hybridImageThicknessMm ?? store.get().hybridImageThicknessMm,
       hybridImagePaddingMm: set.hybridImagePaddingMm ?? store.get().hybridImagePaddingMm,
       hybridKeychainHeightMm: set.hybridKeychainHeightMm ?? store.get().hybridKeychainHeightMm,
@@ -138,7 +145,7 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       hybridBaseEndPaddingMm: set.hybridBaseEndPaddingMm ?? store.get().hybridBaseEndPaddingMm,
       hybridBaseThicknessMm: set.hybridBaseThicknessMm ?? store.get().hybridBaseThicknessMm,
       hybridBaseCornerRadiusMm: set.hybridBaseCornerRadiusMm ?? store.get().hybridBaseCornerRadiusMm,
-      hybridBaseStyle: set.hybridBaseStyle === 'straight' || set.hybridBaseStyle === 'vase' ? set.hybridBaseStyle : 'rounded',
+      hybridBaseStyle: set.hybridBaseStyle === 'straight' || set.hybridBaseStyle === 'rounded' || set.hybridBaseStyle === 'vase' ? set.hybridBaseStyle : 'vase',
       hybridVaseProfile: set.hybridVaseProfile === 'wavy' ? 'wavy' : 'straight',
       hybridVaseWavinessMm: Math.max(0, Math.min(12, set.hybridVaseWavinessMm ?? store.get().hybridVaseWavinessMm)),
       hybridVaseThicknessMm: Math.max(1, Math.min(12, set.hybridVaseThicknessMm ?? store.get().hybridVaseThicknessMm)),
@@ -194,6 +201,9 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       importedModelRotateX: Math.max(0, Math.min(360, set.importedModelRotateX ?? store.get().importedModelRotateX)),
       importedModelRotateY: Math.max(0, Math.min(360, set.importedModelRotateY ?? store.get().importedModelRotateY)),
       importedModelRotateZ: Math.max(0, Math.min(360, set.importedModelRotateZ ?? store.get().importedModelRotateZ)),
+      // Imported STL/3MF bytes are not embedded in a project file. Never
+      // reactivate an old attachment without its source mesh in this session.
+      useImportedBlock: false,
       keycapImageName: appData.keycapImageName,
     });
 
@@ -207,8 +217,30 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
     reprocessFn();
 
     if (Array.isArray(proj.palette)) {
-      // Sá»­a thÃ nh:
-    const pal = store.get().palette.map((p: any, i: number) => ({ ...p, filamentRgb: proj.palette[i]?.filamentRgb ?? p.filamentRgb }));
+      // Restore both the assigned filament and the explicit bottom -> top
+      // order. Older projects only stored palette entries by index, so entries
+      // that cannot be matched by source RGB keep the newly processed order.
+      const savedPalette = proj.palette as any[];
+      const currentState = store.get();
+      const savedOrder = new Map<string, number>();
+      const savedByColor = new Map<string, any>();
+      savedPalette.forEach((entry, index) => {
+        const key = colorKey(entry?.quantRgb);
+        if (key && !savedOrder.has(key)) savedOrder.set(key, index);
+        if (key && !savedByColor.has(key)) savedByColor.set(key, entry);
+      });
+      const currentRegions = appData.regionSet?.regions ?? [];
+      const ordered = currentRegions.map((region, index) => ({
+        region,
+        index,
+        rank: savedOrder.get(colorKey(region.quantRgb) ?? '') ?? savedPalette.length + index,
+      })).sort((a, b) => a.rank - b.rank || a.index - b.index);
+      if (appData.regionSet) appData.regionSet.regions = ordered.map(({ region }) => region);
+      const pal = ordered.map(({ region, index }) => {
+        const current = currentState.palette[index] ?? { quantRgb: region.quantRgb, filamentRgb: region.quantRgb, coverage: region.coverage };
+        const saved = savedByColor.get(colorKey(region.quantRgb) ?? '');
+        return { ...current, filamentRgb: saved?.filamentRgb ?? current.filamentRgb };
+      });
       store.set({ palette: pal, baseColorOverride: set.baseColorOverride ?? null });
       rebuildFn();
     }

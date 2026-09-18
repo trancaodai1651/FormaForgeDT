@@ -18,6 +18,7 @@ import { bindHistoryEvents } from './bindings/history';
 import { setupWelcomeModal, showTutorialPrompt } from './components/modals';
 import { showColorPopoverAt, renderPalette } from './components/colorPicker';
 import { appData } from '../store/appState';
+import { clickerText as tx } from '../i18n';
 
 export function createUi(
   sidebarLeft: HTMLElement,
@@ -184,6 +185,10 @@ export function createUi(
       button.classList.toggle('active', button.dataset.previewSource === state.previewSource);
     }
     if ($('modelPreviewInfo')) $('modelPreviewInfo')!.hidden = !hasImportedModel;
+    if ($('importedBlockAttachPanel')) $('importedBlockAttachPanel')!.hidden = true;
+    if ($('useImportedBlock')) $('useImportedBlock')!.textContent = state.useImportedBlock
+      ? tx('Use generated blocks instead', 'Dùng block tạo sẵn thay thế')
+      : tx('Attach image to imported block', 'Gắn ảnh vào block đã nhập');
     if ($('modelTransformControls')) $('modelTransformControls')!.hidden = !hasImportedModel;
     if ($('modelPreviewName')) $('modelPreviewName')!.textContent = state.importedModelName;
     if ($('modelPreviewStats')) $('modelPreviewStats')!.textContent = hasImportedModel
@@ -291,17 +296,47 @@ export function createUi(
     }
 
     // Cáº­p nháº­t Tab Import Mode
-    getClickerDocument().querySelectorAll('#importTabs [data-mode]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.mode === state.importMode));
+    const importedBlockMode = state.importMode === 'hybrid' && state.useImportedBlock;
+    const importedControls: Array<[string, string]> = [
+      ['importedHeadSize', `${state.hybridImageSizeMm.toFixed(0)} mm`],
+      ['importedHeadThickness', `${state.hybridImageThicknessMm.toFixed(1)} mm`],
+      ['importedHeadLateral', `${state.hybridImageLateralOffsetMm.toFixed(1)} mm`],
+      ['importedHeadKeychainSize', `${state.keychain.holeDiameterMm.toFixed(1)} mm`],
+      ['importedHeadKeychainOffset', `${(state.keychain.offsetMm ?? 0).toFixed(1)} mm`],
+    ];
+    for (const [id, label] of importedControls) {
+      const input = $<HTMLInputElement>(id);
+      if (input && getClickerDocument().activeElement !== input) {
+        input.value = String(id === 'importedHeadSize' ? state.hybridImageSizeMm
+          : id === 'importedHeadThickness' ? state.hybridImageThicknessMm
+            : id === 'importedHeadLateral' ? state.hybridImageLateralOffsetMm
+              : id === 'importedHeadKeychainOffset' ? state.keychain.offsetMm ?? 0 : state.keychain.holeDiameterMm);
+      }
+      if ($(`${id}Value`)) $(`${id}Value`)!.textContent = label;
+    }
+    if ($('importedHeadKeychain')) $<HTMLInputElement>('importedHeadKeychain').checked = state.keychain.enabled;
+    if ($('importedHeadKeychainSizeRow')) $('importedHeadKeychainSizeRow')!.style.display = state.keychain.enabled ? '' : 'none';
+    if ($('importedHeadKeychainOffsetRow')) $('importedHeadKeychainOffsetRow')!.style.display = state.keychain.enabled ? '' : 'none';
+    const switchRow = $('showswitch')?.closest('.switch-row') as HTMLElement | null;
+    if (switchRow) switchRow.style.display = importedBlockMode ? 'none' : '';
+    const activeImportTab = importedBlockMode ? 'hybrid-imported' : state.importMode;
+    getClickerDocument().querySelectorAll('#importTabs [data-mode]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.mode === activeImportTab));
+    if ($('importedBlockModePanel')) $('importedBlockModePanel')!.hidden = !importedBlockMode;
+    getClickerDocument().querySelectorAll('#importedBlockOrientation [data-imported-orient]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.importedOrient === state.blockOrientation));
+    if ($('lowerImageBaseSection')) $('lowerImageBaseSection')!.hidden = importedBlockMode;
+    if ($('importedBlockModeStatus')) $('importedBlockModeStatus')!.textContent = state.importedModelName
+      ? `Using ${state.importedModelName} as the block body.`
+      : 'Choose a block STL/3MF and upload the image below.';
     if ($('imagePanel')) $('imagePanel')!.hidden = state.importMode !== 'image' && state.importMode !== 'hybrid';
     if ($('hybridSvgImport')) $('hybridSvgImport')!.hidden = state.importMode !== 'hybrid';
     if ($('hybridSvgName')) $('hybridSvgName')!.textContent = state.importMode === 'hybrid' && appData.currentSvgName ? appData.currentSvgName : '';
     if ($('svgPanel')) $('svgPanel')!.hidden = state.importMode !== 'svg';
     if ($('iconPanel')) $('iconPanel')!.hidden = state.importMode !== 'icon';
-    if ($('letterPanel')) $('letterPanel')!.hidden = state.importMode !== 'text' && state.importMode !== 'blocks' && state.importMode !== 'hybrid';
+    if ($('letterPanel')) $('letterPanel')!.hidden = importedBlockMode || (state.importMode !== 'text' && state.importMode !== 'blocks' && state.importMode !== 'hybrid');
     if ($('textOnlyField')) $('textOnlyField')!.hidden = state.importMode === 'blocks' || state.importMode === 'hybrid';
-    if ($('blocksTextField')) $('blocksTextField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
-    if ($('blocksChainField')) $('blocksChainField')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
-    if ($('keycapImagePanel')) $('keycapImagePanel')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
+    if ($('blocksTextField')) $('blocksTextField')!.hidden = importedBlockMode || (state.importMode !== 'blocks' && state.importMode !== 'hybrid');
+    if ($('blocksChainField')) $('blocksChainField')!.hidden = importedBlockMode || (state.importMode !== 'blocks' && state.importMode !== 'hybrid');
+    if ($('keycapImagePanel')) $('keycapImagePanel')!.hidden = importedBlockMode || (state.importMode !== 'blocks' && state.importMode !== 'hybrid');
     if ($('keycapImageName')) $('keycapImageName')!.textContent = state.keycapLogoNames.length
       ? `${state.keycapLogoNames.length} logo${state.keycapLogoNames.length === 1 ? '' : 's'} imported`
       : 'No keycap logos';
@@ -335,7 +370,7 @@ export function createUi(
     if ($('blockChips')) {
       $('blockChips')!.innerHTML = state.blockSlots.map((slot, index) => `<span class="block-chip" data-block-index="${index}">${slot.ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`).join('');
     }
-    if ($('blocksSection')) $('blocksSection')!.hidden = state.importMode !== 'blocks' && state.importMode !== 'hybrid';
+    if ($('blocksSection')) $('blocksSection')!.hidden = importedBlockMode || (state.importMode !== 'blocks' && state.importMode !== 'hybrid');
     const isBlocksMode = state.importMode === 'blocks';
     const isHybridMode = state.importMode === 'hybrid';
     for (const id of ['blockKeycapMount', 'blockKeySize']) {
@@ -344,7 +379,7 @@ export function createUi(
     }
     getClickerDocument().body.classList.toggle('clicker-hybrid-mode', isHybridMode);
     if ($('baseStyleSection')) $('baseStyleSection')!.hidden = isBlocksMode || isHybridMode;
-    if ($('sectionSwitch')) $('sectionSwitch')!.hidden = isBlocksMode || isHybridMode;
+    if ($('sectionSwitch')) $('sectionSwitch')!.style.display = isBlocksMode || isHybridMode || state.isFlatKeychain ? 'none' : 'block';
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {
       const el = getClickerDocument().getElementById(id);
       const field = el?.closest('.prow-stacked') ?? el?.parentElement;
@@ -396,7 +431,7 @@ export function createUi(
     const colorLayerStackControls = $('colorLayerStackControls');
     if (colorLayerStackControls) colorLayerStackControls.hidden = !imageMultiColorMode;
     const colorCountField = $('colorCountField');
-    if (colorCountField) (colorCountField as HTMLElement).style.display = imageMode && !state.multiColorEnabled ? 'none' : '';
+    if (colorCountField) (colorCountField as HTMLElement).style.display = '';
     const colorSection = $<HTMLDetailsElement>('sectionColors');
     if (colorSection) {
       // Open the relevant controls when entering Image or Image + Blocks so the
@@ -411,12 +446,12 @@ export function createUi(
     if (imageMultiColorCallout) imageMultiColorCallout.hidden = !imageMode;
     const multiColorCalloutText = $('multiColorCalloutText');
     if (multiColorCalloutText) multiColorCalloutText.textContent = state.multiColorEnabled
-      ? 'Each detected color becomes a printable layer. Set the layer order and spacing below.'
-      : 'Enable this toggle to split the image into separate printable color layers.';
+      ? 'Smallest color is the full bottom layer; each upper layer leaves cut-outs for the colors below.'
+      : 'Flat image colors stay side by side on one surface. Enable Multi-color to stack printable color layers.';
     const multiColorSettingsHint = $('multiColorSettingsHint');
     if (multiColorSettingsHint) multiColorSettingsHint.textContent = imageMultiColorMode
-      ? 'Import an image to split it into separate printable color layers. Each layer keeps its own filament color in 3MF and STL ZIP exports.'
-      : 'Load an image or vector to assign filament colors to each generated part.';
+      ? 'Multicolor uses a bottom-to-top mask stack. The first row in the color list is the bottom layer; use ▲/▼ to choose the order, and upper layers preserve visible cut-outs below.'
+      : 'Detected image colors sit side by side on one flat surface. Adjust Colors below for more detail; Multi-color adds physical height layers.';
     const export3mf = $<HTMLButtonElement>('export');
     const exportStl = $<HTMLButtonElement>('exportStl');
     if (export3mf) {
@@ -448,7 +483,7 @@ export function createUi(
     }
 
     // Render Báº£ng mÃ u
-    renderPalette(state.palette, state.bodyColorRgb, cb, state.colorMode, state.limitedColors, imageMultiColorMode);
+    renderPalette(state.palette, state.bodyColorRgb, cb, state.colorMode, state.limitedColors, imageMultiColorMode && state.stackColorLayers);
 
     // Edit Mode UI
     getClickerDocument().querySelectorAll('.edit-mode-btn').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.editmode === state.editMode));

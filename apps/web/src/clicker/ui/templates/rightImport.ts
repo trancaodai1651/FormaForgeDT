@@ -22,6 +22,10 @@ export const renderRightImport = () => `
       <label class="model-preview-color">${tx('RGB color', 'Màu RGB')}<input id="modelPreviewColor" type="color" value="#f0b967" /></label>
       <button type="button" class="btn model-preview-clear" id="modelPreviewClear">${tx('Remove', 'Xóa')}</button>
     </div>
+    <div id="importedBlockAttachPanel" hidden style="margin-top: 9px;">
+      <button type="button" class="btn" id="useImportedBlock" style="width: 100%;">${tx('Attach image to imported block', 'Gắn ảnh vào block đã nhập')}</button>
+      <small class="hint-text" style="display:block; margin-top:6px;">${tx('Uses the largest imported mesh as the block body and joins the image head with a printable neck.', 'Dùng mesh lớn nhất làm thân block và nối đầu ảnh bằng cổ liền khối để in.')}</small>
+    </div>
     <div class="model-transform-controls" id="modelTransformControls" hidden>
       <div class="model-transform-heading"><span class="label">${tx('Model orientation', 'Hướng mô hình')}</span><span class="hint-text">${tx('Rotate the imported file independently', 'Xoay tệp đã nhập độc lập')}</span></div>
       <div class="model-axis-grid">
@@ -39,6 +43,26 @@ export const renderRightImport = () => `
       <button class="import-card" data-mode="text" type="button"><span class="card-label">${tx('Text', 'Văn bản')}</span></button>
       <button class="import-card" data-mode="blocks" type="button"><span class="card-label">Blocks</span></button>
       <button class="import-card" data-mode="hybrid" type="button"><span class="card-label">Image + Blocks</span></button>
+      <button class="import-card" data-mode="hybrid-imported" type="button"><span class="card-label">Image + Imported Block</span></button>
+    </div>
+
+    <div id="importedBlockModePanel" class="mode-panel" hidden>
+      <span class="label">Imported block STL / 3MF</span>
+      <label class="model-preview-drop" style="margin-top: 8px;">
+        <span class="model-preview-drop-icon">3D</span>
+        <span><strong>Choose a block file</strong><small>The image will attach to its head with a printable neck.</small></span>
+        <input id="importedBlockFile" type="file" accept=".stl,.3mf,model/stl,model/3mf" hidden />
+      </label>
+      <small id="importedBlockModeStatus" class="hint-text" style="display:block; margin: 7px 0 12px;"></small>
+      <div class="label">Block direction</div>
+      <div class="tabs" id="importedBlockOrientation" role="tablist"><button class="tab" type="button" data-imported-orient="horizontal">Horizontal</button><button class="tab" type="button" data-imported-orient="vertical">Vertical</button></div>
+      <div class="label">Image head</div>
+      <div class="prow-stacked"><div class="prow-header"><label for="importedHeadSize">Image size</label><output id="importedHeadSizeValue"></output></div><input id="importedHeadSize" type="range" min="30" max="140" step="1" /></div>
+      <div class="prow-stacked"><div class="prow-header"><label for="importedHeadThickness">Image height / thickness</label><output id="importedHeadThicknessValue"></output></div><input id="importedHeadThickness" type="range" min="4" max="24" step="0.5" /></div>
+      <div class="prow-stacked"><div class="prow-header"><label for="importedHeadLateral">Move image left / right</label><output id="importedHeadLateralValue"></output></div><input id="importedHeadLateral" type="range" min="-25" max="25" step="0.5" /></div>
+      <div class="switch-row"><span class="switch-label">Keyring at image end</span><label class="toggle"><input id="importedHeadKeychain" type="checkbox" /><span class="slider"></span></label></div>
+      <div class="prow-stacked" id="importedHeadKeychainSizeRow"><div class="prow-header"><label for="importedHeadKeychainSize">Keyring hole</label><output id="importedHeadKeychainSizeValue"></output></div><input id="importedHeadKeychainSize" type="range" min="3" max="16" step="0.1" /></div>
+      <div class="prow-stacked" id="importedHeadKeychainOffsetRow"><div class="prow-header"><label for="importedHeadKeychainOffset">Move keyring left / right</label><output id="importedHeadKeychainOffsetValue"></output></div><input id="importedHeadKeychainOffset" type="range" min="-15" max="15" step="0.5" /></div>
     </div>
 
     <div id="imagePanel" class="mode-panel">
@@ -79,7 +103,7 @@ export const renderRightImport = () => `
         `).join('')}
       </div>
 
-      <div class="section" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+      <div class="section" id="lowerImageBaseSection" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
         <span class="label">${tx('Lower image base (Image + Blocks)', 'Base dạng ảnh phía dưới (Image + Blocks)')}</span>
         <p class="hint-text" style="margin: 4px 0 10px;">${tx('Use the same silhouette workflow in Image and Image + Blocks. The lower base automatically wraps the top image.', 'Dùng chung cho Image và Image + Blocks. Base dưới sẽ tự động bao phủ hình ảnh phía trên.')}</p>
         <div class="tabs" style="margin-bottom: 12px;">

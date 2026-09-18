@@ -3,6 +3,7 @@ import type { RgbaImage } from './decode';
 import { removeBackground, compositeOverMatte, cleanMask } from './matte';
 import { quantize } from './quantize';
 import { traceRegions } from './trace';
+import { consolidateMultiColorPalette } from '../features/multiColor/segmentation';
 import type { RegionSet, RGB } from '../types';
 
 export interface ProcessOptions {
@@ -92,5 +93,10 @@ export function processImage(
   compositeOverMatte(img);
   cleanMask(img);
   const q = quantize(img, colorCount, options.customColors);
-  return traceRegions(q, options.smoothing ?? 0.5, options.preserveDetail ?? true);
+  // Quantization can split anti-aliased/photographed shades of the same
+  // filament into separate palette entries. In multi-color mode that would
+  // create duplicate physical layers (for example yellow at the bottom and
+  // again at the top), so consolidate near-identical colors before tracing.
+  const palette = colorCount > 1 ? consolidateMultiColorPalette(q) : q;
+  return traceRegions(palette, options.smoothing ?? 0.5, options.preserveDetail ?? true);
 }

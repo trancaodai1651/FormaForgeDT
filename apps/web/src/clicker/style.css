@@ -438,6 +438,8 @@ button.secondary:disabled { opacity: 0.45; cursor: not-allowed; }
 .layer-order-buttons { display: inline-flex; gap: 3px; margin-left: auto; }
 .layer-order-buttons button { width: 23px; height: 23px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--muted); font-size: 11px; line-height: 1; cursor: pointer; }
 .layer-order-buttons button:hover { border-color: var(--accent); color: var(--accent); }
+.layer-order-row { cursor: default; }
+.layer-order-row .slot-no { width: auto; min-width: 96px; padding: 0 7px; font-size: 10px; white-space: nowrap; }
 /* The body row's label is a word, not a slot number, so give it a wider pill. */
 .fil-row .slot-no.slot-body {
   width: 40px;
