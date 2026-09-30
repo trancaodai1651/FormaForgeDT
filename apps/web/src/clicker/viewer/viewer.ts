@@ -105,7 +105,11 @@ export function createViewer(container: HTMLElement): Viewer {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  // The artwork's source colors are already mapped to sRGB. ACES plus the full
+  // room environment was lifting dark strokes and bleaching light/saturated
+  // colors in the normal preview, so reserve tone mapping for reference mode.
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1;
   renderer.localClippingEnabled = true;
   container.appendChild(renderer.domElement);
 
@@ -136,10 +140,10 @@ export function createViewer(container: HTMLElement): Viewer {
   const referenceEnvironment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = referenceEnvironment;
 
-  const key = new THREE.DirectionalLight(0xffffff, 1.8);
+  const key = new THREE.DirectionalLight(0xffffff, 0.85);
   key.position.set(40, -30, 70);
   scene.add(key);
-  const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.35);
   scene.add(ambient);
   const fill = new THREE.DirectionalLight(0xffffff, 0);
   const back = new THREE.DirectionalLight(0xffffff, 0);
@@ -361,6 +365,7 @@ export function createViewer(container: HTMLElement): Viewer {
         color: color(p.colorRgb),
         metalness: referenceRendering ? 0.1 : 0.0,
         roughness: referenceRendering ? 0.4 : 0.5,
+        envMapIntensity: referenceRendering ? 1 : 0.15,
         side: THREE.DoubleSide, // so the interior shows in section view
       });
       materials.push(mat);
@@ -593,6 +598,7 @@ export function createViewer(container: HTMLElement): Viewer {
         color: 0xf0b967,
         roughness: 0.52,
         metalness: 0,
+        envMapIntensity: referenceRendering ? 1 : 0.15,
         side: THREE.DoubleSide,
         vertexColors: false,
       });
@@ -960,9 +966,12 @@ export function createViewer(container: HTMLElement): Viewer {
   }
   function setReferenceRendering(enabled: boolean) {
     referenceRendering = enabled;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMapping = enabled ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
     renderer.toneMappingExposure = enabled ? 1.05 : 1;
     scene.environment = enabled ? null : referenceEnvironment;
+    for (const material of [...materials, ...importedMaterials]) {
+      if (material instanceof THREE.MeshStandardMaterial) material.envMapIntensity = enabled ? 1 : 0.15;
+    }
     scene.background = new THREE.Color(enabled
       ? (getClickerDocument().documentElement.getAttribute('data-theme') === 'dark' ? 0x161412 : 0xd8d5d0)
       : (getClickerDocument().documentElement.getAttribute('data-theme') === 'dark' ? 0x15171c : 0xf3f4f6));
@@ -975,8 +984,8 @@ export function createViewer(container: HTMLElement): Viewer {
       back.intensity = 0.45;
       back.position.set(0, 168, -63);
     } else {
-      ambient.intensity = 0.2;
-      key.intensity = 1.8;
+      ambient.intensity = 0.35;
+      key.intensity = 0.85;
       key.position.set(40, -30, 70);
       fill.intensity = 0;
       back.intensity = 0;

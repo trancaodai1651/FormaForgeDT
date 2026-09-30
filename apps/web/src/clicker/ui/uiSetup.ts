@@ -59,6 +59,13 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
             appData.currentSvgName = file.name;
             appData.imageSource = 'svg';
             appData.originalImage = null;
+            store.set({
+              paletteOverrides: [],
+              partOverrides: {},
+              baseColorOverride: null,
+              componentHeights: {},
+              selectedParts: [],
+            });
             reprocess();
           } catch (err) { store.set({ building: false, status: 'Could not read SVG: ' + err }); }
         })();
@@ -73,14 +80,19 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
           onCancel: () => store.set({ status: 'Ready.' }),
           onComplete: (res) => {
             appData.originalImage = res.adjusted;
-            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], componentHeights: {}, selectedParts: [] });
+            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], partOverrides: {}, baseColorOverride: null, componentHeights: {}, selectedParts: [] });
             reprocess();
           }
         });
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; store.set({ componentHeights: {}, selectedParts: [] }); reprocess(); }),
+    onSample: (load) => load().then(img => {
+      appData.imageSource = 'raster';
+      appData.originalImage = img;
+      store.set({ paletteOverrides: [], partOverrides: {}, baseColorOverride: null, componentHeights: {}, selectedParts: [] });
+      reprocess();
+    }),
     onMultiColorToggle: (on) => {
       // Turning on Multi-color always enters the physical layer-stack mode.
       // Keep the legacy checkbox available for an explicit flat preview, but
