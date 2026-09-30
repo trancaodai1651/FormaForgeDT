@@ -376,6 +376,9 @@ export function createViewer(container: HTMLElement): Viewer {
     // Center X/Y, but place the bottom of the assembly at z = 0 so it sits on the grid.
     root.position.set(0, 0, 0);
     capGroup.position.set(0, 0, 0);
+    // The imported preview hides root, so its old world matrix can persist
+    // until a render. Refresh it before measuring the new generated meshes.
+    root.updateMatrixWorld(true);
     const box = new THREE.Box3().expandByObject(capGroup).expandByObject(bodyGroup);
     const center = box.getCenter(new THREE.Vector3());
     // Shift X and Y to center, but shift Z so the bottom of the model lands at 0.
