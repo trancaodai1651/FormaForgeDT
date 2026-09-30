@@ -58,13 +58,12 @@ export function traceRegions(
     12,
     Math.round(minRingArea * (1 + (preserveDetail ? 8 : 12) * smoothingLevel * smoothingLevel)),
   );
-  // A slightly coarser, uniform sampling gives the slicer fewer tiny segments
-  // without changing the silhouette at printable scale.
-  const resampleStep = Math.max(0.75, maxSide / 720);
+  // Dense, uniform sampling keeps small curves round at printable scale.
+  const resampleStep = Math.max(0.5, maxSide / 900);
   // Smoothing strength → Gaussian sigma in px. `smoothing` is 0..1 from the UI.
-  // This is deliberately capped below the previous 15 px kernel: very large
-  // kernels collapsed small closed contours into self-intersecting rings.
-  const sigmaPx = 0.7 + smoothingLevel * 8.3;
+  // The wider reference kernel is scaled for small rings below; very large
+  // kernels can collapse small closed contours into self-intersecting rings.
+  const sigmaPx = 1.0 + smoothingLevel * 14;
   const sigmaPts = Math.max(0.6, sigmaPx / resampleStep);
 
   // Vector-style smoothing: the staircase boundary is resampled to uniform spacing
@@ -86,7 +85,7 @@ export function traceRegions(
         // rings (letter counters, eyes) get up to ~4× less so their features survive
         // the same kernel that only lightly touches the silhouette.
         const featureScale = preserveDetail
-          ? Math.max(0.35, Math.min(1.0, Math.sqrt(A) / (0.15 * maxSide)))
+          ? Math.max(0.25, Math.min(1.0, Math.sqrt(A) / (0.15 * maxSide)))
           : 1;
         // At the top of the slider, small rings must be cleaned as well. Keeping
         // the old protection factor at 100% was the source of most of the
@@ -99,7 +98,7 @@ export function traceRegions(
         const minSmoothedArea = minRingArea * (smoothingLevel > 0.75 ? 0.35 : 0.5);
         const simplified = rdp(
           smooth,
-          resampleStep * (0.35 + smoothingLevel * 0.85),
+          resampleStep * 0.25,
         );
         if (smoothedArea >= minSmoothedArea && simplified.length >= 3) {
           compRings.push(simplified.map(norm));

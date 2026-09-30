@@ -41,7 +41,7 @@ export function buildClicker(
   let plate: any;
   if (params.baseShape === 'outline') {
     const solidPlate = removeHoles(ctx, ctx.track(filledOutline(outline).offset(border, 'Round', 2.0, 32)));
-    const sRad = Math.min(4.0, border * 1.5);
+    const sRad = 4.0;
     plate = sRad > 0.05 ? ctx.simp(ctx.track(solidPlate.offset(sRad, 'Round', 2.0, 24).offset(-sRad, 'Round', 2.0, 24))) : ctx.simp(solidPlate);
   } else {
     const genShape = (rr: number) => {
