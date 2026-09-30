@@ -73,14 +73,14 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
           onCancel: () => store.set({ status: 'Ready.' }),
           onComplete: (res) => {
             appData.originalImage = res.adjusted;
-            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], componentHeights: {} });
+            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], componentHeights: {}, selectedParts: [] });
             reprocess();
           }
         });
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; store.set({ componentHeights: {} }); reprocess(); }),
+    onSample: (load) => load().then(img => { appData.imageSource = 'raster'; appData.originalImage = img; store.set({ componentHeights: {}, selectedParts: [] }); reprocess(); }),
     onMultiColorToggle: (on) => {
       // Turning on Multi-color always enters the physical layer-stack mode.
       // Keep the legacy checkbox available for an explicit flat preview, but
@@ -187,7 +187,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       const mode = useImportedBlock ? 'hybrid' : selectedMode;
       const hasImageHead = !!appData.originalImage || (appData.imageSource === 'svg' && !!appData.currentSvgText);
       const previewSource = useImportedBlock && !hasImageHead && appData.importedBlockParts.length ? 'imported' : 'generated';
-      store.set({ importMode: mode, useImportedBlock, previewSource, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'rounded' : s.blockKeycapShape });
+      store.set({ importMode: mode, useImportedBlock, previewSource, selectedParts: [], componentHeights: {}, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'rounded' : s.blockKeycapShape });
       viewer.setPreviewSource(previewSource);
       viewer.showSwitch(s.showSwitch && !useImportedBlock);
       if (useImportedBlock && !appData.importedBlockParts.length) {
@@ -207,6 +207,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
           appData.currentSvgName = file.name;
           appData.imageSource = 'svg';
           appData.originalImage = null;
+          store.set({ componentHeights: {}, selectedParts: [] });
           reprocess();
         } else {
           ui.addUploadedSvg(svgText, file.name.replace(/\.svg$/i, ''));
@@ -218,7 +219,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       appData.currentSvgText = svgText;
       appData.currentSvgName = name;
       appData.imageSource = store.get().importMode === 'hybrid' ? 'svg' : appData.imageSource;
-      store.set({ status: `Selected SVG: ${name}` });
+      store.set({ status: `Selected SVG: ${name}`, selectedParts: [], componentHeights: {} });
       if (store.get().importMode === 'hybrid') reprocess();
     },
     onKeycapImageUpload: async (files) => {
@@ -285,14 +286,14 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       store.set({ keycapLogoSizeMm: Math.max(4, Math.min(13, value)) });
       debouncedRebuild();
     },
-    onSelectIcon: (svgText, name) => { appData.currentIconText = svgText; appData.currentIconName = name; store.set({ currentIconName: name, status: `Selected icon: ${name}` }); },
-    onTextChange: (text) => { appData.currentText = text; store.set({ status: 'Text updated.' }); },
+    onSelectIcon: (svgText, name) => { appData.currentIconText = svgText; appData.currentIconName = name; store.set({ currentIconName: name, status: `Selected icon: ${name}`, selectedParts: [], componentHeights: {} }); },
+    onTextChange: (text) => { appData.currentText = text; store.set({ status: 'Text updated.', selectedParts: [], componentHeights: {} }); },
     onBlockText: (text) => {
       const chars = Array.from(text.replace(/\s+/g, '')).slice(0, 12);
       const nextSlots = (chars.length ? chars : ['N', 'a', 'm', 'e']).map(ch => ({ kind: 'char' as const, ch }));
       const assignments = store.get().keycapLogoAssignments.slice(0, nextSlots.length);
       while (assignments.length < nextSlots.length) assignments.push(null);
-      store.set({ blockSlots: nextSlots, keycapLogoAssignments: assignments, keycapImageSlotIndices: assignments.map((value, index) => value === null ? null : index).filter((value): value is number => value !== null) });
+      store.set({ blockSlots: nextSlots, keycapLogoAssignments: assignments, keycapImageSlotIndices: assignments.map((value, index) => value === null ? null : index).filter((value): value is number => value !== null), selectedParts: [], componentHeights: {} });
       // Font parsing and worker builds are expensive. Do not block the input
       // event for every character; build once after typing pauses.
       debouncedReprocess();
@@ -341,19 +342,12 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
         if (wasAttached) reprocess();
       }
     },
-    onUseImportedBlock: (on) => {
-      if (on && !appData.importedBlockParts.length) { store.set({ status: 'Import an STL or 3MF block first.' }); return; }
-      store.set({ useImportedBlock: on, importMode: 'hybrid', previewSource: 'generated', view: 'assembled' });
-      viewer.setPreviewSource('generated');
-      reprocess();
-    },
     onModelColor: (hex) => {
       viewer.setImportedModelColor(hex);
       appData.importedBlockParts = viewer.getImportedBlockParts();
       store.set({ importedModelColor: hex });
       if (store.get().useImportedBlock) debouncedRebuild();
     },
-    onModelPreviewSource: (source) => { viewer.setPreviewSource(source); store.set({ previewSource: source }); },
     onModelClear: () => {
       viewer.clearImportedModel();
       appData.importedBlockParts = [];

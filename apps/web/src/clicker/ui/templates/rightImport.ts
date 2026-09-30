@@ -3,37 +3,6 @@ import { SAMPLES } from '../../image/sample';
 import { clickerText as tx } from '../../i18n';
 
 export const renderRightImport = () => `
-  <div class="section model-preview-section">
-    <div class="model-preview-heading">
-      <span class="label">${tx('3D file preview', 'Xem trước tệp 3D')}</span>
-      <span class="model-preview-badge">STL / 3MF</span>
-    </div>
-    <div class="model-preview-tabs" id="modelPreviewTabs">
-      <button type="button" class="active" data-preview-source="generated">${tx('Generated', 'Đang thiết kế')}</button>
-      <button type="button" data-preview-source="imported" id="importedPreviewTab" disabled>${tx('Imported', 'Đã nhập')}</button>
-    </div>
-    <label class="model-preview-drop" id="modelPreviewDrop">
-      <span class="model-preview-drop-icon">3D</span>
-      <span><strong>${tx('Import STL or 3MF', 'Nhập STL hoặc 3MF')}</strong><small>${tx('Preview, inspect and recolor locally', 'Xem trước, kiểm tra và tô màu ngay trên máy')}</small></span>
-      <input id="modelPreviewFile" type="file" accept=".stl,.3mf,model/stl,model/3mf" hidden />
-    </label>
-    <div class="model-preview-info" id="modelPreviewInfo" hidden>
-      <div><strong id="modelPreviewName"></strong><small id="modelPreviewStats"></small></div>
-      <label class="model-preview-color">${tx('RGB color', 'Màu RGB')}<input id="modelPreviewColor" type="color" value="#f0b967" /></label>
-      <button type="button" class="btn model-preview-clear" id="modelPreviewClear">${tx('Remove', 'Xóa')}</button>
-    </div>
-    <div id="importedBlockAttachPanel" hidden style="margin-top: 9px;">
-      <button type="button" class="btn" id="useImportedBlock" style="width: 100%;">${tx('Attach image to imported block', 'Gắn ảnh vào block đã nhập')}</button>
-      <small class="hint-text" style="display:block; margin-top:6px;">${tx('Uses the largest imported mesh as the block body and joins the image head with a printable neck.', 'Dùng mesh lớn nhất làm thân block và nối đầu ảnh bằng cổ liền khối để in.')}</small>
-    </div>
-    <div class="model-transform-controls" id="modelTransformControls" hidden>
-      <div class="model-transform-heading"><span class="label">${tx('Model orientation', 'Hướng mô hình')}</span><span class="hint-text">${tx('Rotate the imported file independently', 'Xoay tệp đã nhập độc lập')}</span></div>
-      <div class="model-axis-grid">
-        ${(['x', 'y', 'z'] as const).map((axis) => `<label>${tx(`Rotate ${axis.toUpperCase()}`, `Xoay ${axis.toUpperCase()}`)}<output id="modelRotate${axis.toUpperCase()}Val">0°</output><input id="modelRotate${axis.toUpperCase()}" type="range" min="0" max="360" step="1" value="0" /></label>`).join('')}
-      </div>
-      <button type="button" class="btn" id="modelTransformReset">${tx('Reset orientation', 'Đặt lại hướng')}</button>
-    </div>
-  </div>
   <div class="section legend-section">
     <span class="label">${tx('Import Source', 'Nguồn nhập')}</span>
     <div class="import-grid" id="importTabs" role="tablist">
@@ -48,12 +17,24 @@ export const renderRightImport = () => `
 
     <div id="importedBlockModePanel" class="mode-panel" hidden>
       <span class="label">Imported block STL / 3MF</span>
-      <label class="model-preview-drop" style="margin-top: 8px;">
+      <label class="model-preview-drop" id="importedBlockDrop" style="margin-top: 8px;">
         <span class="model-preview-drop-icon">3D</span>
         <span><strong>Choose a block file</strong><small>The image will attach to its head with a printable neck.</small></span>
         <input id="importedBlockFile" type="file" accept=".stl,.3mf,model/stl,model/3mf" hidden />
       </label>
+      <div class="model-preview-info" id="importedBlockInfo" hidden>
+        <div><strong id="importedBlockName"></strong><small id="importedBlockStats"></small></div>
+        <label class="model-preview-color">${tx('RGB color', 'Màu RGB')}<input id="importedBlockColor" type="color" value="#f0b967" /></label>
+        <button type="button" class="btn model-preview-clear" id="importedBlockClear">${tx('Remove', 'Xóa')}</button>
+      </div>
       <small id="importedBlockModeStatus" class="hint-text" style="display:block; margin: 7px 0 12px;"></small>
+      <div class="model-transform-controls" id="modelTransformControls" hidden>
+        <div class="model-transform-heading"><span class="label">${tx('Model orientation', 'Hướng mô hình')}</span><span class="hint-text">${tx('Rotate the imported file independently', 'Xoay tệp đã nhập độc lập')}</span></div>
+        <div class="model-axis-grid">
+          ${(['x', 'y', 'z'] as const).map((axis) => `<label>${tx(`Rotate ${axis.toUpperCase()}`, `Xoay ${axis.toUpperCase()}`)}<output id="modelRotate${axis.toUpperCase()}Val">0°</output><input id="modelRotate${axis.toUpperCase()}" type="range" min="0" max="360" step="1" value="0" /></label>`).join('')}
+        </div>
+        <button type="button" class="btn" id="modelTransformReset">${tx('Reset orientation', 'Đặt lại hướng')}</button>
+      </div>
       <div class="label">Block direction</div>
       <div class="tabs" id="importedBlockOrientation" role="tablist"><button class="tab" type="button" data-imported-orient="horizontal">Horizontal</button><button class="tab" type="button" data-imported-orient="vertical">Vertical</button></div>
       <div class="label" style="margin-top: 12px;">Connection neck</div>

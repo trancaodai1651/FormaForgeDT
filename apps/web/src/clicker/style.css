@@ -273,20 +273,9 @@ details.section-collapsible[open] > summary { padding-bottom: 14px; }
 }
 .field select:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.model-preview-section { display: grid; gap: 10px; }
-.model-preview-heading, .model-transform-heading {
+.model-transform-heading {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
-.model-preview-badge {
-  padding: 4px 8px; border: 1px solid var(--accent); border-radius: 999px;
-  color: var(--accent); font-size: 10px; letter-spacing: .08em;
-}
-.model-preview-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.model-preview-tabs button {
-  padding: 9px 10px; color: var(--muted); font-size: 12px;
-}
-.model-preview-tabs button.active { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
-.model-preview-tabs button:disabled { opacity: .42; cursor: not-allowed; }
 .model-preview-drop {
   display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 12px;
   border: 1px dashed var(--accent); border-radius: 12px; cursor: pointer;
@@ -307,6 +296,7 @@ details.section-collapsible[open] > summary { padding-bottom: 14px; }
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
   padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2);
 }
+.model-preview-info[hidden], .model-transform-controls[hidden] { display: none !important; }
 .model-preview-color { display: grid; gap: 3px; color: var(--muted); font-size: 10px; text-align: center; }
 .model-preview-color input { width: 30px; height: 26px; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .model-preview-clear { padding: 7px 9px; }

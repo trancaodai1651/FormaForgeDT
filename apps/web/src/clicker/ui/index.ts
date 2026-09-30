@@ -179,22 +179,13 @@ export function createUi(
     if ($('blockKeycapProfile')) $<HTMLSelectElement>('blockKeycapProfile').value = state.blockKeycapProfile;
     if ($('blockKeySize')) $<HTMLSelectElement>('blockKeySize').value = String(state.blockKeycapUnit);
     const hasImportedModel = Boolean(state.importedModelName);
-    const importedTab = $<HTMLButtonElement>('importedPreviewTab');
-    if (importedTab) importedTab.disabled = !hasImportedModel;
-    for (const button of getClickerDocument().querySelectorAll<HTMLElement>('[data-preview-source]')) {
-      button.classList.toggle('active', button.dataset.previewSource === state.previewSource);
-    }
-    if ($('modelPreviewInfo')) $('modelPreviewInfo')!.hidden = !hasImportedModel;
-    if ($('importedBlockAttachPanel')) $('importedBlockAttachPanel')!.hidden = true;
-    if ($('useImportedBlock')) $('useImportedBlock')!.textContent = state.useImportedBlock
-      ? tx('Use generated blocks instead', 'Dùng block tạo sẵn thay thế')
-      : tx('Attach image to imported block', 'Gắn ảnh vào block đã nhập');
-    if ($('modelTransformControls')) $('modelTransformControls')!.hidden = !hasImportedModel;
-    if ($('modelPreviewName')) $('modelPreviewName')!.textContent = state.importedModelName;
-    if ($('modelPreviewStats')) $('modelPreviewStats')!.textContent = hasImportedModel
+    if ($('importedBlockInfo')) $('importedBlockInfo')!.hidden = !hasImportedModel;
+    if ($('importedBlockName')) $('importedBlockName')!.textContent = state.importedModelName;
+    if ($('importedBlockStats')) $('importedBlockStats')!.textContent = hasImportedModel
       ? `${state.importedModelFormat} · ${state.importedModelMeshCount} mesh · ${state.importedModelTriangleCount.toLocaleString()} triangles`
       : '';
-    if ($('modelPreviewColor')) $<HTMLInputElement>('modelPreviewColor').value = state.importedModelColor;
+    if ($('importedBlockColor')) $<HTMLInputElement>('importedBlockColor').value = state.importedModelColor;
+    if ($('modelTransformControls')) $('modelTransformControls')!.hidden = !hasImportedModel;
     for (const [axis, value] of [['X', state.importedModelRotateX], ['Y', state.importedModelRotateY], ['Z', state.importedModelRotateZ]] as const) {
       const input = $<HTMLInputElement>(`modelRotate${axis}`);
       if (input && getClickerDocument().activeElement !== input) input.value = String(value);

@@ -261,7 +261,6 @@ export function rebuild(quiet = false) {
   
   const s = store.get();
   const imageMultiColorMode = s.multiColorEnabled && (s.importMode === 'image' || s.importMode === 'hybrid');
-  const flatRasterImageMode = !s.multiColorEnabled && (s.importMode === 'image' || s.importMode === 'hybrid') && appData.imageSource === 'raster';
   const stackColorLayers = imageMultiColorMode && s.stackColorLayers;
   const sourceRegions = appData.regionSet.regions.map((region, sourceIndex) => ({ region, sourceIndex }));
   // The region array is the user's physical order: first = bottom, last = top.
@@ -312,9 +311,6 @@ export function rebuild(quiet = false) {
   // explicit user extrude edits, while assigning untouched colour components
   // to their palette order (bottom -> top) automatically.
   const componentHeights = { ...s.componentHeights };
-  if (flatRasterImageMode) {
-    regions.forEach(({ partName }) => { componentHeights[partName] = 0; });
-  }
   if (stackColorLayers) {
     orderedRegions.forEach(({ sourceIndex }, layerIndex) => {
       const partName = `top-color-${sourceIndex}-0`;
@@ -328,7 +324,7 @@ export function rebuild(quiet = false) {
     imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
     hybridImageLateralOffsetMm: s.hybridImageLateralOffsetMm,
     hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
-    hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: flatRasterImageMode ? 0 : s.hybridImageExtrudeMm,
+    hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm,
     hybridBaseWidthMm: s.hybridBaseWidthMm,
     hybridBaseEndPaddingMm: s.hybridBaseEndPaddingMm, hybridBaseThicknessMm: s.hybridBaseThicknessMm,
     hybridBaseCornerRadiusMm: s.hybridBaseCornerRadiusMm, hybridBaseWallHeightMm: s.hybridBaseWallHeightMm,

@@ -106,8 +106,8 @@ export interface UiCallbacks {
   onHybridKeycapClearance(value: number): void;
   onBlockModuleThickness(value: number): void;
   onBlockModuleSideThickness(value: number): void;
-  onModelImport(file: File): void; onUseImportedBlock(on: boolean): void; onModelColor(hex: string): void;
-  onModelPreviewSource(source: 'generated' | 'imported'): void; onModelClear(): void;
+  onModelImport(file: File): void; onModelColor(hex: string): void;
+  onModelClear(): void;
   onModelRotation(axis: 'x' | 'y' | 'z', value: number): void; onModelTransformReset(): void;
   onGenerate(): void; onUndo(): void; onRedo(): void; onRefresh(): void; onBackToHome(): void;
 }

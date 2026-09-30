@@ -5,49 +5,31 @@ import type { UiCallbacks } from '../types';
 import { SWITCH_STEP } from '../constants';
 
 export function bindGlobalEvents(cb: UiCallbacks) {
-  const modelFile = $<HTMLInputElement>('modelPreviewFile');
-  const importModelFile = (file?: File) => {
+  const importedBlockFile = $<HTMLInputElement>('importedBlockFile');
+  const importBlockFile = (file?: File) => {
     if (!file || !/\.(stl|3mf)$/i.test(file.name)) return;
     cb.onModelImport(file);
-    if (modelFile) modelFile.value = '';
+    if (importedBlockFile) importedBlockFile.value = '';
   };
-  modelFile?.addEventListener('change', () => importModelFile(modelFile.files?.[0]));
-  const importedBlockFile = $<HTMLInputElement>('importedBlockFile');
   importedBlockFile?.addEventListener('change', () => {
-    importModelFile(importedBlockFile.files?.[0]);
+    importBlockFile(importedBlockFile.files?.[0]);
     importedBlockFile.value = '';
   });
-  $('modelPreviewDrop')?.addEventListener('dragover', (event: DragEvent) => {
+  $('importedBlockDrop')?.addEventListener('dragover', (event: DragEvent) => {
     event.preventDefault();
     (event.currentTarget as HTMLElement).classList.add('dragging');
   });
-  $('modelPreviewDrop')?.addEventListener('dragleave', (event: DragEvent) => {
+  $('importedBlockDrop')?.addEventListener('dragleave', (event: DragEvent) => {
     (event.currentTarget as HTMLElement).classList.remove('dragging');
   });
-  $('modelPreviewDrop')?.addEventListener('drop', (event: DragEvent) => {
+  $('importedBlockDrop')?.addEventListener('drop', (event: DragEvent) => {
     event.preventDefault();
     (event.currentTarget as HTMLElement).classList.remove('dragging');
-    importModelFile(event.dataTransfer?.files?.[0]);
+    importBlockFile(event.dataTransfer?.files?.[0]);
   });
-  // The reference viewer also feels like a drop target. Allow dropping a model
-  // directly onto the 3D viewport in addition to the explicit import card.
-  const viewport = $('viewport');
-  viewport?.addEventListener('dragover', (event: DragEvent) => {
-    if (event.dataTransfer?.types.includes('Files')) event.preventDefault();
-  });
-  viewport?.addEventListener('drop', (event: DragEvent) => {
-    if (!event.dataTransfer?.files.length) return;
-    event.preventDefault();
-    importModelFile(event.dataTransfer.files[0]);
-  });
-  $('modelPreviewTabs')?.addEventListener('click', (event: MouseEvent) => {
-    const button = (event.target as HTMLElement).closest<HTMLElement>('[data-preview-source]');
-    if (button && !button.hasAttribute('disabled')) cb.onModelPreviewSource(button.dataset.previewSource as 'generated' | 'imported');
-  });
-  const modelColor = $<HTMLInputElement>('modelPreviewColor');
+  const modelColor = $<HTMLInputElement>('importedBlockColor');
   modelColor?.addEventListener('input', () => cb.onModelColor(modelColor.value));
-  $('modelPreviewClear')?.addEventListener('click', () => cb.onModelClear());
-  $('useImportedBlock')?.addEventListener('click', () => cb.onUseImportedBlock(!store.get().useImportedBlock));
+  $('importedBlockClear')?.addEventListener('click', () => cb.onModelClear());
   for (const axis of ['x', 'y', 'z'] as const) {
     $<HTMLInputElement>(`modelRotate${axis.toUpperCase()}`)?.addEventListener('input', (event: Event) => {
       cb.onModelRotation(axis, +(event.target as HTMLInputElement).value);
