@@ -280,6 +280,7 @@ export function buildHybridClicker(
   const shiftY = vertical ? carrierHeadEdge - carrierDepth / 2 : 0;
 
   const importedPartsMoved: ClickerPart[] = [];
+  let importedNeck: any = null;
   let carrier: any;
   if (useImportedBlock && importedBlockParts) {
     const main = importedBlockParts[importedBodyIndex];
@@ -323,7 +324,9 @@ export function buildHybridClicker(
     // widths there, so resizing either the image or the imported block changes
     // its taper and the Boolean union remains a single printable body.
     const imageInset = Math.min(imageExtent * 0.35, Math.max(3, imagePadding + 2, imageExtent * 0.12));
-    const blockInset = Math.min(blockExtent * 0.3, Math.max(2, Math.min(5, blockExtent * 0.15)));
+    // Enter the imported shell only far enough for a real overlap. A deep
+    // bridge can fill its switch well and swallow details near the front.
+    const blockInset = Math.min(1.5, Math.max(0.6, blockExtent * 0.05));
     const imageJoin = vertical ? badgeBounds.min[1] + imageInset : badgeBounds.max[0] - imageInset;
     const blockJoin = vertical ? mb.maxY - blockInset : mb.minX + blockInset;
     const imageSpan = ringSpanAt(scaledOutline, axis, imageJoin)
@@ -338,24 +341,18 @@ export function buildHybridClicker(
       ? [[imageLow, imageJoin], [imageHigh, imageJoin], [blockHigh, blockJoin], [blockLow, blockJoin]]
       : [[imageJoin, imageLow], [blockJoin, blockLow], [blockJoin, blockHigh], [imageJoin, imageHigh]];
     const neckFootprint = ctx.track(new wasm.CrossSection([neckOutline], 'NonZero'));
-    const neckTop = Math.min(imageTopZ, mb.maxZ);
-    const neck = ctx.track(wasm.Manifold.extrude(neckFootprint, Math.max(1, neckTop + baseThickness)).translate([0, 0, -baseThickness]));
-    carrier = ctx.simp(ctx.track(importedSolid.add(neck)));
+    // Join at the bottom of the imported shell, below its visible top and
+    // switch cavity. The image plate extends down to this same plane.
+    const neckBottom = mb.minZ;
+    const neckHeight = Math.min(2.4, Math.max(0.8, (mb.maxZ - mb.minZ) * 0.15));
+    const neck = ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]));
+    importedNeck = neck;
+    // Do not simplify a user's detailed mesh: even a 0.04 mm tolerance
+    // changes the flutes and switch well across the whole imported body.
+    carrier = ctx.track(importedSolid.add(neck));
     moved.forEach((part, index) => {
       if (index === importedBodyIndex) return;
-      const pb = partBounds(part);
-      const joinsImageEnd = vertical ? pb.maxY >= mb.maxY - 2 : pb.minX <= mb.minX + 2;
-      if (!joinsImageEnd) { importedPartsMoved.push(part); return; }
-      try {
-        const componentMesh = new wasm.Mesh({ numProp: part.numProp, vertProperties: part.vertProperties, triVerts: part.triVerts });
-        componentMesh.merge();
-        const component = ctx.track(wasm.Manifold.ofMesh(componentMesh));
-        if (component.isEmpty()) { importedPartsMoved.push(part); return; }
-        carrier = ctx.simp(ctx.track(carrier.add(component)));
-      } catch {
-        importedPartsMoved.push(part);
-        warnings.push(`Imported component ${index + 1} stayed separate because it could not be joined to the neck.`);
-      }
+      importedPartsMoved.push(part);
     });
   } else {
     const carrierProfile = baseStyle === 'vase'
@@ -466,7 +463,11 @@ export function buildHybridClicker(
   const dominantImageColor = carrierRegion?.filamentRgb ?? params.baseFilamentRgb ?? bodyColor;
   const imageSurfaceLift = 0.04;
   const imageTop = imageTopZ + imageSurfaceLift;
-  const imageCarrierBottom = -baseThickness;
+  const inlayDepth = 0.28;
+  // Imported blocks keep the image ink on a thin top skin, as in Image mode.
+  // Filling the entire head with the dominant colour makes its side walls
+  // look like part of the block and amplifies tiny contour imperfections.
+  const imageCarrierBottom = useImportedBlock ? imageTop - inlayDepth : -baseThickness;
   let imageCarrier = ctx.track(wasm.Manifold.extrude(
     imageSection,
     Math.max(0.25, imageTop - imageCarrierBottom),
@@ -474,14 +475,14 @@ export function buildHybridClicker(
 
   let badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
-  // Remove the white body from the image footprint.  This leaves a stable
-  // white border ring while ensuring the carrier is the only material behind
-  // the coloured artwork.
+  // Carve a recess for the ink. Imported blocks retain white backing below
+  // the thin image skin; generated blocks keep their original full-depth head.
   const imageCore = ctx.track(wasm.Manifold.extrude(
     imageSection,
-    imageThickness + 0.12,
-  ).translate([0, 0, -baseThickness - 0.04]));
+    useImportedBlock ? inlayDepth + 0.12 : imageThickness + 0.12,
+  ).translate([0, 0, useImportedBlock ? imageCarrierBottom : -baseThickness - 0.04]));
   badgeBody = ctx.track(badgeBody.subtract(imageCore));
+  if (importedNeck) badgeBody = ctx.track(badgeBody.subtract(importedNeck));
   if (params.keychain?.enabled) {
     // Image + Blocks keeps the ring attached to the imported image head, never
     // to the last text block. The user can choose either end of the head.
@@ -650,7 +651,6 @@ export function buildHybridClicker(
       // Make the default image flush with the badge while giving it a shallow
       // real inlay. When Extrude is increased, only the coloured layer rises;
       // the badge is carved first so the meshes never overlap coplanarly.
-      const inlayDepth = 0.28;
       const imageLayerHeight = inlayDepth + imageExtrude;
       const imageLayerBottom = imageTop - inlayDepth;
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageLayerHeight)
@@ -662,7 +662,7 @@ export function buildHybridClicker(
           const cavity = ctx.track(wasm.Manifold.extrude(topLayer, inlayDepth + 0.02)
             .translate([0, 0, imageLayerBottom]));
           imageCarrier = ctx.track(imageCarrier.subtract(cavity));
-          badgeBody = ctx.track(badgeBody.subtract(cavity));
+          if (!useImportedBlock) badgeBody = ctx.track(badgeBody.subtract(cavity));
           parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
         }
         if (!stackImageMode) {
@@ -677,8 +677,13 @@ export function buildHybridClicker(
   }
 
   parts.push(toPart(imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
-  const mergedBody = ctx.track(badgeBody.add(lowerBody));
-  parts.push(toPart(mergedBody, 'body', 'base', useImportedBlock && importedBlockParts ? importedBlockParts[importedBodyIndex].colorRgb : bodyColor, 'hybrid-continuous-base'));
+  if (useImportedBlock && importedBlockParts) {
+    parts.push(toPart(badgeBody, 'body', 'base', bodyColor, 'hybrid-image-backing'));
+    parts.push(toPart(lowerBody, 'body', 'base', importedBlockParts[importedBodyIndex].colorRgb, 'hybrid-continuous-base'));
+  } else {
+    const mergedBody = ctx.track(badgeBody.add(lowerBody));
+    parts.push(toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'));
+  }
 
   ctx.cleanup();
   return { parts, switchPlacements: shiftedPlacements, warnings };

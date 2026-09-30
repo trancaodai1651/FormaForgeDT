@@ -186,16 +186,14 @@ export function reprocess() {
     } else {
       if (!appData.originalImage) return;
       store.set({ building: true, status: 'Removing background & tracing...' });
-      // When the same raster is used for the Image + Blocks top and its custom
-      // image base, both layers must pass through the same cleanup pipeline.
-      // The lower image already uses the stable 512px / 2-colour path below;
-      // tracing the top at full resolution with the normal palette count creates
-      // extra anti-aliased islands that later become visible as top-surface acne.
+      // When the same raster is used for the top and custom lower base, use
+      // the lower base's reduced source for both layers. All other image heads
+      // retain the original resolution used by Image mode.
       const sameImageAsCustomBase = s.importMode === 'hybrid'
         && s.bottomBaseMode === 'custom'
         && appData.bottomImage
         && sameImagePixels(appData.originalImage, appData.bottomImage);
-      const sourceImage = sameImageAsCustomBase || (s.importMode === 'hybrid' && s.useImportedBlock)
+      const sourceImage = sameImageAsCustomBase
         ? downscaleImage(appData.originalImage, 512)
         : appData.originalImage;
       const processColorCount = s.colorCount;
