@@ -44,7 +44,7 @@ export interface UiState {
 export interface UiCallbacks {
   onBottomModeChange(mode: 'match' | 'custom'): void;
   onBottomUpload(file: File): void;
-  onUpload(file: File): void; onSample(load: () => Promise<RgbaImage>): void;
+  onUpload(file: File): void; onSample(load: () => Promise<RgbaImage>): void; onAdjustImage(): void;
   onColorCount(n: number): void; onSmoothing(v: number): void; onMultiColorToggle(on: boolean): void; onStackColorLayers(on: boolean): void; onColorLayerHeight(value: number): void; onColorLayerGap(value: number): void; onLayerOrder(index: number, delta: number): void;
   onFilament(index: number, hex: string): void; onShape(kind: BaseShapeKind): void;
   onWidth(mm: number): void; onTopThickness(mm: number): void; onImageDepth(mm: number): void;

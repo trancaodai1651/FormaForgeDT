@@ -2,7 +2,7 @@
 import { store, appData } from '../store/appState';
 import { rebuild, reprocess, debouncedRebuild, debouncedQuietRebuild, debouncedReprocess, applyModelRecolor, processBottomImage } from '../core/engine';
 import { createUi } from './index';
-import { runWizard } from './wizard';
+import { analyzeRasterPalette, runWizard } from './wizard';
 import { loadFileToImage } from '../image/decode';
 import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
@@ -35,6 +35,33 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
         reprocess();
       },
     });
+  };
+  const renderRasterImage = (img: Awaited<ReturnType<typeof loadFileToImage>>) => {
+    const settings = store.get();
+    const analysis = analyzeRasterPalette(img, {
+      removeBg: settings.removeBg,
+      smoothing: settings.smoothing,
+      photoFlatten: settings.photoFlatten,
+    });
+    appData.imageSource = 'raster';
+    appData.originalImage = img;
+    appData.currentSvgText = '';
+    appData.currentSvgName = '';
+    store.set({
+      building: true,
+      status: 'Analyzing image…',
+      colorCount: Math.max(1, analysis.imagePaletteColors.length),
+      colorMode: 'normal',
+      limitedColors: [],
+      imagePaletteColors: analysis.imagePaletteColors,
+      smoothing: analysis.smoothing,
+      paletteOverrides: [],
+      partOverrides: {},
+      baseColorOverride: null,
+      componentHeights: {},
+      selectedParts: [],
+    });
+    reprocess();
   };
   const ui = createUi(sidebarLeft, sidebarRight, statusEl, {
     onBottomModeChange: (mode) => {
@@ -88,11 +115,12 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       }
       store.set({ building: true, status: 'Reading imageâ€¦' });
       loadFileToImage(file).then(img => {
-        openRasterWizard(img);
+        renderRasterImage(img);
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(openRasterWizard),
+    onSample: (load) => load().then(renderRasterImage).catch(err => store.set({ building: false, status: 'Could not read sample image: ' + err })),
+    onAdjustImage: () => { if (appData.originalImage && appData.imageSource === 'raster') openRasterWizard(appData.originalImage); },
     onMultiColorToggle: (on) => {
       // Turning on Multi-color always enters the physical layer-stack mode.
       // Keep the legacy checkbox available for an explicit flat preview, but

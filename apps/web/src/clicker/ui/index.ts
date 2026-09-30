@@ -325,6 +325,7 @@ export function createUi(
       ? `Using ${state.importedModelName} as the block body.`
       : 'Choose a block STL/3MF and upload the image below.';
     if ($('imagePanel')) $('imagePanel')!.hidden = state.importMode !== 'image' && state.importMode !== 'hybrid';
+    if ($('adjustImage')) ($('adjustImage') as HTMLButtonElement).hidden = !appData.originalImage || appData.imageSource !== 'raster';
     if ($('hybridSvgImport')) $('hybridSvgImport')!.hidden = state.importMode !== 'hybrid';
     if ($('hybridSvgName')) $('hybridSvgName')!.textContent = state.importMode === 'hybrid' && appData.currentSvgName ? appData.currentSvgName : '';
     if ($('svgPanel')) $('svgPanel')!.hidden = state.importMode !== 'svg';

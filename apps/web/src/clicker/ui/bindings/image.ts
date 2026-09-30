@@ -6,12 +6,21 @@ export function bindImageEvents(cb: UiCallbacks) {
   const drop = $('drop');
   const file = $<HTMLInputElement>('file');
   drop?.addEventListener('click', () => file.click());
-  file?.addEventListener('change', () => { if (file.files?.[0]) cb.onUpload(file.files[0]); });
+  file?.addEventListener('change', () => {
+    if (file.files?.[0]) cb.onUpload(file.files[0]);
+    file.value = '';
+  });
 
   drop?.addEventListener('dragenter', (e: DragEvent) => { e.preventDefault(); drop.classList.add('over'); });
   drop?.addEventListener('dragover', (e: DragEvent) => { e.preventDefault(); drop.classList.add('over'); });
   drop?.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop?.addEventListener('drop', () => drop.classList.remove('over'));
+  drop?.addEventListener('drop', (e: DragEvent) => {
+    e.preventDefault();
+    drop.classList.remove('over');
+    const droppedImage = Array.from(e.dataTransfer?.files ?? []).find((candidate) => candidate.type.startsWith('image/'));
+    if (droppedImage) cb.onUpload(droppedImage);
+  });
+  $('adjustImage')?.addEventListener('click', () => cb.onAdjustImage());
 
   const keycapDrop = $('keycapImageDrop');
   const keycapFile = $<HTMLInputElement>('keycapImageFile');

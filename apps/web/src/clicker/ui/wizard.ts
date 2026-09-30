@@ -73,6 +73,22 @@ function analysisCopy(img: RgbaImage): RgbaImage {
   return { data: imageData.data, width, height };
 }
 
+export function analyzeRasterPalette(
+  img: RgbaImage,
+  options: { removeBg: boolean; smoothing: number; photoFlatten: boolean },
+): { imagePaletteColors: RGB[]; smoothing: number } {
+  const prepared = prepareImagePalette(analysisCopy(img), MAX_TRACE_COLORS, {
+    removeBg: options.removeBg,
+    smoothing: options.smoothing,
+    photoFlatten: options.photoFlatten,
+    preserveDistinctColors: true,
+  });
+  return {
+    imagePaletteColors: prepared.quantized.palette.map(({ rgb }) => [...rgb] as RGB),
+    smoothing: prepared.smoothing,
+  };
+}
+
 /** Merge every unchecked trace colour into its nearest retained colour in Oklab. */
 function mergeUncheckedColors(source: QuantizeResult, kept: boolean[]): QuantizeResult {
   const active = source.palette.map((entry, index) => index).filter((index) => kept[index]);

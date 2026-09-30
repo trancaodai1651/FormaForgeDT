@@ -65,6 +65,7 @@ export const renderRightImport = () => `
         <span style="font-size:10px; opacity:0.8; display:block; margin-top:4px;">${tx('PNG with transparency works best', 'Ảnh PNG nền trong suốt cho kết quả tốt nhất')}</span>
       </div>
       <input type="file" id="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden />
+      <button type="button" class="btn" id="adjustImage" hidden>${tx('Adjust image…', 'Chỉnh sửa hình ảnh…')}</button>
       <div id="hybridSvgImport" hidden style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
         <span class="label">SVG image for Image + Blocks</span>
         <label class="upload-cta">Import SVG<input id="hybridSvgUpload" type="file" accept=".svg,image/svg+xml" /></label>
