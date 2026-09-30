@@ -44,7 +44,10 @@ const RATIOS: [CropRatio, string][] = [
 ];
 
 const PREVIEW_MAX_SIDE = 700;
-const MAX_TRACE_COLORS = 12;
+// Reference artwork is a small-print image with a handful of filament colours.
+// A 12-cluster palette can promote anti-aliased cyan shades into separate
+// regions, splitting solid letters into tiny extruded pieces in the 3D preview.
+const MAX_TRACE_COLORS = 6;
 
 function imageToCanvas(img: RgbaImage): HTMLCanvasElement {
   const canvas = getClickerDocument().createElement('canvas');
