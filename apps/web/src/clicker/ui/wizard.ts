@@ -273,7 +273,7 @@ export function runWizard(opts: WizardOpts) {
     colorsHost.querySelectorAll<HTMLButtonElement>('[data-colour]').forEach((button) => {
       button.addEventListener('click', () => {
         const index = Number(button.dataset.colour);
-        if (!Number.isInteger(index) || kept.filter(Boolean).length <= 1) return;
+        if (!Number.isInteger(index) || (kept[index] && kept.filter(Boolean).length <= 1)) return;
         kept[index] = !kept[index];
         updateColourList();
         updateResult();

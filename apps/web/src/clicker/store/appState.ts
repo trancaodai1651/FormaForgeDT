@@ -38,10 +38,8 @@ export const store = createStore<UiState>({
   hybridBaseEndPaddingMm: 14,
   hybridBaseThicknessMm: 9,
   hybridBaseCornerRadiusMm: 5,
-  // RIBBED is the printable default for image carriers. It keeps the image
-  // head independent while giving the surrounding base the chunky ribs used
-  // by the reference design.
-  hybridBaseStyle: 'vase',
+  // Start with a smooth image base; ribbed profiles remain selectable.
+  hybridBaseStyle: 'straight',
   hybridVaseProfile: 'straight',
   hybridVaseWavinessMm: 2.5,
   hybridVaseThicknessMm: 3,

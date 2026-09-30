@@ -1,8 +1,8 @@
-﻿import { getClickerDocument } from '../runtime';
+import { getClickerDocument } from '../runtime';
 import { store, appData } from '../store/appState';
 import { rebuild, reprocess, debouncedRebuild, debouncedQuietRebuild, debouncedReprocess, applyModelRecolor, processBottomImage } from '../core/engine';
 import { createUi } from './index';
-import { analyzeRasterPalette, runWizard } from './wizard';
+import { runWizard } from './wizard';
 import { loadFileToImage } from '../image/decode';
 import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
@@ -30,38 +30,14 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       photoFlatten: store.get().photoFlatten,
       onCancel: () => store.set({ status: 'Ready.' }),
       onComplete: (res) => {
+        appData.imageSource = 'raster';
+        appData.currentSvgText = '';
+        appData.currentSvgName = '';
         appData.originalImage = res.adjusted;
         store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, smoothing: res.smoothing, imagePaletteColors: res.imagePaletteColors, topThickness: Math.max(0.2, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], partOverrides: {}, baseColorOverride: null, componentHeights: {}, selectedParts: [] });
         reprocess();
       },
     });
-  };
-  const renderRasterImage = (img: Awaited<ReturnType<typeof loadFileToImage>>) => {
-    const settings = store.get();
-    const analysis = analyzeRasterPalette(img, {
-      removeBg: settings.removeBg,
-      smoothing: settings.smoothing,
-      photoFlatten: settings.photoFlatten,
-    });
-    appData.imageSource = 'raster';
-    appData.originalImage = img;
-    appData.currentSvgText = '';
-    appData.currentSvgName = '';
-    store.set({
-      building: true,
-      status: 'Analyzing image…',
-      colorCount: Math.max(1, analysis.imagePaletteColors.length),
-      colorMode: 'normal',
-      limitedColors: [],
-      imagePaletteColors: analysis.imagePaletteColors,
-      smoothing: analysis.smoothing,
-      paletteOverrides: [],
-      partOverrides: {},
-      baseColorOverride: null,
-      componentHeights: {},
-      selectedParts: [],
-    });
-    reprocess();
   };
   const ui = createUi(sidebarLeft, sidebarRight, statusEl, {
     onBottomModeChange: (mode) => {
@@ -115,11 +91,11 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       }
       store.set({ building: true, status: 'Reading imageâ€¦' });
       loadFileToImage(file).then(img => {
-        renderRasterImage(img);
+        openRasterWizard(img);
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(renderRasterImage).catch(err => store.set({ building: false, status: 'Could not read sample image: ' + err })),
+    onSample: (load) => load().then(openRasterWizard).catch(err => store.set({ building: false, status: 'Could not read sample image: ' + err })),
     onAdjustImage: () => { if (appData.originalImage && appData.imageSource === 'raster') openRasterWizard(appData.originalImage); },
     onMultiColorToggle: (on) => {
       // Turning on Multi-color always enters the physical layer-stack mode.

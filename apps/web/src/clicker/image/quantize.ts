@@ -1,4 +1,4 @@
-// Perceptual color quantization over the foreground pixels: median-cut seed refined
+// Perceptual color quantization over the foreground pixels: weighted seeds refined
 // by k-means in Oklab, so perceptually distinct colors stay separate (dark blue vs
 // black) and identical ones don't split. See src/image/colorspace.ts.
 import type { RgbaImage } from './decode';
@@ -16,10 +16,6 @@ export interface QuantizeResult {
 export interface QuantizeOptions {
   /** Reserved for callers that need to preserve rare accent colors. */
   preserveRareColors?: boolean;
-}
-
-interface Box {
-  pixels: number[]; // indices into the foreground arrays
 }
 
 // Soft anti-aliased edge pixels (alpha below this) are dropped from the model. Lowered
@@ -106,50 +102,38 @@ export function quantize(
     return { palette, indices, width, height };
   }
 
-  // --- Median cut (RGB) to SEED the cluster centers. ---
-  let boxes: Box[] = [{ pixels: fgR.map((_, i) => i) }];
+  // Seed in perceptual space from occupied colour bins. Splitting RGB boxes
+  // at their median can put black and dark grey in the same seed while
+  // spending several seeds on cyan fringes. Weighted farthest-point seeds
+  // reserve a centre for each substantial, perceptually distinct colour.
+  const bins = new Map<number, { count: number; l: number; a: number; b: number }>();
+  for (let i = 0; i < M; i++) {
+    const key = ((fgR[i] >> 3) << 10) | ((fgG[i] >> 3) << 5) | (fgB[i] >> 3);
+    const bin = bins.get(key) ?? { count: 0, l: 0, a: 0, b: 0 };
+    bin.count++; bin.l += okL[i]; bin.a += okA[i]; bin.b += okB[i];
+    bins.set(key, bin);
+  }
+  const candidates = [...bins.values()].map(bin => ({
+    count: bin.count, lab: [bin.l / bin.count, bin.a / bin.count, bin.b / bin.count],
+  })).sort((a, b) => b.count - a.count);
+  const seeds = [candidates[0].lab];
   const target = Math.max(1, Math.min(colorCount, 16));
-  while (boxes.length < target) {
-    // Pick the box with the largest channel range to split.
-    let best = -1;
-    let bestRange = -1;
-    let bestChannel = 0;
-    for (let b = 0; b < boxes.length; b++) {
-      const { range, channel } = boxStats(boxes[b], fgR, fgG, fgB);
-      if (range > bestRange && boxes[b].pixels.length > 1) {
-        bestRange = range;
-        best = b;
-        bestChannel = channel;
-      }
+  while (seeds.length < target) {
+    let bestScore = 0;
+    let best: number[] | undefined;
+    for (const candidate of candidates) {
+      const distance = Math.min(...seeds.map(seed =>
+        candidate.lab.reduce((sum, value, axis) => sum + (value - seed[axis]) ** 2, 0)));
+      const score = candidate.count * distance;
+      if (score > bestScore) { bestScore = score; best = candidate.lab; }
     }
-    if (best < 0 || bestRange <= 0) break;
-
-    const box = boxes[best];
-    const ch = bestChannel === 0 ? fgR : bestChannel === 1 ? fgG : fgB;
-    box.pixels.sort((i, j) => ch[i] - ch[j]);
-    const mid = box.pixels.length >> 1;
-    const a: Box = { pixels: box.pixels.slice(0, mid) };
-    const c: Box = { pixels: box.pixels.slice(mid) };
-    boxes.splice(best, 1, a, c);
+    if (!best || bestScore < 1e-8) break;
+    seeds.push(best);
   }
-
-  // Seed cluster centers = each box's mean in Oklab.
-  const K = boxes.length;
-  const cL = new Float32Array(K);
-  const cA = new Float32Array(K);
-  const cB = new Float32Array(K);
-  for (let b = 0; b < K; b++) {
-    let l = 0, a = 0, bb = 0;
-    for (const i of boxes[b].pixels) {
-      l += okL[i];
-      a += okA[i];
-      bb += okB[i];
-    }
-    const k = boxes[b].pixels.length || 1;
-    cL[b] = l / k;
-    cA[b] = a / k;
-    cB[b] = bb / k;
-  }
+  const K = seeds.length;
+  const cL = Float32Array.from(seeds, seed => seed[0]);
+  const cA = Float32Array.from(seeds, seed => seed[1]);
+  const cB = Float32Array.from(seeds, seed => seed[2]);
 
   // --- k-means refinement in Oklab (assign → recompute means). Oklab is already
   //     perceptually uniform, so all three channels are weighted equally. ---
@@ -223,6 +207,21 @@ export function quantize(
  *  sub-percent quantization noise into its nearest retained color. */
 export function retainVisiblePaletteColors(result: QuantizeResult, minimumCoverage = 0.01): QuantizeResult {
   if (result.palette.length < 2) return result;
+  // Collapse near-identical raster shades before tracing separate solids.
+  // Keep the dominant source shade; black versus dark grey remains distinct.
+  const orderByArea = result.palette.map((_, i) => i).sort((a, b) => result.palette[b].coverage - result.palette[a].coverage);
+  const representatives: number[] = [];
+  const remap = new Int16Array(result.palette.length);
+  for (const index of orderByArea) {
+    const rgb = result.palette[index].rgb;
+    let target = representatives.findIndex(other =>
+      Math.hypot(...rgb.map((value, axis) => value - result.palette[other].rgb[axis])) <= 32);
+    if (target < 0) { target = representatives.length; representatives.push(index); }
+    remap[index] = target;
+  }
+  const mergedPalette = representatives.map(index => ({ ...result.palette[index], coverage: 0 }));
+  result.palette.forEach((entry, index) => { mergedPalette[remap[index]].coverage += entry.coverage; });
+  result = { ...result, palette: mergedPalette, indices: result.indices.map(index => index < 0 ? -1 : remap[index]) };
   let retained = result.palette.map((entry, index) => index).filter((index) => result.palette[index].coverage >= minimumCoverage);
   if (retained.length === 0) {
     const largest = result.palette.reduce((best, entry, index) => entry.coverage > result.palette[best].coverage ? index : best, 0);
@@ -264,28 +263,4 @@ export function retainVisiblePaletteColors(result: QuantizeResult, minimumCovera
     indices[pixel] = index < 0 ? -1 : retainedToSorted[oldToRetained[index]];
   }
   return { ...result, palette, indices };
-}
-
-function boxStats(box: Box, R: number[], G: number[], B: number[]) {
-  let rmin = 255;
-  let rmax = 0;
-  let gmin = 255;
-  let gmax = 0;
-  let bmin = 255;
-  let bmax = 0;
-  for (const i of box.pixels) {
-    rmin = Math.min(rmin, R[i]);
-    rmax = Math.max(rmax, R[i]);
-    gmin = Math.min(gmin, G[i]);
-    gmax = Math.max(gmax, G[i]);
-    bmin = Math.min(bmin, B[i]);
-    bmax = Math.max(bmax, B[i]);
-  }
-  // Weight green slightly (perceptual), like classic median cut.
-  const rr = rmax - rmin;
-  const gr = (gmax - gmin) * 1.2;
-  const br = bmax - bmin;
-  const range = Math.max(rr, gr, br);
-  const channel = range === rr ? 0 : range === gr ? 1 : 2;
-  return { range, channel };
 }
