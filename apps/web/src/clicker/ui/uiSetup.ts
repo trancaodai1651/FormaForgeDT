@@ -406,6 +406,8 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onHybridVaseGap: (value) => { store.set({ hybridVaseGapMm: Math.max(0, Math.min(16, value)) }); debouncedRebuild(); },
     onHybridBaseWallHeight: (value) => { store.set({ hybridBaseWallHeightMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridNeckLength: (value) => { store.set({ hybridNeckLengthMm: Math.max(0, Math.min(30, value)) }); debouncedRebuild(); },
+    onImportedNeckEnabled: (enabled) => { store.set({ hybridNeckEnabled: enabled }); debouncedRebuild(); },
+    onImportedNeckSmooth: (smooth) => { store.set({ hybridNeckSmooth: smooth }); debouncedRebuild(); },
     onHybridBaseImageOverlap: (value) => { store.set({ hybridBaseImageOverlapMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridNeckWidth: (value) => { store.set({ hybridNeckWidthMm: Math.max(8, Math.min(40, value)) }); debouncedRebuild(); },
     onFontSelect: (fontId) => { appData.currentFontId = fontId; if (store.get().importMode === 'blocks' || store.get().importMode === 'hybrid') reprocess(); else store.set({ status: 'Font changed.' }); },

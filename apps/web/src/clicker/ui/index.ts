@@ -317,6 +317,12 @@ export function createUi(
     if ($('importedHeadKeychain')) $<HTMLInputElement>('importedHeadKeychain').checked = state.keychain.enabled;
     if ($('importedHeadKeychainSizeRow')) $('importedHeadKeychainSizeRow')!.style.display = state.keychain.enabled ? '' : 'none';
     if ($('importedHeadKeychainOffsetRow')) $('importedHeadKeychainOffsetRow')!.style.display = state.keychain.enabled ? '' : 'none';
+    if ($('importedNeckEnabled')) $<HTMLInputElement>('importedNeckEnabled').checked = state.hybridNeckEnabled;
+    if ($('importedNeckSmooth')) $<HTMLInputElement>('importedNeckSmooth').checked = state.hybridNeckSmooth;
+    if ($('importedNeckLength')) $<HTMLInputElement>('importedNeckLength').value = String(state.hybridNeckLengthMm);
+    if ($('importedNeckLengthValue')) $('importedNeckLengthValue')!.textContent = `${state.hybridNeckLengthMm.toFixed(1)} mm`;
+    if ($('importedNeckSmoothRow')) $('importedNeckSmoothRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
+    if ($('importedNeckLengthRow')) $('importedNeckLengthRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
     const switchRow = $('showswitch')?.closest('.switch-row') as HTMLElement | null;
     if (switchRow) switchRow.style.display = importedBlockMode ? 'none' : '';
     const activeImportTab = importedBlockMode ? 'hybrid-imported' : state.importMode;

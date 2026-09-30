@@ -221,6 +221,8 @@ export function buildHybridClicker(
   // produces a taller solid that actually covers the switch.
   const baseWallHeight = clamp(params.hybridBaseWallHeightMm, 0, 20, 8);
   const headLength = clamp(params.hybridNeckLengthMm, 0, 30, 3);
+  const importedNeckEnabled = params.hybridNeckEnabled !== false;
+  const importedNeckSmooth = params.hybridNeckSmooth !== false;
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
   const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 17));
   const imagePadding = clamp(params.hybridImagePaddingMm, 0, 20, 1.2);
@@ -285,11 +287,12 @@ export function buildHybridClicker(
   if (useImportedBlock && importedBlockParts) {
     const main = importedBlockParts[importedBodyIndex];
     const bounds = partBounds(main);
+    const attachedHeadLength = importedNeckEnabled ? headLength : 0;
     const dx = vertical
       ? -(bounds.minX + bounds.maxX) / 2
-      : badgeBounds.max[0] + headLength - bounds.minX;
+      : badgeBounds.max[0] + attachedHeadLength - bounds.minX;
     const dy = vertical
-      ? badgeBounds.min[1] - headLength - bounds.maxY
+      ? badgeBounds.min[1] - attachedHeadLength - bounds.maxY
       : -(bounds.minY + bounds.maxY) / 2;
     const dz = -baseThickness - bounds.minZ;
     const moved = importedBlockParts.map((part) => {
@@ -300,22 +303,6 @@ export function buildHybridClicker(
       return { ...part, vertProperties: vertices, triVerts: new Uint32Array(part.triVerts) };
     });
     const mainMoved = moved[importedBodyIndex];
-    const mainMesh = new wasm.Mesh({ numProp: mainMoved.numProp, vertProperties: mainMoved.vertProperties, triVerts: mainMoved.triVerts });
-    mainMesh.merge();
-    let importedSolid = ctx.track(wasm.Manifold.ofMesh(mainMesh));
-    if (importedSolid.isEmpty()) throw new Error('The imported block body is not a closed printable mesh.');
-    // Some 3MF bodies include tiny inverted internal scraps (Ribbed.3mf has
-    // one below 0.5 mm³). They survive Boolean union as detached shells and
-    // make slicers treat an otherwise joined body as multiple components.
-    const shells = importedSolid.decompose().map((shell: any) => ctx.track(shell));
-    if (shells.length > 1) {
-      const largestVolume = Math.max(...shells.map((shell: any) => Math.abs(shell.volume())));
-      const printableShells = shells.filter((shell: any) => shell.volume() > Math.max(0.5, largestVolume * 0.00001));
-      if (printableShells.length && printableShells.length < shells.length) {
-        importedSolid = ctx.track(wasm.Manifold.compose(printableShells));
-        warnings.push(`Removed ${shells.length - printableShells.length} tiny or inverted shell(s) from the imported block.`);
-      }
-    }
     const mb = partBounds(mainMoved);
     const axis: 0 | 1 = vertical ? 1 : 0;
     const imageExtent = vertical ? badgeDepth : badgeWidth;
@@ -340,20 +327,29 @@ export function buildHybridClicker(
     const neckOutline: Ring = vertical
       ? [[imageLow, imageJoin], [imageHigh, imageJoin], [blockHigh, blockJoin], [blockLow, blockJoin]]
       : [[imageJoin, imageLow], [blockJoin, blockLow], [blockJoin, blockHigh], [imageJoin, imageHigh]];
-    const neckFootprint = ctx.track(new wasm.CrossSection([neckOutline], 'NonZero'));
-    // Join at the bottom of the imported shell, below its visible top and
-    // switch cavity. The image plate extends down to this same plane.
-    const neckBottom = mb.minZ;
-    const neckHeight = Math.min(2.4, Math.max(0.8, (mb.maxZ - mb.minZ) * 0.15));
-    const neck = ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]));
-    importedNeck = neck;
-    // Do not simplify a user's detailed mesh: even a 0.04 mm tolerance
-    // changes the flutes and switch well across the whole imported body.
-    carrier = ctx.track(importedSolid.add(neck));
-    moved.forEach((part, index) => {
-      if (index === importedBodyIndex) return;
-      importedPartsMoved.push(part);
-    });
+    if (importedNeckEnabled) {
+      let neckFootprint = ctx.track(new wasm.CrossSection([neckOutline], 'NonZero'));
+      if (importedNeckSmooth) {
+        // Round the plan-view shoulders without running a Boolean through any
+        // of the source 3MF meshes. A rounded outward offset creates smooth
+        // transitions at the neck corners; cap its radius to fit both ends.
+        const neckRun = Math.abs(blockJoin - imageJoin);
+        const neckWidth = Math.min(imageHigh - imageLow, blockHigh - blockLow);
+        const radius = Math.min(2.4, neckRun * 0.2, neckWidth * 0.2);
+        if (radius >= 0.25) {
+          neckFootprint = ctx.simp(ctx.track(neckFootprint.offset(radius, 'Round', 2, 24)));
+        }
+      }
+      // Keep the printable bridge as its own mesh so the imported body and
+      // every component preserve the exact triangles and silhouette from 3MF.
+      const neckBottom = mb.minZ;
+      const neckHeight = Math.min(2.4, Math.max(0.8, (mb.maxZ - mb.minZ) * 0.15));
+      importedNeck = ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]));
+      carrier = importedNeck;
+    } else {
+      carrier = null;
+    }
+    importedPartsMoved.push(...moved);
   } else {
     const carrierProfile = baseStyle === 'vase'
       ? vaseCarrier(
@@ -567,7 +563,7 @@ export function buildHybridClicker(
         const bottomThickness = Math.max(0.8, Math.min(6, baseThickness * 0.45));
         const lowerBase = ctx.track(wasm.Manifold.extrude(bottomSection, bottomThickness)
           .translate([0, 0, -baseThickness - bottomThickness]));
-        lowerBody = ctx.track(lowerBody.add(lowerBase));
+        lowerBody = lowerBody ? ctx.track(lowerBody.add(lowerBase)) : lowerBase;
       }
     }
   }
@@ -577,8 +573,11 @@ export function buildHybridClicker(
   // that plane, so the setting produces a visible printable relief.
   const imageTopScale = 1;
 
+  // Imported parts are appended with their final placements below. Keeping
+  // them out of this generated-block list avoids duplicate coplanar meshes,
+  // which cause z-fighting in preview and duplicate geometry in exported 3MF.
   const movableParts = useImportedBlock
-    ? importedPartsMoved
+    ? []
     : blockResult.parts.filter((part) => !(part.kind === 'body' && part.group === 'base'));
   for (const part of useImportedBlock ? [] : movableParts) {
     const slotIndex = partSlotIndex(part.name);
@@ -679,7 +678,10 @@ export function buildHybridClicker(
   parts.push(toPart(imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
   if (useImportedBlock && importedBlockParts) {
     parts.push(toPart(badgeBody, 'body', 'base', bodyColor, 'hybrid-image-backing'));
-    parts.push(toPart(lowerBody, 'body', 'base', importedBlockParts[importedBodyIndex].colorRgb, 'hybrid-continuous-base'));
+    if (lowerBody && !lowerBody.isEmpty()) {
+      parts.push(toPart(lowerBody, 'body', 'base', importedBlockParts[importedBodyIndex].colorRgb, 'hybrid-continuous-base'));
+    }
+    parts.push(...importedPartsMoved);
   } else {
     const mergedBody = ctx.track(badgeBody.add(lowerBody));
     parts.push(toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'));

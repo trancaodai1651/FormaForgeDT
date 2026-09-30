@@ -57,57 +57,50 @@ describe('Clicker imported block image attachment', () => {
     expect(whiteBacking.colorRgb).toEqual([240, 240, 240]);
     const skinZ = Array.from({ length: imageSkin.vertProperties.length / imageSkin.numProp }, (_, i) => imageSkin.vertProperties[i * imageSkin.numProp + 2]);
     expect(Math.max(...skinZ) - Math.min(...skinZ)).toBeLessThan(0.4);
-    if (fixture) {
-      expect(result.parts.some((part) => part.name === 'ribbed-part-2')).toBe(true);
-      expect(result.parts.some((part) => part.name === 'ribbed-part-3')).toBe(true);
-    }
-    const merged = result.parts.find((part) => part.name === 'hybrid-continuous-base')!;
-    expect(merged.triVerts.length).toBeGreaterThan(0);
+    const neck = result.parts.find((part) => part.name === 'hybrid-continuous-base')!;
+    expect(neck.triVerts.length).toBeGreaterThan(0);
     expect(result.parts.some((part) => part.name === 'hybrid-image-1')).toBe(true);
     expect(result.parts.every((part) => part.vertProperties.every(Number.isFinite))).toBe(true);
     expect(result.parts.reduce((sum, part) => sum + part.triVerts.length / 3, 0)).toBeLessThan(200_000);
-    const solid = wasm.Manifold.ofMesh(new wasm.Mesh({ numProp: merged.numProp, vertProperties: merged.vertProperties, triVerts: merged.triVerts }));
-    expect(solid.isEmpty()).toBe(false);
-    const bounds = solid.boundingBox();
-    expect(bounds.max[1] - bounds.min[1]).toBeGreaterThan(30);
-    if (fixture) {
-      // Away from the attachment edge, the imported shape should survive
-      // mesh repair. In particular, the upper switch well must not be filled
-      // by a neck even when the result remains a valid manifold.
-      const main = fixture.reduce((best, part) => part.triVerts.length > best.triVerts.length ? part : best);
-      const original = wasm.Manifold.ofMesh(new wasm.Mesh({
-        numProp: main.numProp,
-        vertProperties: main.vertProperties,
-        triVerts: main.triVerts,
-      }));
-      const ob = original.boundingBox();
-      const moved = original.translate([
-        -(ob.min[0] + ob.max[0]) / 2,
-        -(params.hybridImageSizeMm ?? 40) / 2 - (params.hybridImagePaddingMm ?? 0) - (params.hybridNeckLengthMm ?? 0) - ob.max[1],
-        -(params.hybridBaseThicknessMm ?? 9) - ob.min[2],
-      ]);
-      const mb = moved.boundingBox();
-      const awayFromNeck = wasm.Manifold.cube([
-        mb.max[0] - mb.min[0] + 2,
-        mb.max[1] - mb.min[1] - 4,
-        mb.max[2] - mb.min[2] + 2,
-      ]).translate([mb.min[0] - 1, mb.min[1] - 1, mb.min[2] - 1]);
-      const originalCore = moved.intersect(awayFromNeck);
-      const exportedCore = solid.intersect(awayFromNeck);
-      const topArea = wasm.Manifold.cube([
-        mb.max[0] - mb.min[0] + 2,
-        7,
-        mb.max[2] - mb.min[2] - 4,
-      ]).translate([mb.min[0] - 1, mb.max[1] - 6, mb.min[2] + 4]);
-      const originalTop = moved.intersect(topArea);
-      const exportedTop = solid.intersect(topArea);
-      expect(exportedCore.subtract(originalCore).volume()).toBeLessThan(20);
-      expect(originalCore.subtract(exportedCore).volume()).toBeLessThan(20);
-      expect(exportedTop.subtract(originalTop).volume()).toBeLessThan(20);
-      expect(originalTop.subtract(exportedTop).volume()).toBeLessThan(20);
-      originalTop.delete(); exportedTop.delete(); topArea.delete();
-      originalCore.delete(); exportedCore.delete(); awayFromNeck.delete(); moved.delete(); original.delete();
+    const neckSolid = wasm.Manifold.ofMesh(new wasm.Mesh({ numProp: neck.numProp, vertProperties: neck.vertProperties, triVerts: neck.triVerts }));
+    expect(neckSolid.isEmpty()).toBe(false);
+    const neckBounds = neckSolid.boundingBox();
+    expect(neckBounds.max[1] - neckBounds.min[1]).toBeGreaterThan(3);
+    expect(neckBounds.max[1] - neckBounds.min[1]).toBeLessThan(20);
+    const neckComponents = neckSolid.decompose();
+    expect(neckComponents).toHaveLength(1);
+    neckComponents.forEach((component: { delete(): void }) => component.delete());
+
+    // The imported meshes keep their source triangles and receive only one
+    // rigid translation for placement. This catches the slicer mismatch that
+    // came from rebuilding the imported body through a Boolean union.
+    expect(result.parts.filter((part) => imported.some((source) => source.name === part.name))).toHaveLength(imported.length);
+    for (const source of imported) {
+      const output = result.parts.find((part) => part.name === source.name)!;
+      expect(output).toBeDefined();
+      expect(output.numProp).toBe(source.numProp);
+      expect(output.triVerts).toEqual(source.triVerts);
+      expect(output.vertProperties.length).toBe(source.vertProperties.length);
+      const firstCoordinateDelta = [0, 1, 2].map((axis) => output.vertProperties[axis] - source.vertProperties[axis]);
+      for (let index = 0; index < source.vertProperties.length; index += source.numProp) {
+        for (let axis = 0; axis < 3; axis++) {
+          expect(output.vertProperties[index + axis] - source.vertProperties[index + axis]).toBeCloseTo(firstCoordinateDelta[axis], 4);
+        }
+      }
     }
+
+    const unsmoothed = buildHybridClicker(wasm, {} as never, { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } } as never, null, imageRegions, outline,
+      { ...params, hybridNeckSmooth: false } as BuildParams,
+      { vertical: true, bodyColorRgb: [240, 240, 240] } as never, imported);
+    const unsmoothedNeck = unsmoothed.parts.find((part) => part.name === 'hybrid-continuous-base')!;
+    expect(unsmoothedNeck.triVerts.length).toBeGreaterThan(0);
+    expect(unsmoothedNeck.triVerts.length).not.toBe(neck.triVerts.length);
+
+    const noNeck = buildHybridClicker(wasm, {} as never, { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } } as never, null, imageRegions, outline,
+      { ...params, hybridNeckEnabled: false } as BuildParams,
+      { vertical: true, bodyColorRgb: [240, 240, 240] } as never, imported);
+    expect(noNeck.parts.some((part) => part.name === 'hybrid-continuous-base')).toBe(false);
+    expect(noNeck.parts.filter((part) => imported.some((source) => source.name === part.name))).toHaveLength(imported.length);
     const larger = buildHybridClicker(wasm, {} as never, { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } } as never, null, [], outline,
       { ...params, hybridImageSizeMm: 75, hybridImageLateralOffsetMm: 15, hybridImageThicknessMm: 21, keychain: { ...params.keychain, enabled: true } } as BuildParams,
       { vertical: true, bodyColorRgb: [240, 240, 240] } as never, imported);
@@ -160,7 +153,7 @@ describe('Clicker imported block image attachment', () => {
     const model = strFromU8(archive['3D/3dmodel.model']);
     expect(model).toContain('displaycolor="#f0b967FF"');
     expect(model).toContain('displaycolor="#f58ea6FF"');
-    solid.delete();
+    neckSolid.delete();
     cube.delete();
   });
 });

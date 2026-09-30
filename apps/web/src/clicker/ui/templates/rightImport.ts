@@ -56,6 +56,10 @@ export const renderRightImport = () => `
       <small id="importedBlockModeStatus" class="hint-text" style="display:block; margin: 7px 0 12px;"></small>
       <div class="label">Block direction</div>
       <div class="tabs" id="importedBlockOrientation" role="tablist"><button class="tab" type="button" data-imported-orient="horizontal">Horizontal</button><button class="tab" type="button" data-imported-orient="vertical">Vertical</button></div>
+      <div class="label" style="margin-top: 12px;">Connection neck</div>
+      <div class="switch-row"><span class="switch-label">Enable neck</span><label class="toggle"><input id="importedNeckEnabled" type="checkbox" /><span class="slider"></span></label></div>
+      <div class="switch-row" id="importedNeckSmoothRow"><span class="switch-label">Smooth neck</span><label class="toggle"><input id="importedNeckSmooth" type="checkbox" /><span class="slider"></span></label></div>
+      <div class="prow-stacked" id="importedNeckLengthRow"><div class="prow-header"><label for="importedNeckLength">Neck length</label><output id="importedNeckLengthValue"></output></div><input id="importedNeckLength" type="range" min="0" max="30" step="0.5" /></div>
       <div class="label">Image head</div>
       <div class="prow-stacked"><div class="prow-header"><label for="importedHeadSize">Image size</label><output id="importedHeadSizeValue"></output></div><input id="importedHeadSize" type="range" min="30" max="140" step="1" /></div>
       <div class="prow-stacked"><div class="prow-header"><label for="importedHeadThickness">Image height / thickness</label><output id="importedHeadThicknessValue"></output></div><input id="importedHeadThickness" type="range" min="4" max="24" step="0.5" /></div>

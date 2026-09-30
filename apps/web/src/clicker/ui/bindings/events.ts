@@ -93,6 +93,9 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('importedHeadThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
   $('importedHeadLateral')?.addEventListener('input', (e: Event) => cb.onHybridImageLateralOffset(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychain')?.addEventListener('change', (e: Event) => cb.onKeychainToggle((e.target as HTMLInputElement).checked));
+  $('importedNeckEnabled')?.addEventListener('change', (e: Event) => cb.onImportedNeckEnabled((e.target as HTMLInputElement).checked));
+  $('importedNeckSmooth')?.addEventListener('change', (e: Event) => cb.onImportedNeckSmooth((e.target as HTMLInputElement).checked));
+  $('importedNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychainSize')?.addEventListener('input', (e: Event) => cb.onKeychainHoleDiameter(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychainOffset')?.addEventListener('input', (e: Event) => cb.onImportedKeychainOffset(+(e.target as HTMLInputElement).value));
   $('hybridImageThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));

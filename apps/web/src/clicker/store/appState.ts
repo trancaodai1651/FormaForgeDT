@@ -48,6 +48,8 @@ export const store = createStore<UiState>({
   hybridVaseGapMm: 0.6,
   hybridBaseWallHeightMm: 8,
   hybridNeckLengthMm: 3,
+  hybridNeckEnabled: true,
+  hybridNeckSmooth: true,
   hybridBaseImageOverlapMm: 7,
   hybridNeckWidthMm: 18,
   hybridKeycapSpacingMm: 3.5,

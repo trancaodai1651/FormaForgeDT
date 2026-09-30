@@ -175,6 +175,10 @@ export interface BuildParams {
   hybridBaseWallHeightMm?: number;
   /** Straight material before the first keycap; the carrier itself overlaps the image head. */
   hybridNeckLengthMm?: number;
+  /** Imported block neck is enabled by default for older saved projects. */
+  hybridNeckEnabled?: boolean;
+  /** Round the imported block neck shoulders in the XY plane. */
+  hybridNeckSmooth?: boolean;
   /** How far the straight carrier head penetrates into the image badge to hide its square corner. */
   hybridBaseImageOverlapMm?: number;
   /** Legacy neck width kept for project compatibility; the carrier now uses its full base width. */
