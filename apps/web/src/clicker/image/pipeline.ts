@@ -1,7 +1,7 @@
 // Image -> normalized RegionSet. Orchestrates matte + composite + clean + quantize + trace.
 import type { RgbaImage } from './decode';
 import { removeBackground, compositeOverMatte, cleanMask } from './matte';
-import { quantize } from './quantize';
+import { quantize, retainVisiblePaletteColors } from './quantize';
 import { traceRegions } from './trace';
 import { consolidateMultiColorPalette } from '../features/multiColor/segmentation';
 import type { RegionSet, RGB } from '../types';
@@ -16,6 +16,14 @@ export interface ProcessOptions {
   preserveDetail?: boolean;
   /** Automatically flatten noisy phone photos into a simplified 2D palette. */
   photoFlatten?: boolean;
+  /** Keep visibly different source colours instead of merging close families. */
+  preserveDistinctColors?: boolean;
+}
+
+export interface PreparedImagePalette {
+  quantized: ReturnType<typeof quantize>;
+  smoothing: number;
+  preserveDetail: boolean;
 }
 
 const PHOTO_SAMPLE_TARGET = 10000;
@@ -78,6 +86,18 @@ export function processImage(
   colorCount: number,
   opts: ProcessOptions = {},
 ): RegionSet {
+  const prepared = prepareImagePalette(img, colorCount, opts);
+  return traceRegions(prepared.quantized, prepared.smoothing, prepared.preserveDetail);
+}
+
+/** Prepare the exact palette and label map used by the image-to-geometry pipeline.
+ *  The upload wizard uses this same stage to show a faithful colour preview before
+ *  the model build starts. This function mutates `img`, just like processImage did. */
+export function prepareImagePalette(
+  img: RgbaImage,
+  colorCount: number,
+  opts: ProcessOptions = {},
+): PreparedImagePalette {
   const options = { ...opts };
   const shouldFlattenPhoto = options.photoFlatten !== false && isPhotoLikeImage(img);
   if (shouldFlattenPhoto) {
@@ -97,6 +117,12 @@ export function processImage(
   // filament into separate palette entries. In multi-color mode that would
   // create duplicate physical layers (for example yellow at the bottom and
   // again at the top), so consolidate near-identical colors before tracing.
-  const palette = colorCount > 1 ? consolidateMultiColorPalette(q) : q;
-  return traceRegions(palette, options.smoothing ?? 0.5, options.preserveDetail ?? true);
+  const palette = options.preserveDistinctColors
+    ? retainVisiblePaletteColors(q)
+    : colorCount > 1 && !options.customColors?.length ? consolidateMultiColorPalette(q) : q;
+  return {
+    quantized: palette,
+    smoothing: options.smoothing ?? 0.5,
+    preserveDetail: options.preserveDetail ?? true,
+  };
 }

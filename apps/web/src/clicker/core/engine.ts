@@ -203,11 +203,19 @@ export function reprocess() {
         height: sourceImage.height,
       };
       appData.regionSet = sameImageAsCustomBase
-        ? processImage(imgClone, processColorCount, { removeBg: true, smoothing: s.smoothing })
+        ? processImage(imgClone, processColorCount, {
+            removeBg: s.removeBg,
+            smoothing: s.smoothing,
+            customColors: appData.imageSource === 'raster' && s.imagePaletteColors.length ? s.imagePaletteColors : undefined,
+          })
         : processImage(imgClone, processColorCount, {
             removeBg: s.removeBg,
             smoothing: s.smoothing,
-            customColors: imageMultiColorMode && s.colorMode === 'limited' ? s.limitedColors : undefined,
+            customColors: appData.imageSource === 'raster'
+              ? (s.imagePaletteColors.length
+                ? s.imagePaletteColors
+                : imageMultiColorMode && s.colorMode === 'limited' ? s.limitedColors : undefined)
+              : undefined,
             photoFlatten: s.photoFlatten,
           });
     }

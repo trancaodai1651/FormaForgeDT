@@ -22,6 +22,20 @@ function defaultSwitchLayout(n: number, capWidthMm: number) {
 export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, statusEl: HTMLElement, viewer: any, screens: any, historyShortcuts: any) {
   
   // ðŸŸ¢ Cáº¥u hÃ¬nh UI cho Tool Clicker Generator
+  const openRasterWizard = (img: Awaited<ReturnType<typeof loadFileToImage>>) => {
+    appData.imageSource = 'raster';
+    store.set({ building: false, status: 'Preprocess your image…' });
+    runWizard({
+      baseImage: img,
+      photoFlatten: store.get().photoFlatten,
+      onCancel: () => store.set({ status: 'Ready.' }),
+      onComplete: (res) => {
+        appData.originalImage = res.adjusted;
+        store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, smoothing: res.smoothing, imagePaletteColors: res.imagePaletteColors, topThickness: Math.max(0.2, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], partOverrides: {}, baseColorOverride: null, componentHeights: {}, selectedParts: [] });
+        reprocess();
+      },
+    });
+  };
   const ui = createUi(sidebarLeft, sidebarRight, statusEl, {
     onBottomModeChange: (mode) => {
       store.set({ bottomBaseMode: mode });
@@ -60,6 +74,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
             appData.imageSource = 'svg';
             appData.originalImage = null;
             store.set({
+              imagePaletteColors: [],
               paletteOverrides: [],
               partOverrides: {},
               baseColorOverride: null,
@@ -73,26 +88,11 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       }
       store.set({ building: true, status: 'Reading imageâ€¦' });
       loadFileToImage(file).then(img => {
-        appData.imageSource = 'raster';
-        store.set({ building: false, status: 'Preprocess your imageâ€¦' });
-        runWizard({
-          baseImage: img, initialColorCount: store.get().colorCount,
-          onCancel: () => store.set({ status: 'Ready.' }),
-          onComplete: (res) => {
-            appData.originalImage = res.adjusted;
-            store.set({ removeBg: !res.preprocess.keepBackground, colorCount: res.colorCount, topThickness: Math.max(1, res.preprocess.thicknessMm), colorMode: res.colorMode, limitedColors: res.limitedColors || [], paletteOverrides: res.paletteOverrides || [], partOverrides: {}, baseColorOverride: null, componentHeights: {}, selectedParts: [] });
-            reprocess();
-          }
-        });
+        openRasterWizard(img);
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     
-    onSample: (load) => load().then(img => {
-      appData.imageSource = 'raster';
-      appData.originalImage = img;
-      store.set({ paletteOverrides: [], partOverrides: {}, baseColorOverride: null, componentHeights: {}, selectedParts: [] });
-      reprocess();
-    }),
+    onSample: (load) => load().then(openRasterWizard),
     onMultiColorToggle: (on) => {
       // Turning on Multi-color always enters the physical layer-stack mode.
       // Keep the legacy checkbox available for an explicit flat preview, but
@@ -100,7 +100,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       store.set({ multiColorEnabled: on, stackColorLayers: on ? true : store.get().stackColorLayers, componentHeights: {} });
       reprocess();
     },
-    onColorCount: (n) => { store.set({ colorCount: Math.max(2, Math.min(12, n)) }); debouncedReprocess(); },
+    onColorCount: (n) => { store.set({ colorCount: Math.max(1, Math.min(12, n)), imagePaletteColors: [] }); debouncedReprocess(); },
     onStackColorLayers: (on) => { store.set({ stackColorLayers: on, componentHeights: {} }); debouncedRebuild(); },
     onColorLayerHeight: (value) => { store.set({ colorLayerHeightMm: Math.max(0.2, Math.min(4, value)) }); debouncedRebuild(); },
     onColorLayerGap: (value) => { store.set({ colorLayerGapMm: Math.max(0, Math.min(2, value)) }); debouncedRebuild(); },

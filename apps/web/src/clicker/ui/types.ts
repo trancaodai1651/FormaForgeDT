@@ -20,7 +20,7 @@ export interface UiState {
   /** Image/Image + Blocks multi-color layer stack controls. */
   multiColorEnabled: boolean; stackColorLayers: boolean; colorLayerHeightMm: number; colorLayerGapMm: number;
   importMode: 'image' | 'svg' | 'icon' | 'text' | 'blocks' | 'hybrid'; currentIconName: string; colorMode: 'normal' | 'limited';
-  limitedColors: RGB[]; bodyColorRgb: RGB; paletteOverrides: RGB[]; baseColorOverride: RGB | null;
+  limitedColors: RGB[]; imagePaletteColors: RGB[]; bodyColorRgb: RGB; paletteOverrides: RGB[]; baseColorOverride: RGB | null;
   partOverrides: Record<string, RGB>; editMode: EditMode; edgeSettings: EdgeSetting[]; extrudeChamfer: boolean;
   separateLetters: boolean; extrudeHeight: number | null; componentHeights: Record<string, number>;
   blockSlots: BlockSlot[]; blockOrientation: 'horizontal' | 'vertical'; legendScale: number; legendBold: number;

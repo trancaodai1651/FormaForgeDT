@@ -15,7 +15,7 @@ export const renderLeftSettings = () => `
         <div class="field" id="colorCountField">
           <label for="ccount">Colors ${tip('How many distinct filament colors the image is split into. Each color becomes a separate part in the export.')}</label>
           <select id="ccount">
-            ${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option value="${n}">${n} Colors</option>`).join('')}
+            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option value="${n}">${n} Colors</option>`).join('')}
           </select>
         </div>
         <div class="prow-stacked" id="smoothingField">

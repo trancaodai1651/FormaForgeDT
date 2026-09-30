@@ -219,6 +219,53 @@ export function quantize(
   return { palette, indices, width, height };
 }
 
+/** Keep distinct visible colors for the image-preparation UI, absorbing only
+ *  sub-percent quantization noise into its nearest retained color. */
+export function retainVisiblePaletteColors(result: QuantizeResult, minimumCoverage = 0.01): QuantizeResult {
+  if (result.palette.length < 2) return result;
+  let retained = result.palette.map((entry, index) => index).filter((index) => result.palette[index].coverage >= minimumCoverage);
+  if (retained.length === 0) {
+    const largest = result.palette.reduce((best, entry, index) => entry.coverage > result.palette[best].coverage ? index : best, 0);
+    retained = [largest];
+  }
+
+  const retainedLabs = retained.map((index) => srgbToOklab(result.palette[index].rgb));
+  const oldToRetained = new Int16Array(result.palette.length);
+  const coverage = new Float64Array(retained.length);
+  for (let oldIndex = 0; oldIndex < result.palette.length; oldIndex++) {
+    const old = result.palette[oldIndex];
+    let bestIndex = retained.indexOf(oldIndex);
+    if (bestIndex < 0) {
+      const lab = srgbToOklab(old.rgb);
+      let bestDistance = Infinity;
+      for (let candidate = 0; candidate < retained.length; candidate++) {
+        const target = retainedLabs[candidate];
+        const dl = lab[0] - target[0];
+        const da = lab[1] - target[1];
+        const db = lab[2] - target[2];
+        const distance = dl * dl + da * da + db * db;
+        if (distance < bestDistance) { bestDistance = distance; bestIndex = candidate; }
+      }
+    }
+    oldToRetained[oldIndex] = bestIndex;
+    coverage[bestIndex] += old.coverage;
+  }
+
+  const order = retained.map((_, index) => index).sort((a, b) => coverage[b] - coverage[a]);
+  const retainedToSorted = new Int16Array(retained.length);
+  order.forEach((oldIndex, sortedIndex) => { retainedToSorted[oldIndex] = sortedIndex; });
+  const palette = order.map((retainedIndex) => ({
+    rgb: [...result.palette[retained[retainedIndex]].rgb] as RGB,
+    coverage: coverage[retainedIndex],
+  }));
+  const indices = new Int16Array(result.indices.length);
+  for (let pixel = 0; pixel < indices.length; pixel++) {
+    const index = result.indices[pixel];
+    indices[pixel] = index < 0 ? -1 : retainedToSorted[oldToRetained[index]];
+  }
+  return { ...result, palette, indices };
+}
+
 function boxStats(box: Box, R: number[], G: number[], B: number[]) {
   let rmin = 255;
   let rmax = 0;

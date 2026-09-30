@@ -83,6 +83,7 @@ export const store = createStore<UiState>({
   currentIconName: 'circle',
   colorMode: 'normal',
   limitedColors: [],
+  imagePaletteColors: [],
   bodyColorRgb: [240, 240, 240] as RGB,
   paletteOverrides: [],
   baseColorOverride: null,
