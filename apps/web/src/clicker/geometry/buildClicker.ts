@@ -22,7 +22,9 @@ export function buildClicker(
   const border = Math.max(0, params.imageMargin);
   const switchClear = socketDim + 3.0, minCap = switchClear + 1.0;
 
-  let imageScale = Math.max(2, params.capWidthMm - 2 * border);
+  const baseImageScale = Math.max(2, params.capWidthMm - 2 * border);
+  const designScale = params.baseShape === 'outline' ? 1 : Math.max(0.25, Math.min(1.5, (params.designSizePercent ?? 100) / 100));
+  let imageScale = baseImageScale * designScale;
   let imgW = (maxX - minX || 1) * imageScale, imgH = (maxY - minY || 1) * imageScale;
   if (params.baseShape === 'outline' && Math.min(imgW, imgH) + 2 * border < minCap) {
     imageScale *= (minCap - 2 * border) / Math.min(imgW, imgH);
@@ -54,9 +56,11 @@ export function buildClicker(
         default: return ctx.track(ctx.wasm.CrossSection.circle(rr, 160));
       }
     };
-    let hi = Math.max(1, Math.hypot(Math.max(imgW / 2 + border, minCap / 2), Math.max(imgH / 2 + border, minCap / 2)));
+    const baseImgW = params.lockBaseSize ? imgW / designScale : imgW;
+    const baseImgH = params.lockBaseSize ? imgH / designScale : imgH;
+    let hi = Math.max(1, Math.hypot(Math.max(baseImgW / 2 + border, minCap / 2), Math.max(baseImgH / 2 + border, minCap / 2)));
     const unit = genShape(1);
-    const fits = (k: number) => sectionIsEmpty(ctx.track(ctx.track(ctx.wasm.CrossSection.square([(2 * Math.max(imgW / 2 + border, minCap / 2)) / k, (2 * Math.max(imgH / 2 + border, minCap / 2)) / k], true)).subtract(unit)));
+    const fits = (k: number) => sectionIsEmpty(ctx.track(ctx.track(ctx.wasm.CrossSection.square([(2 * Math.max(baseImgW / 2 + border, minCap / 2)) / k, (2 * Math.max(baseImgH / 2 + border, minCap / 2)) / k], true)).subtract(unit)));
     for (let i = 0; i < 40 && !fits(hi); i++) hi *= 2;
     let lo = 1e-3; for (let i = 0; i < 26; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
     plate = genShape(hi);
@@ -307,7 +311,8 @@ export function buildClicker(
     : null;
   const monoLevel = monoReference ? componentLevel(monoReference) : 0;
   const useSolidMonochromeTop = Boolean(
-    monoReference
+    rasterImageMode
+    && monoReference
     && !monochromeImageRelief
     && regions.every((r) => (
       colorDistanceSq(r.filamentRgb, monoReference.filamentRgb) <= 9
@@ -494,6 +499,24 @@ export function buildClicker(
   let body = applyEdges(ctx, ctx.extrudeAt(bodyFootprint, bodyTopZ - bodyBottomZ, bodyBottomZ, sectionIsEmpty), params.edgeSettings, bodyFootprint, bodyBottomZ, bodyTopZ);
 
   body = ctx.track(body.subtract(ctx.extrudeAt(wellFootprint, bodyTopZ - wellFloorZ + 1, wellFloorZ, sectionIsEmpty)));
+  if (params.hollowBase) {
+    // Open an underside cavity while preserving a perimeter wall and the
+    // reinforced columns below every MX pocket. Keep a solid web between the
+    // underside cavity and the upper button well.
+    const innerFootprint = ctx.track(bodyFootprint.offset(-2.0, 'Round', 2, 32));
+    if (!sectionIsEmpty(innerFootprint)) {
+      let switchSupports = ctx.track(ctx.wasm.CrossSection.circle(0.1, 12));
+      for (const sw of applied) {
+        const support = ctx.track(roundedRect(ctx, switchClear + 5, switchClear + 5, 3).translate([sw.x, sw.y]));
+        switchSupports = ctx.track(switchSupports.add(support));
+      }
+      const cavityFootprint = ctx.simp(ctx.track(innerFootprint.subtract(switchSupports)));
+      const cavityTopZ = Math.min(wellFloorZ - 1.6, bodyTopZ - 2.0);
+      if (!sectionIsEmpty(cavityFootprint) && cavityTopZ > bodyBottomZ + 0.6) {
+        body = ctx.track(body.subtract(ctx.extrudeAt(cavityFootprint, cavityTopZ - bodyBottomZ + 0.2, bodyBottomZ - 0.2, sectionIsEmpty)));
+      }
+    }
+  }
 
   // --- 6. Đúc Mảng Màu Hạt Cà Phê ---
   if (params.bottomRegions && params.bottomRegions.length > 0 && customBasePlate) {
@@ -574,8 +597,10 @@ export function buildClicker(
   // the switch is seated in the small pocket at the bottom, rather than cut
   // into the upper image cavity or floating through the base.
   const socketSeatZ = wellFloorZ;
+  const pocketScale = Math.max(0.9, Math.min(1.1, 1 + (params.switchPocketFitPercent ?? 0) / 100));
   for (const sw of applied) {
-    const rotatedSocket = Math.abs(sw.rotation) > 0.001 ? ctx.track(socket.rotate([0, 0, sw.rotation])) : socket;
+    const sizedSocket = Math.abs(pocketScale - 1) > 1e-5 ? ctx.track(socket.scale([pocketScale, pocketScale, 1])) : socket;
+    const rotatedSocket = Math.abs(sw.rotation) > 0.001 ? ctx.track(sizedSocket.rotate([0, 0, sw.rotation])) : sizedSocket;
     body = ctx.track(body.subtract(ctx.track(rotatedSocket.translate([sw.x, sw.y, socketSeatZ]))));
   }
 

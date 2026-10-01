@@ -12,6 +12,7 @@ type ToolCard = {
 };
 
 const tools: ToolCard[] = [
+  { to: '/Clicker-Generator', label: 'Clicker Generator', description: 'Prepare images and create printable clicker models.', mark: 'CG', icon: WandSparkles },
   { to: '/clicker', label: 'Clicker Lab', description: 'Turn images, SVG, icons and text into printable models.', mark: 'C', icon: WandSparkles },
   { to: '/mekey-studio', label: 'MeKey Studio', description: 'Build custom keychain text and export ready geometry.', mark: 'MK', icon: KeyRound },
   { to: '/multi-color', label: 'Multi Color', description: 'Split a flat-colour image into printable layers.', mark: 'MC', icon: Palette },

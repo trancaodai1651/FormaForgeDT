@@ -1,0 +1,52 @@
+.reference-clicker-page {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #192130;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.reference-clicker-page .reference-utility-bar {
+  box-sizing: border-box;
+  flex: 0 0 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 16px;
+  border-bottom: 1px solid #d5dbe5;
+  background: #fff;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+.reference-utility-group { display: flex; align-items: center; gap: 8px; }
+.reference-utility-group > span { color: #667084; }
+.reference-utility-bar a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid #d9dfe9;
+  border-radius: 7px;
+  background: #fff;
+  color: #222a38;
+  text-decoration: none;
+  font-weight: 600;
+}
+.reference-utility-bar a:hover { filter: brightness(.96); }
+.reference-utility-bar .reference-license,
+.reference-utility-bar .reference-kofi { border-color: #f44149; background: #f44149; color: #fff; }
+.reference-utility-bar .reference-boost { border-color: #16a95f; background: #16a95f; color: #fff; }
+.reference-clicker-page .clicker-workspace-shell {
+  flex: 1 1 auto;
+  height: calc(100dvh - 46px);
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+.reference-clicker-page .clicker-runtime { height: 100%; min-height: 0; }
+@media (max-width: 720px) {
+  .reference-clicker-page .reference-utility-bar { padding-inline: 8px; font-size: 11px; }
+}

@@ -6,6 +6,7 @@ import { bootstrapImageVectorizer } from './features/imageVectorizer/controller'
 import { bootstrapMultiColor } from './features/multiColor/controller';
 import { getClickerDocument, resetClickerRoot, setClickerRoot } from './runtime';
 import { setClickerLanguage, type ClickerLanguage } from './i18n';
+import { store } from './store/appState';
 
 export type ClickerMode = 'clicker' | 'flex-keychain' | 'flex-organizer' | 'svg-layers' | 'image-vectorizer' | 'multi-color';
 
@@ -19,18 +20,23 @@ function renderClickerShell() {
   </section>`;
 }
 
-export function bootstrapClickerWorkspace(root: HTMLElement, mode: ClickerMode = 'clicker', language: ClickerLanguage = 'en') {
+export function bootstrapClickerWorkspace(root: HTMLElement, mode: ClickerMode = 'clicker', language: ClickerLanguage = 'en', presentation: 'studio' | 'reference' = 'studio') {
   setClickerLanguage(language);
   setClickerRoot(root);
   root.innerHTML = '';
   getClickerDocument().documentElement.dataset.embed = 'formaforge';
+  getClickerDocument().documentElement.dataset.presentation = presentation;
   if (mode === 'flex-keychain') return bootstrapFlexKeychain();
   if (mode === 'flex-organizer') return bootstrapFlexOrganizer();
   if (mode === 'svg-layers') return bootstrapSvgLayers();
   if (mode === 'image-vectorizer') return bootstrapImageVectorizer();
   if (mode === 'multi-color') return bootstrapMultiColor();
+  if (presentation === 'reference') {
+    getClickerDocument().documentElement.dataset.theme = 'light';
+    store.set({ view: 'exploded', smoothing: 0.1, multiColorEnabled: false, capWidthMm: 35, imageMargin: 1.2, borderWidth: 2.6 });
+  }
   root.innerHTML = renderClickerShell();
-  return bootstrapApp();
+  return bootstrapApp(presentation === 'reference');
 }
 
 export function unmountClickerWorkspace(root: HTMLElement) {

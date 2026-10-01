@@ -7,6 +7,7 @@ import flexOrganizerStyle from './clicker/features/flexOrganizer/styles.css?inli
 import svgLayersStyle from './clicker/features/svgLayers/styles.css?inline';
 import imageVectorizerStyle from './clicker/features/imageVectorizer/styles.css?inline';
 import multiColorStyle from './clicker/features/multiColor/styles.css?inline';
+import referenceStyle from './pages/clicker/reference.css?inline';
 import type { ClickerLanguage } from './clicker/i18n';
 
 type ClickerWorkspaceLabels = {
@@ -82,7 +83,7 @@ button.secondary:hover, .utility-btn:hover { border-color: rgba(240,185,103,.65)
 .only-light { display: none !important; }
 `;
 
-function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: ClickerLanguage }) {
+function ClickerRuntime({ mode, language, presentation = 'studio' }: { mode: ClickerMode; language: ClickerLanguage; presentation?: 'studio' | 'reference' }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,13 +92,13 @@ function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: Click
     const shadow = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
     shadow.replaceChildren();
     const style = document.createElement('style');
-    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${svgLayersStyle}\n${imageVectorizerStyle}\n${multiColorStyle}\n${runtimeOverrides}`;
+    style.textContent = `${clickerStyle}\n${flexKeychainStyle}\n${flexOrganizerStyle}\n${svgLayersStyle}\n${imageVectorizerStyle}\n${multiColorStyle}\n${runtimeOverrides}\n${presentation === 'reference' ? referenceStyle : ''}`;
     const surface = document.createElement('div');
     surface.className = 'clicker-surface';
     shadow.append(style, surface);
     let controller: { destroy?: () => void } | void;
     try {
-      controller = bootstrapClickerWorkspace(surface, mode, language) as { destroy?: () => void } | void;
+      controller = bootstrapClickerWorkspace(surface, mode, language, presentation) as { destroy?: () => void } | void;
     } catch (error) {
       surface.textContent = error instanceof Error ? error.message : String(error);
     }
@@ -106,13 +107,13 @@ function ClickerRuntime({ mode, language }: { mode: ClickerMode; language: Click
       unmountClickerWorkspace(surface);
       shadow.replaceChildren();
     };
-  }, [mode, language]);
+  }, [mode, language, presentation]);
 
   return <div className="clicker-runtime" ref={hostRef} />;
 }
 
-export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true, language = 'en' }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean; language?: ClickerLanguage }) {
+export function ClickerWorkspacePage({ labels, initialMode = 'clicker', showModeTabs = true, language = 'en', presentation = 'studio' }: { labels: ClickerWorkspaceLabels; initialMode?: ClickerMode; showModeTabs?: boolean; language?: ClickerLanguage; presentation?: 'studio' | 'reference' }) {
   const [mode, setMode] = useState<ClickerMode>(initialMode);
   const modes: Array<[ClickerMode, string]> = [['clicker', labels.clicker], ['flex-keychain', labels.flexKeychain], ['flex-organizer', labels.flexOrganizer], ['svg-layers', labels.svgLayers], ['image-vectorizer', labels.imageVectorizer], ['multi-color', labels.multiColor]];
-  return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={`${mode}-${language}`} mode={mode} language={language} /></div>;
+  return <div className={`clicker-workspace-shell ${showModeTabs ? '' : 'clicker-workspace-shell-standalone'}`}>{showModeTabs && <div className="clicker-mode-tabs" role="tablist">{modes.map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>}<ClickerRuntime key={`${mode}-${language}-${presentation}`} mode={mode} language={language} presentation={presentation} /></div>;
 }

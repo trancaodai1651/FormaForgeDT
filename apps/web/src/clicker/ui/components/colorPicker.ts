@@ -98,7 +98,7 @@ export function renderPalette(palette: PaletteEntry[], bodyColorRgb: RGB, cb: Ui
 
   const bodyRow = getClickerDocument().createElement('div');
   bodyRow.className = 'fil-row body-row';
-  bodyRow.innerHTML = `<span class="slot-no slot-body">Body</span><span class="swatch" style="background:#787c82; opacity: 0.5;" title="default body color"></span><span class="arrow">â†’</span><button type="button" class="fil-chip" title="${rgbText(bodyColorRgb)}" style="background:${rgbHex(bodyColorRgb)}"></button><span class="rgb-code">${rgbText(bodyColorRgb)}</span>`;
+  bodyRow.innerHTML = `<span class="slot-no slot-body">Body</span><span class="swatch" style="background:#787c82; opacity: 0.5;" title="default body color"></span><span class="arrow">→</span><button type="button" class="fil-chip" title="${rgbText(bodyColorRgb)}" style="background:${rgbHex(bodyColorRgb)}"></button><span class="rgb-code">${rgbText(bodyColorRgb)}</span>`;
   
   const bodyChip = bodyRow.querySelector('.fil-chip')!;
   bodyChip.addEventListener('click', (e) => {
@@ -118,7 +118,7 @@ export function renderPalette(palette: PaletteEntry[], bodyColorRgb: RGB, cb: Ui
         ? `<span class="layer-order-buttons"><button type="button" data-layer-order="up" data-layer-index="${i}" title="Move layer up" aria-label="Move layer ${i + 1} up">▲</button><button type="button" data-layer-order="down" data-layer-index="${i}" title="Move layer down" aria-label="Move layer ${i + 1} down">▼</button></span>`
         : '';
       const layerPosition = showLayerControls ? (i === 0 ? ' · Bottom' : i === palette.length - 1 ? ' · Top' : '') : '';
-      row.innerHTML = `<span class="slot-no">${showLayerControls ? `Layer ${i + 1}${layerPosition}` : i + 1}</span><span class="swatch" style="background:${rgbHex(entry.quantRgb)}" title="${rgbText(entry.quantRgb)}"></span><span class="arrow">â†’</span><button type="button" class="fil-chip" title="${rgbText(entry.filamentRgb)}" style="background:${rgbHex(entry.filamentRgb)}"></button><span class="rgb-code">${rgbText(entry.filamentRgb)}</span>${layerControls}`;
+      row.innerHTML = `<span class="slot-no">${showLayerControls ? `Layer ${i + 1}${layerPosition}` : i + 1}</span><span class="swatch" style="background:${rgbHex(entry.quantRgb)}" title="${rgbText(entry.quantRgb)}"></span><span class="arrow">→</span><button type="button" class="fil-chip" title="${rgbText(entry.filamentRgb)}" style="background:${rgbHex(entry.filamentRgb)}"></button><span class="rgb-code">${rgbText(entry.filamentRgb)}</span>${layerControls}`;
       
       const chip = row.querySelector('.fil-chip')!;
       chip.addEventListener('click', (e) => {

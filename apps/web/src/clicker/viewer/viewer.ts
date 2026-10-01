@@ -49,6 +49,8 @@ export interface Viewer {
   zoom(scale: number): void;
   /** Re-frame the generated assembly using its current bounds. */
   resetCamera(): void;
+  /** Set an isometric camera tilt while keeping the orbit target and distance. */
+  setCameraElevation(degrees: number): void;
   /** Match CAD top/orbit modes while preserving the current model bounds. */
   setOrbitMode(enabled: boolean): void;
   /** Override the shared grid palette for a page-specific workspace. */
@@ -58,7 +60,7 @@ export interface Viewer {
   /** Frame a known physical footprint, such as a printer bed. */
   frameSize(width: number, depth: number, height?: number): void;
   /** Draw a dimensionally accurate printer bed behind the generated parts. */
-  setPrintBed(width: number, depth: number, visible: boolean): void;
+  setPrintBed(width: number, depth: number, visible: boolean, finish?: 'plain' | 'textured'): void;
   setReferenceRendering(enabled: boolean): void;
   dispose(): void;
 }
@@ -120,6 +122,7 @@ export function createViewer(container: HTMLElement): Viewer {
   // index in userData so a raycast hit maps straight back to the part/material.
   const partMeshes: THREE.Mesh[] = [];
   const bounds = new THREE.Vector3(40, 40, 40);
+  let cameraFrameHeight = bounds.z;
   let sectionAxis: SectionAxis = 'y';
   let sectionPos = 0;
 
@@ -158,6 +161,31 @@ export function createViewer(container: HTMLElement): Viewer {
   let gridVisible = true;
   const printBedGroup = new THREE.Group();
   scene.add(printBedGroup);
+  let texturedBed: THREE.CanvasTexture | null = null;
+  function getTexturedBed() {
+    if (texturedBed) return texturedBed;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 512;
+    const context = canvas.getContext('2d')!;
+    const image = context.createImageData(512, 512);
+    let seed = 912381;
+    for (let pixel = 0; pixel < 512 * 512; pixel++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+      const grain = (seed >>> 24) % 45;
+      const shade = grain < 4 ? 67 + grain * 3 : 109 + grain / 3;
+      const offset = pixel * 4;
+      image.data[offset] = shade;
+      image.data[offset + 1] = shade + 2;
+      image.data[offset + 2] = shade + 6;
+      image.data[offset + 3] = 255;
+    }
+    context.putImageData(image, 0, 0);
+    texturedBed = new THREE.CanvasTexture(canvas);
+    texturedBed.colorSpace = THREE.SRGBColorSpace;
+    texturedBed.wrapS = texturedBed.wrapT = THREE.RepeatWrapping;
+    texturedBed.repeat.set(4, 4);
+    return texturedBed;
+  }
   function rebuildGrid(theme: string, z: number) {
     if (grid) scene.remove(grid);
     gridZ = z;
@@ -252,6 +280,11 @@ export function createViewer(container: HTMLElement): Viewer {
     controls.update();
   }
 
+  function generatedFrameSize() {
+    cameraFrameHeight = bounds.z + (viewMode === 'exploded' ? explodeOffset : 0);
+    return new THREE.Vector3(bounds.x, bounds.y, cameraFrameHeight);
+  }
+
   function frameCenteredSize(
     size: THREE.Vector3,
     preserveCamera: boolean,
@@ -271,12 +304,21 @@ export function createViewer(container: HTMLElement): Viewer {
       : new THREE.Vector3(1, -1, 0.75).normalize();
     const verticalFov = THREE.MathUtils.degToRad(camera.fov);
     const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(camera.aspect, 0.1));
-    const limitingFov = Math.max(0.2, Math.min(verticalFov, horizontalFov));
-    // Fit against the largest projected dimension instead of Vector3.length().
-    // This keeps long Image + Blocks products at a useful scale and prevents a
-    // rebuild from making them look artificially flattened or tiny.
-    const halfExtent = Math.max(size.x, size.y, size.z) / 2;
-    const fittedDistance = Math.max(1, halfExtent / Math.tan(limitingFov / 2) * 1.22);
+    // Fit the *projected* box, including the depth of its nearest corner.
+    // A tall exploded assembly viewed at an angle projects much farther than
+    // any one of its X/Y/Z dimensions and was clipping its top off screen.
+    const up = camera.up.clone().addScaledVector(direction, -camera.up.dot(direction));
+    if (up.lengthSq() < 0.0001) up.set(0, 1, 0).addScaledVector(direction, -direction.y);
+    up.normalize();
+    const right = new THREE.Vector3().crossVectors(direction, up).normalize();
+    const projectedHalf = (axis: THREE.Vector3) =>
+      (Math.abs(axis.x) * size.x + Math.abs(axis.y) * size.y + Math.abs(axis.z) * size.z) / 2;
+    const nearCorner = projectedHalf(direction);
+    const aspectRatio = Math.max(size.x, size.y) / Math.max(1, Math.min(size.x, size.y));
+    const depthAllowance = aspectRatio > 2.5 ? 0.75 : 0.35;
+    const fittedDistance = Math.max(1,
+      (Math.max(projectedHalf(right) / Math.tan(horizontalFov / 2), projectedHalf(up) / Math.tan(verticalFov / 2)) + nearCorner * depthAllowance) * 1.07,
+    );
     const distance = preserveCamera ? Math.max(previousDistance, fittedDistance) : fittedDistance;
     controls.target.copy(target);
     camera.position.copy(target).add(direction.multiplyScalar(distance));
@@ -348,7 +390,7 @@ export function createViewer(container: HTMLElement): Viewer {
   function setParts(parts: ClickerPart[], preserveCamera = false, fastNormals = false) {
     const previousCamera = camera.position.clone();
     const previousOffset = previousCamera.sub(controls.target);
-    const previousCenter = new THREE.Vector3(0, 0, Math.max(0, bounds.z / 2));
+    const previousCenter = new THREE.Vector3(0, 0, Math.max(0, cameraFrameHeight / 2));
     const previousPan = controls.target.clone().sub(previousCenter);
     clearPlaceholder();
     clearGroup(capGroup);
@@ -394,13 +436,14 @@ export function createViewer(container: HTMLElement): Viewer {
     explodeOffset = size.z * 0.8 + 10;
     updateSwitchSeat();
     applyView();
+    const frameSize = generatedFrameSize();
 
     // Drop the grid just under the model's bottom (which lands at z = 0) so the
     // solid base occludes it instead of z-fighting with the coplanar bottom face.
     const activeTheme = getClickerDocument().documentElement.getAttribute('data-theme') || 'dark';
     rebuildGrid(activeTheme, -GRID_GAP);
 
-    if (previewSource === 'generated') frameCenteredSize(size, preserveCamera, previousOffset, previousPan);
+    if (previewSource === 'generated') frameCenteredSize(frameSize, preserveCamera, previousOffset, previousPan);
 
   }
 
@@ -442,6 +485,9 @@ export function createViewer(container: HTMLElement): Viewer {
   function setView(mode: ViewMode) {
     viewMode = mode;
     applyView();
+    if (previewSource === 'generated' && partMeshes.length > 0) {
+      frameCenteredSize(generatedFrameSize(), false, camera.position.clone().sub(controls.target));
+    }
   }
 
   // Remove the switch meshes from the group WITHOUT disposing the geometry/material â€”
@@ -557,7 +603,7 @@ export function createViewer(container: HTMLElement): Viewer {
     root.visible = true;
     previewSource = 'generated';
     resetImportedModelTransform();
-    frameCenteredSize(bounds, false, camera.position.clone().sub(controls.target));
+    frameCenteredSize(generatedFrameSize(), false, camera.position.clone().sub(controls.target));
   }
 
   function setImportedModelColor(hex: string) {
@@ -575,7 +621,7 @@ export function createViewer(container: HTMLElement): Viewer {
     const imported = previewSource === 'imported';
     importedRoot.visible = imported;
     root.visible = !imported;
-    frameCenteredSize(imported ? importedBounds : bounds, false, camera.position.clone().sub(controls.target));
+    frameCenteredSize(imported ? importedBounds : generatedFrameSize(), false, camera.position.clone().sub(controls.target));
   }
 
   async function importModel(file: File): Promise<ImportedModelInfo> {
@@ -886,7 +932,18 @@ export function createViewer(container: HTMLElement): Viewer {
   }
   function resetCamera() {
     if (referenceRendering) setOrbitMode(orbitMode);
-    else frameCenteredSize(bounds, false);
+    else frameCenteredSize(generatedFrameSize(), false);
+  }
+  function setCameraElevation(degrees: number) {
+    const offset = camera.position.clone().sub(controls.target);
+    const distance = offset.length();
+    if (!Number.isFinite(distance) || distance < 0.001) return;
+    const horizontal = Math.hypot(offset.x, offset.y);
+    const angle = THREE.MathUtils.degToRad(Math.max(5, Math.min(85, degrees)));
+    const x = horizontal > 0.001 ? offset.x / horizontal : Math.SQRT1_2;
+    const y = horizontal > 0.001 ? offset.y / horizontal : -Math.SQRT1_2;
+    camera.position.copy(controls.target).add(new THREE.Vector3(x * distance * Math.cos(angle), y * distance * Math.cos(angle), distance * Math.sin(angle)));
+    controls.update();
   }
   function setOrbitMode(enabled: boolean) {
     orbitMode = enabled;
@@ -915,7 +972,7 @@ export function createViewer(container: HTMLElement): Viewer {
     const direction = enabled
       ? new THREE.Vector3(1, -1, 0.72)
       : new THREE.Vector3(0, 0, 1);
-    frameCenteredSize(bounds, false, direction);
+    frameCenteredSize(generatedFrameSize(), false, direction);
   }
   function setGridPalette(accent: number, secondary: number) {
     gridAccentOverride = accent;
@@ -929,7 +986,7 @@ export function createViewer(container: HTMLElement): Viewer {
   function frameSize(width: number, depth: number, height = 10) {
     frameCenteredSize(new THREE.Vector3(width, depth, height), false);
   }
-  function setPrintBed(width: number, depth: number, visible: boolean) {
+  function setPrintBed(width: number, depth: number, visible: boolean, finish: 'plain' | 'textured' = 'plain') {
     for (const child of printBedGroup.children) {
       if (child instanceof THREE.LineSegments) {
         child.geometry.dispose();
@@ -944,7 +1001,7 @@ export function createViewer(container: HTMLElement): Viewer {
     const safeDepth = Math.max(1, depth);
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(safeWidth, safeDepth),
-      new THREE.MeshBasicMaterial({ color: 0xe8e5e1, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ color: finish === 'textured' ? 0xffffff : 0xe8e5e1, map: finish === 'textured' ? getTexturedBed() : null, side: THREE.DoubleSide }),
     );
     plane.position.z = -GRID_GAP;
     plane.renderOrder = -3;
@@ -960,7 +1017,7 @@ export function createViewer(container: HTMLElement): Viewer {
     addLine(-safeWidth / 2, safeDepth / 2, -safeWidth / 2, -safeDepth / 2);
     const lineGeometry = new THREE.BufferGeometry();
     lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    const lines = new THREE.LineSegments(lineGeometry, new THREE.LineBasicMaterial({ color: 0xbdb7b0, transparent: true, opacity: 0.52 }));
+    const lines = new THREE.LineSegments(lineGeometry, new THREE.LineBasicMaterial({ color: finish === 'textured' ? 0x8d9198 : 0xbdb7b0, transparent: true, opacity: finish === 'textured' ? 0.28 : 0.52 }));
     lines.renderOrder = -2;
     printBedGroup.add(lines);
   }
@@ -1003,6 +1060,7 @@ export function createViewer(container: HTMLElement): Viewer {
     clearGroup(capGroup);
     clearGroup(bodyGroup);
     setPrintBed(1, 1, false);
+    texturedBed?.dispose();
     clearSwitchMeshes();
     clearImportedModel();
     switchGeometry?.dispose();
@@ -1044,6 +1102,7 @@ export function createViewer(container: HTMLElement): Viewer {
     clearHighlight,
     zoom,
     resetCamera,
+    setCameraElevation,
     setOrbitMode,
     setGridPalette,
     setGridVisible,

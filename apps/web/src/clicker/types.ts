@@ -188,6 +188,10 @@ export interface BuildParams {
   /** Horizontal clearance between a keycap footprint and its shallow base pocket. */
   hybridKeycapClearanceMm?: number;
   imageMargin: number;
+  designSizePercent?: number;
+  lockBaseSize?: boolean;
+  hollowBase?: boolean;
+  switchPocketFitPercent?: number;
   borderWidth: number;
   capProud: number;
   tolerance: number;

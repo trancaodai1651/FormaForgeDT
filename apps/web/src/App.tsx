@@ -14,6 +14,7 @@ import { SplitThreeMfPage } from './pages/split-3mf';
 import { MekeyStudioPage } from './pages/mekey-studio';
 import { PublicToolsPage } from './pages/public-tools';
 import { DownloadsPage } from './pages/downloads';
+import { ReferenceClickerPage } from './pages/clicker/ReferenceClickerPage';
 
 function PublicAdminTool({ mode }: { mode: Parameters<typeof AdminToolPage>[0]['mode'] }) {
   return <AdminToolPage mode={mode} publicAccess />;
@@ -30,6 +31,7 @@ function AppFrame() {
       <Route path="/admin" element={<PublicToolsPage />} />
       <Route path="/downloads" element={<DownloadsPage />} />
       <Route path="/clicker" element={<PublicAdminTool mode="clicker" />} />
+      <Route path="/Clicker-Generator" element={<ReferenceClickerPage />} />
       <Route path="/admin/clicker" element={<PublicAdminTool mode="clicker" />} />
       <Route path="/flex-keychain" element={<PublicAdminTool mode="flex-keychain" />} />
       <Route path="/admin/flex-keychain" element={<PublicAdminTool mode="flex-keychain" />} />

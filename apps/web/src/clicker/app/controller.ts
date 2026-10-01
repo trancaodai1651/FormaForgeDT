@@ -6,11 +6,16 @@ import { SAMPLES } from '../image/sample';
 import { ClickerPart } from '../types';
 import { createAppModel } from './model';
 import { createAppView } from './view';
+import { configureReferenceClicker } from '../../pages/clicker/referenceRuntime';
 
-export function bootstrapApp() {
+export function bootstrapApp(referencePresentation = false) {
   const model = createAppModel();
   const view = createAppView();
   const viewer = createViewer(getClickerDocument().getElementById('app')!);
+  if (referencePresentation) {
+    viewer.setTheme('light');
+    viewer.setPrintBed(256, 256, true, 'textured');
+  }
   const base = `${import.meta.env.BASE_URL}clicker-assets/`;
 
   async function loadAsset(path: string, label: string) {
@@ -108,6 +113,8 @@ export function bootstrapApp() {
     viewer,
     history
   );
+
+  if (referencePresentation) configureReferenceClicker(viewer);
 
 }
 

@@ -461,9 +461,9 @@ export function createUi(
       exportStl.textContent = imageMultiColorMode ? 'Color STL ZIP' : 'Download STL ZIP';
     }
     if ($('colorSettingsTitle')) {
-      $('colorSettingsTitle')!.textContent = imageMultiColorMode
-        ? '1 · Multi-color & Smoothing'
-        : '1 · Colors & Smoothing';
+      $('colorSettingsTitle')!.textContent = getClickerDocument().documentElement.dataset.presentation === 'reference'
+        ? 'Colors'
+        : imageMultiColorMode ? '1 · Multi-color & Smoothing' : '1 · Colors & Smoothing';
     }
     if ($('exportModeHint')) {
       $('exportModeHint')!.textContent = imageMultiColorMode

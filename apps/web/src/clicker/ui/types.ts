@@ -11,6 +11,7 @@ import type { SectionAxis } from '../viewer/viewer';
 export interface UiState {
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
   baseShape: BaseShapeKind; bottomBaseMode: 'match' | 'custom';
+  designSizePercent: number; lockBaseSize: boolean; hollowBase: boolean; switchPocketFitPercent: number;
   bottomExpandPercent: number; bottomPaddingMm: number; bottomSolidOnly: boolean;
   bottomOffsetX: number; bottomOffsetY: number; bottomRotation: number;
   capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageLateralOffsetMm: number; hybridImageThicknessMm: number; hybridImagePaddingMm: number; hybridKeychainHeightMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseStyle: HybridBaseStyle; hybridVaseProfile: HybridVaseProfile; hybridVaseWavinessMm: number; hybridVaseThicknessMm: number; hybridVaseGapMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridNeckEnabled: boolean; hybridNeckSmooth: boolean; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;

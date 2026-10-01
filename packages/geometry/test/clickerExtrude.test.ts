@@ -92,8 +92,10 @@ async function setup() {
 describe('Clicker viewport Extrude', () => {
   it.each([
     { mode: 'Image', regions: imageRegions, rasterImageMode: true, selectedRegion: 1, outputName: 'top-color-1-0' },
-    { mode: 'SVG', regions: svgRegions, rasterImageMode: false, selectedRegion: 0, outputName: 'top-color-mono' },
-    { mode: 'Icon', regions: iconRegions, rasterImageMode: false, selectedRegion: 0, outputName: 'top-color-mono' },
+    // Vector regions retain their source component identity. The raster-only
+    // monochrome carrier optimization must not replace these printable paths.
+    { mode: 'SVG', regions: svgRegions, rasterImageMode: false, selectedRegion: 0, outputName: 'top-color-1-0' },
+    { mode: 'Icon', regions: iconRegions, rasterImageMode: false, selectedRegion: 0, outputName: 'top-color-1-0' },
     { mode: 'Text', regions: imageRegions, rasterImageMode: false, selectedRegion: 0, outputName: 'top-color-0-0' },
   ])('%s region extrusion changes the generated top mesh', async ({ mode, regions, rasterImageMode, selectedRegion, outputName }) => {
     const { wasm, socket, stem, params } = await setup();

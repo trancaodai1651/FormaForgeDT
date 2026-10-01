@@ -71,9 +71,9 @@ export function bindIconEvents(cb: UiCallbacks) {
     const total = lucideMatches.length;
     const visible = Math.min(lucideShown, total);
     if (total === 0) countEl.textContent = 'No icons match.';
-    else countEl.textContent = searchEl.value.trim() 
-      ? `${total} match${total === 1 ? '' : 'es'}` + (visible < total ? ` Â· showing ${visible}` : '') 
-      : `${total} icons` + (visible < total ? ` Â· showing ${visible}` : '');
+    else countEl.textContent = searchEl.value.trim()
+      ? `${total} match${total === 1 ? '' : 'es'}` + (visible < total ? ` · showing ${visible}` : '')
+      : `${total} icons` + (visible < total ? ` · showing ${visible}` : '');
   }
 
   function rebuildGallery() {

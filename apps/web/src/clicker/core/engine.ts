@@ -345,6 +345,7 @@ export function rebuild(quiet = false) {
     hybridKeycapSpacingMm: s.hybridKeycapSpacingMm,
     hybridKeycapClearanceMm: s.hybridKeycapClearanceMm,
     imageMargin: s.imageMargin, borderWidth: s.borderWidth, mergeTopFrame: s.mergeTopFrame,
+    designSizePercent: s.designSizePercent, lockBaseSize: s.lockBaseSize, hollowBase: s.hollowBase, switchPocketFitPercent: s.switchPocketFitPercent,
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: imageMultiColorMode && s.stackColorLayers ? colorLayerStepMm : 0.6, travel: 4.0, floorThickness: 1.6,

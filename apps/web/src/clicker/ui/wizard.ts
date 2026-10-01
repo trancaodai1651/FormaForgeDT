@@ -230,7 +230,7 @@ export function runWizard(opts: WizardOpts) {
       <div class="wz-foot wz-prepare-foot">
         <span class="wz-error" id="wzErr" hidden>No usable image outline found. Adjust the image and try again.</span>
         <button type="button" id="wzCancel">Cancel</button>
-        <button type="button" class="primary" id="wzDone">Create 3D</button>
+        <button type="button" class="primary" id="wzDone">${getClickerDocument().documentElement.dataset.presentation === 'reference' ? 'Confirm' : 'Create 3D'}</button>
       </div>
     </div>`;
 
