@@ -10,7 +10,8 @@ import type {
 } from '../types';
 import { BuildContext } from './buildContext';
 import { buildBlocks, type KeycapAsset, type PreparedBlockAssets } from './buildBlocks';
-import { getRingArea, sectionIsEmpty } from './geometry/sectionUtils';
+import { buildImageMaskPipeline, mapCleanRings } from './imageMaskPipeline';
+import { edgePointAt, sectionIsEmpty } from './geometry/sectionUtils';
 import { ribbedProfile, roundedRect, vaseCarrier } from './geometry/shapeFactory';
 
 const DEFAULT_BODY: RGB = [238, 238, 240];
@@ -39,6 +40,18 @@ function partBounds(part: ClickerPart) {
   return { minX, minY, minZ, maxX, maxY, maxZ };
 }
 
+function combinedPartBounds(parts: ClickerPart[]) {
+  const bounds = parts.map(partBounds);
+  return {
+    minX: Math.min(...bounds.map((bound) => bound.minX)),
+    minY: Math.min(...bounds.map((bound) => bound.minY)),
+    minZ: Math.min(...bounds.map((bound) => bound.minZ)),
+    maxX: Math.max(...bounds.map((bound) => bound.maxX)),
+    maxY: Math.max(...bounds.map((bound) => bound.maxY)),
+    maxZ: Math.max(...bounds.map((bound) => bound.maxZ)),
+  };
+}
+
 // Width of a contour where the neck enters the image. Intersect edges with
 // the join plane rather than using the full image bounding box: ears, tails
 // and other protrusions must not make the neck wider than the local silhouette.
@@ -58,22 +71,57 @@ function ringSpanAt(rings: Ring[], axis: 0 | 1, at: number): [number, number] | 
 
 // Imported blocks can have fluted, curved or asymmetric leading ends. Use
 // triangles crossing the join plane, not the overall (often wider) bounds.
-function partSpanAt(part: ClickerPart, axis: 0 | 1, at: number): [number, number] | null {
+function partSpanAt(parts: ClickerPart[], axis: 0 | 1, at: number): [number, number] | null {
   const across = axis === 0 ? 1 : 0;
   const values: number[] = [];
-  const vertices = part.vertProperties;
-  const triangles = part.triVerts;
-  const stride = part.numProp;
-  for (let index = 0; index + 2 < triangles.length; index += 3) {
-    for (const [aIndex, bIndex] of [[triangles[index], triangles[index + 1]], [triangles[index + 1], triangles[index + 2]], [triangles[index + 2], triangles[index]]]) {
-      const a = aIndex * stride; const b = bIndex * stride;
-      const delta = vertices[b + axis] - vertices[a + axis];
-      if (Math.abs(delta) < 1e-7) continue;
-      const t = (at - vertices[a + axis]) / delta;
-      if (t >= 0 && t <= 1) values.push(vertices[a + across] + t * (vertices[b + across] - vertices[a + across]));
+  for (const part of parts) {
+    const bounds = partBounds(part);
+    const lower = axis === 0 ? bounds.minX : bounds.minY;
+    const upper = axis === 0 ? bounds.maxX : bounds.maxY;
+    if (at < lower - 1e-6 || at > upper + 1e-6) continue;
+    const vertices = part.vertProperties;
+    const triangles = part.triVerts;
+    const stride = part.numProp;
+    for (let index = 0; index + 2 < triangles.length; index += 3) {
+      for (const [aIndex, bIndex] of [[triangles[index], triangles[index + 1]], [triangles[index + 1], triangles[index + 2]], [triangles[index + 2], triangles[index]]]) {
+        const a = aIndex * stride; const b = bIndex * stride;
+        const delta = vertices[b + axis] - vertices[a + axis];
+        if (Math.abs(delta) < 1e-7) continue;
+        const t = (at - vertices[a + axis]) / delta;
+        if (t >= 0 && t <= 1) values.push(vertices[a + across] + t * (vertices[b + across] - vertices[a + across]));
+      }
     }
   }
   return values.length ? [Math.min(...values), Math.max(...values)] : null;
+}
+
+// Ease each side of the bridge between the image and imported block. Matching
+// the tangent to the join plane keeps the neck from ending in a sharp corner.
+function smoothNeckOutline(
+  axis: 0 | 1,
+  startAt: number,
+  endAt: number,
+  startSpan: [number, number],
+  endSpan: [number, number],
+): Ring {
+  const steps = 20;
+  const run = endAt - startAt;
+  const edge = (start: number, end: number): [number, number][] => Array.from({ length: steps + 1 }, (_, index) => {
+    const t = index / steps;
+    const inverse = 1 - t;
+    const along = inverse ** 3 * startAt
+      + 3 * inverse ** 2 * t * (startAt + run * 0.42)
+      + 3 * inverse * t ** 2 * (endAt - run * 0.42)
+      + t ** 3 * endAt;
+    const across = inverse ** 3 * start
+      + 3 * inverse ** 2 * t * start
+      + 3 * inverse * t ** 2 * end
+      + t ** 3 * end;
+    return axis === 0 ? [along, across] : [across, along];
+  });
+  const low = edge(startSpan[0], endSpan[0]);
+  const high = edge(startSpan[1], endSpan[1]);
+  return [low[0], high[0], ...high.slice(1), ...low.slice().reverse().slice(0, -1)];
 }
 
 function toPart(solid: any, kind: 'cap' | 'body', group: PartGroup, colorRgb: RGB, name: string): ClickerPart {
@@ -188,7 +236,8 @@ export function buildHybridClicker(
     return blockResult;
   }
   const ctx = new BuildContext(wasm);
-  const outlineBounds = ringBounds(imageOutline);
+  const cleanOutline = mapCleanRings(imageOutline, (x, y) => [x, y], 0.0001);
+  const outlineBounds = ringBounds(cleanOutline);
   if (!(outlineBounds.width > 0.01 && outlineBounds.height > 0.01)) {
     ctx.cleanup();
     warnings.push('The image has no printable outline.');
@@ -216,6 +265,12 @@ export function buildHybridClicker(
   const pitch = Math.max(16, keycapSize) + keycapSpacing;
   const endPadding = clamp(params.hybridBaseEndPaddingMm, 10, 35, 14);
   const baseThickness = clamp(params.hybridBaseThicknessMm, 5, 20, 9);
+  const importedSourceBounds = useImportedBlock && importedBlockParts?.length
+    ? combinedPartBounds(importedBlockParts)
+    : null;
+  const importedBlockHeight = importedSourceBounds
+    ? importedSourceBounds.maxZ - importedSourceBounds.minZ
+    : 0;
   // This is a real carrier-wall height, not a cosmetic offset for the
   // preview. Keep the range comparable to base thickness so increasing it
   // produces a taller solid that actually covers the switch.
@@ -224,9 +279,20 @@ export function buildHybridClicker(
   const importedNeckEnabled = params.hybridNeckEnabled !== false;
   const importedNeckSmooth = params.hybridNeckSmooth !== false;
   const overlap = Math.max(0.5, clamp(params.hybridBaseImageOverlapMm, 0, 20, 7));
-  const imageThickness = Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 17));
+  const matchBlockHeight = useImportedBlock && params.hybridImageMatchBlockHeight === true && importedBlockHeight > 0.01;
+  const imageThickness = matchBlockHeight
+    ? importedBlockHeight
+    : Math.max(baseThickness, clamp(params.hybridImageThicknessMm, 4, 24, 17));
   const imagePadding = clamp(params.hybridImagePaddingMm, 0, 20, 1.2);
   const imageTopZ = imageThickness - baseThickness;
+  const imageSurfaceLift = 0.04;
+  const inlayDepth = 0.28;
+  // The image skin must overlap the backing slightly. A skin that only touches
+  // the backing at one Z plane becomes a set of detached shells after 3MF
+  // export, which can render as a rippled/uneven image face in slicers.
+  const imageSkinBackingOverlap = 0.06;
+  const imageTop = imageTopZ + imageSurfaceLift;
+  const imageCarrierBottom = useImportedBlock ? imageTop - inlayDepth : -baseThickness;
   const headPadding = pocketSize / 2 + headLength;
   const tailPadding = Math.max(endPadding, pocketSize / 2 + 1.5);
   const carrierLength = Math.max(baseWidth, overlap + headPadding + (count - 1) * pitch + tailPadding);
@@ -242,10 +308,10 @@ export function buildHybridClicker(
   const imageCenterX = (outlineBounds.minX + outlineBounds.maxX) / 2;
   const imageCenterY = (outlineBounds.minY + outlineBounds.maxY) / 2;
   const lateralShift = useImportedBlock ? clamp(params.hybridImageLateralOffsetMm, -25, 25, 0) : 0;
+  const blockLateralShift = useImportedBlock ? clamp(params.hybridBlockLateralOffsetMm, -30, 30, 0) : 0;
   const headShiftX = vertical ? lateralShift : 0;
   const headShiftY = vertical ? 0 : lateralShift;
-  const scaledOutline = imageOutline
-    .filter((ring) => ring.length >= 3 && Math.abs(getRingArea(ring)) > 0.0001)
+  const scaledOutline = cleanOutline
     .map((ring) => ring.map(([x, y]) => [
       (x - imageCenterX) * imageScale + headShiftX,
       (y - imageCenterY) * imageScale + headShiftY,
@@ -274,26 +340,104 @@ export function buildHybridClicker(
       warnings.push(`image-padding-fallback err=${String(error)}`);
     }
   }
+  let bottomImageArea: any | null = null;
+  let bottomImageMapPoint: ((x: number, y: number) => [number, number]) | null = null;
+  if (params.bottomOutline?.length) {
+    const sourceBounds = ringBounds(params.bottomOutline);
+    if (sourceBounds.width > 0.01 && sourceBounds.height > 0.01) {
+      const bottomScale = imageSize / Math.max(sourceBounds.width, sourceBounds.height);
+      const bottomExpansion = 1 + clamp(params.bottomExpandPercent, 0, 100, 22) / 100;
+      const rotation = (params.bottomRotation ?? 0) * Math.PI / 180;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+      const rotate = (x: number, y: number): [number, number] => [x * cos - y * sin, x * sin + y * cos];
+      const centeredBottom = mapCleanRings(params.bottomOutline, (x, y) => rotate(
+        (x - (sourceBounds.minX + sourceBounds.maxX) / 2) * bottomScale * bottomExpansion,
+        (y - (sourceBounds.minY + sourceBounds.maxY) / 2) * bottomScale * bottomExpansion,
+      ), 0.0001);
+      if (centeredBottom.length) {
+        let bottomSection = ctx.track(new wasm.CrossSection(centeredBottom, 'NonZero'));
+        const localBounds = bottomSection.bounds();
+        const topBounds = badgeSection.bounds();
+        const bottomOffsetX = params.bottomOffsetX ?? 0;
+        const bottomOffsetY = params.bottomOffsetY ?? 0;
+        // Keep both images on the same visible face. Place the custom image
+        // immediately below the main image along the block's attachment axis,
+        // with a small overlap so the badge remains one printable plate.
+        const joinOverlap = 1;
+        const placeX = vertical
+          ? (topBounds.min[0] + topBounds.max[0] - localBounds.min[0] - localBounds.max[0]) / 2 + bottomOffsetX
+          : topBounds.max[0] - joinOverlap - localBounds.min[0] + bottomOffsetX;
+        const placeY = vertical
+          ? topBounds.min[1] + joinOverlap - localBounds.max[1] + bottomOffsetY
+          : (topBounds.min[1] + topBounds.max[1] - localBounds.min[1] - localBounds.max[1]) / 2 + bottomOffsetY;
+        bottomSection = ctx.track(bottomSection.translate([placeX, placeY]));
+        bottomImageArea = bottomSection;
+        bottomImageMapPoint = (x, y) => {
+          const point = rotate(
+            (x - (sourceBounds.minX + sourceBounds.maxX) / 2) * bottomScale * bottomExpansion,
+            (y - (sourceBounds.minY + sourceBounds.maxY) / 2) * bottomScale * bottomExpansion,
+          );
+          return [point[0] + placeX, point[1] + placeY];
+        };
+        const bottomPadding = clamp(params.bottomPaddingMm, 0, 12, 1.2);
+        const bottomBadge = bottomPadding > 0.001
+          ? ctx.track(bottomSection.offset(bottomPadding, 'Round', 2, 32))
+          : bottomSection;
+        badgeSection = ctx.simp(ctx.track(badgeSection.add(bottomBadge)));
+      }
+    }
+  }
   const badgeBounds = badgeSection.bounds();
   const badgeWidth = badgeBounds.max[0] - badgeBounds.min[0];
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
+  const keychainEnabled = params.keychain?.enabled === true;
+  const keychainPosition = params.keychain?.hybridPosition === 'bottom' ? 'bottom' : 'top';
+  const keychainAngle = keychainPosition === 'bottom' ? 270 : 90;
+  const keychainHoleDiameter = clamp(params.keychain?.holeDiameterMm, 3, 16, 5.2);
+  const keychainLoopRadius = Math.max(3.2, keychainHoleDiameter / 2 + 1.8);
+  const keychainDirection = [Math.cos(keychainAngle * Math.PI / 180), Math.sin(keychainAngle * Math.PI / 180)] as [number, number];
+  const keychainEdge = edgePointAt(badgeSection, keychainAngle);
+  const keychainOffset = useImportedBlock ? clamp(params.keychain?.offsetMm, -15, 15, 0) : 0;
+  const keychainAnchor: [number, number] = [
+    keychainEdge.p[0] - keychainEdge.dir[1] * keychainOffset,
+    keychainEdge.p[1] + keychainEdge.dir[0] * keychainOffset,
+  ];
+  const keychainHoleCenter: [number, number] = [
+    keychainAnchor[0] + keychainDirection[0] * keychainLoopRadius,
+    keychainAnchor[1] + keychainDirection[1] * keychainLoopRadius,
+  ];
   const carrierHeadEdge = vertical ? -badgeDepth / 2 + overlap : badgeWidth / 2 - overlap;
   const shiftX = vertical ? 0 : carrierHeadEdge + carrierWidth / 2;
   const shiftY = vertical ? carrierHeadEdge - carrierDepth / 2 : 0;
 
   const importedPartsMoved: ClickerPart[] = [];
   let importedNeck: any = null;
+  let importedNeckBottomZ: number | null = null;
+  let importedNeckHeight = 0;
   let carrier: any;
   if (useImportedBlock && importedBlockParts) {
-    const main = importedBlockParts[importedBodyIndex];
-    const bounds = partBounds(main);
-    const attachedHeadLength = importedNeckEnabled ? headLength : 0;
+    // A 3MF scene may contain the block shell, ribs and inserts as several
+    // meshes. Anchor the attachment to the whole scene bounds; using only the
+    // mesh with the most triangles can leave other source components floating
+    // into the image or make the generated neck meet the wrong component.
+    const bounds = combinedPartBounds(importedBlockParts);
+    // Leave room for a bottom keyring between the image and vertical block.
+    // Its hole must stay outside the source mesh, which remains unchanged.
+    const ringClearance = keychainEnabled && vertical && keychainPosition === 'bottom'
+      ? keychainLoopRadius + keychainHoleDiameter / 2 + 1.25
+      : 0;
+    // This value is the actual gap between the image and imported block. Keep
+    // it active when the neck is hidden so the distance control stays useful;
+    // the neck itself is then regenerated to span the new gap when enabled.
+    const spacing = clamp(params.hybridImportedBlockSpacingMm, -20, 30, headLength);
+    const attachedHeadLength = ringClearance > 0 ? Math.max(spacing, ringClearance) : spacing;
     const dx = vertical
-      ? -(bounds.minX + bounds.maxX) / 2
+      ? -(bounds.minX + bounds.maxX) / 2 + blockLateralShift
       : badgeBounds.max[0] + attachedHeadLength - bounds.minX;
     const dy = vertical
       ? badgeBounds.min[1] - attachedHeadLength - bounds.maxY
-      : -(bounds.minY + bounds.maxY) / 2;
+      : -(bounds.minY + bounds.maxY) / 2 + blockLateralShift;
     const dz = -baseThickness - bounds.minZ;
     const moved = importedBlockParts.map((part) => {
       const vertices = new Float32Array(part.vertProperties);
@@ -302,8 +446,7 @@ export function buildHybridClicker(
       }
       return { ...part, vertProperties: vertices, triVerts: new Uint32Array(part.triVerts) };
     });
-    const mainMoved = moved[importedBodyIndex];
-    const mb = partBounds(mainMoved);
+    const mb = combinedPartBounds(moved);
     const axis: 0 | 1 = vertical ? 1 : 0;
     const imageExtent = vertical ? badgeDepth : badgeWidth;
     const blockExtent = vertical ? mb.maxY - mb.minY : mb.maxX - mb.minX;
@@ -318,32 +461,39 @@ export function buildHybridClicker(
     const blockJoin = vertical ? mb.maxY - blockInset : mb.minX + blockInset;
     const imageSpan = ringSpanAt(scaledOutline, axis, imageJoin)
       ?? (vertical ? [badgeBounds.min[0], badgeBounds.max[0]] : [badgeBounds.min[1], badgeBounds.max[1]]);
-    const blockSpan = partSpanAt(mainMoved, axis, blockJoin)
+    const blockSpan = partSpanAt(moved, axis, blockJoin)
       ?? (vertical ? [mb.minX, mb.maxX] : [mb.minY, mb.maxY]);
     const imageLow = imageSpan[0] - imagePadding * 0.65;
     const imageHigh = imageSpan[1] + imagePadding * 0.65;
     const blockLow = blockSpan[0];
     const blockHigh = blockSpan[1];
-    const neckOutline: Ring = vertical
-      ? [[imageLow, imageJoin], [imageHigh, imageJoin], [blockHigh, blockJoin], [blockLow, blockJoin]]
-      : [[imageJoin, imageLow], [blockJoin, blockLow], [blockJoin, blockHigh], [imageJoin, imageHigh]];
+    const neckOutline = smoothNeckOutline(
+      axis,
+      imageJoin,
+      blockJoin,
+      [imageLow, imageHigh],
+      [blockLow, blockHigh],
+    );
     if (importedNeckEnabled) {
       let neckFootprint = ctx.track(new wasm.CrossSection([neckOutline], 'NonZero'));
       if (importedNeckSmooth) {
-        // Round the plan-view shoulders without running a Boolean through any
-        // of the source 3MF meshes. A rounded outward offset creates smooth
-        // transitions at the neck corners; cap its radius to fit both ends.
+        // Add a small rounded shoulder while keeping the original 3MF meshes
+        // untouched. The Bezier sides soften the taper; this offset rounds the
+        // remaining plan-view edge.
         const neckRun = Math.abs(blockJoin - imageJoin);
         const neckWidth = Math.min(imageHigh - imageLow, blockHigh - blockLow);
-        const radius = Math.min(2.4, neckRun * 0.2, neckWidth * 0.2);
+        const radius = Math.min(1.6, neckRun * 0.12, neckWidth * 0.12);
         if (radius >= 0.25) {
           neckFootprint = ctx.simp(ctx.track(neckFootprint.offset(radius, 'Round', 2, 24)));
         }
       }
-      // Keep the printable bridge as its own mesh so the imported body and
-      // every component preserve the exact triangles and silhouette from 3MF.
+      // Fill the image backing depth and overlap the block in XY so the
+      // transition reads as one body. The image skin remains separate above.
       const neckBottom = mb.minZ;
-      const neckHeight = Math.min(2.4, Math.max(0.8, (mb.maxZ - mb.minZ) * 0.15));
+      const neckTop = Math.min(mb.maxZ, imageCarrierBottom);
+      const neckHeight = Math.max(0.8, neckTop - neckBottom);
+      importedNeckBottomZ = neckBottom;
+      importedNeckHeight = neckHeight;
       importedNeck = ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]));
       carrier = importedNeck;
     } else {
@@ -457,116 +607,120 @@ export function buildHybridClicker(
       : b.region.coverage - a.region.coverage || a.regionIndex - b.regionIndex);
   const carrierRegion = orderedImageRegions[0]?.region;
   const dominantImageColor = carrierRegion?.filamentRgb ?? params.baseFilamentRgb ?? bodyColor;
-  const imageSurfaceLift = 0.04;
-  const imageTop = imageTopZ + imageSurfaceLift;
-  const inlayDepth = 0.28;
+  // Only merge an image region into the carrier when both resolve to the
+  // exact same filament colour. A small RGB-distance threshold can erase a
+  // real palette entry (for example an off-white highlight beside a white
+  // background), making Image + Imported Block lose colours that Image keeps.
+  const sameAsCarrier = (region: BuildRegion) => region.filamentRgb.every(
+    (channel, index) => channel === dominantImageColor[index],
+  );
+  const maskInputs = orderedImageRegions
+    .filter(({ region }) => stackImageMode || monochromeImageRelief || !sameAsCarrier(region))
+    .sort((a, b) => stackImageMode
+      ? a.regionIndex - b.regionIndex
+      : a.region.coverage - b.region.coverage || a.regionIndex - b.regionIndex);
+  const imageMasks = buildImageMaskPipeline(ctx, {
+    inputs: maskInputs.map(({ region, regionIndex }) => ({ region, layerIndex: regionIndex })),
+    imageScale,
+    minimumArea: 0.05,
+    colorBleed: clamp(params.colorBleed, 0, 2, 0.12),
+    imageArea: imageSection,
+    plate: badgeSection,
+    stack: stackImageMode,
+    stackFullFootprint: imageSection,
+    solidSilhouette: false,
+    componentLevel: (region) => params.componentHeights?.[region.partName ?? ''] ?? 0,
+    mapPoint: (x, y) => [
+      (x - imageCenterX) * imageScale + headShiftX,
+      (y - imageCenterY) * imageScale + headShiftY,
+    ],
+  });
+  const bottomImageRegions = (params.bottomRegions ?? [])
+    .map((region, regionIndex) => ({ region, regionIndex }))
+    .sort((a, b) => a.region.coverage - b.region.coverage || a.regionIndex - b.regionIndex);
+  const bottomCarrierColor = bottomImageRegions.reduce(
+    (best, current) => current.region.coverage > best.coverage ? { coverage: current.region.coverage, color: current.region.filamentRgb } : best,
+    { coverage: -Infinity, color: dominantImageColor },
+  ).color;
+  const bottomImageMasks = bottomImageArea && bottomImageMapPoint
+    ? buildImageMaskPipeline(ctx, {
+      inputs: bottomImageRegions.map(({ region, regionIndex }) => ({ region, layerIndex: regionIndex })),
+      imageScale: 1,
+      minimumArea: 0.05,
+      colorBleed: clamp(params.colorBleed, 0, 2, 0.12),
+      imageArea: bottomImageArea,
+      plate: badgeSection,
+      stack: false,
+      solidSilhouette: false,
+      componentLevel: (region) => params.componentHeights?.[region.partName ?? ''] ?? 0,
+      mapPoint: bottomImageMapPoint,
+    })
+    : [];
+  const imagePlateSection = bottomImageArea
+    ? ctx.simp(ctx.track(imageSection.add(bottomImageArea)))
+    : imageSection;
   // Imported blocks keep the image ink on a thin top skin, as in Image mode.
   // Filling the entire head with the dominant colour makes its side walls
   // look like part of the block and amplifies tiny contour imperfections.
-  const imageCarrierBottom = useImportedBlock ? imageTop - inlayDepth : -baseThickness;
   let imageCarrier = ctx.track(wasm.Manifold.extrude(
     imageSection,
     Math.max(0.25, imageTop - imageCarrierBottom),
   ).translate([0, 0, imageCarrierBottom]));
+  let bottomImageCarrier = bottomImageArea
+    ? ctx.track(wasm.Manifold.extrude(bottomImageArea, Math.max(0.25, imageTop - imageCarrierBottom))
+      .translate([0, 0, imageCarrierBottom]))
+    : null;
 
   let badgeBody = ctx.track(wasm.Manifold.extrude(badgeSection, imageThickness)
     .translate([0, 0, -baseThickness]));
   // Carve a recess for the ink. Imported blocks retain white backing below
   // the thin image skin; generated blocks keep their original full-depth head.
   const imageCore = ctx.track(wasm.Manifold.extrude(
-    imageSection,
+    imagePlateSection,
     useImportedBlock ? inlayDepth + 0.12 : imageThickness + 0.12,
-  ).translate([0, 0, useImportedBlock ? imageCarrierBottom : -baseThickness - 0.04]));
+  ).translate([0, 0, useImportedBlock ? imageCarrierBottom + imageSkinBackingOverlap : -baseThickness - 0.04]));
   badgeBody = ctx.track(badgeBody.subtract(imageCore));
   if (importedNeck) badgeBody = ctx.track(badgeBody.subtract(importedNeck));
-  if (params.keychain?.enabled) {
-    // Image + Blocks keeps the ring attached to the imported image head, never
-    // to the last text block. The user can choose either end of the head.
-    const holeDiameter = clamp(params.keychain.holeDiameterMm, 3, 16, 5.2);
-    const tabWidth = Math.max(10, holeDiameter + 5);
-    const tabLength = Math.max(9, holeDiameter + 4);
-    const tabOverlap = Math.min(3, Math.max(1.2, overlap * 0.35));
-    const hybridPosition = params.keychain.hybridPosition === 'bottom' ? 'bottom' : 'top';
-    const keychainOffset = useImportedBlock ? clamp(params.keychain.offsetMm, -15, 15, 0) : 0;
-    const tabCenter: [number, number] = useImportedBlock
-      ? vertical
-        ? [headShiftX + keychainOffset, badgeBounds.max[1] + tabLength / 2 - tabOverlap]
-        : [badgeBounds.min[0] - tabLength / 2 + tabOverlap, headShiftY + keychainOffset]
-      : hybridPosition === 'bottom'
-        ? [headShiftX, badgeBounds.min[1] - tabLength / 2 + tabOverlap]
-        : [headShiftX, badgeBounds.max[1] + tabLength / 2 - tabOverlap];
+  if (keychainEnabled) {
+    // Use the same round loop and long bridge as Image mode. Clip the bridge
+    // to the image silhouette so it joins the backing cleanly without a filled
+    // or partially covered hole.
+    const loopR = keychainLoopRadius;
     const keychainThickness = clamp(params.hybridKeychainHeightMm, 1, 15, 4);
-    // The loop is a separate part with its own Z thickness. Seat it on the
-    // image bottom plane so changing its thickness does not move the image.
-    const keychainBottomZ = -baseThickness;
-    const tabProfile = ctx.track(roundedRect(ctx, useImportedBlock && !vertical ? tabLength : tabWidth, useImportedBlock && !vertical ? tabWidth : tabLength, Math.min(tabWidth, tabLength) / 2)
-      .translate(tabCenter));
+    // Keep the keyring tab on the same front plane as the image layers.
+    // Previously it was extruded from the underside of the badge, making the
+    // loop look detached and burying its connection when viewed from above.
+    const keychainTopZ = imageTop;
+    const keychainBottomZ = keychainTopZ - keychainThickness;
+    const localLoop = ctx.track(wasm.CrossSection.circle(loopR, 64).translate([0, loopR]));
+    const localBridge = ctx.track(wasm.CrossSection.square([loopR * 2, loopR + loopR * 3.5], true)
+      .translate([0, loopR - (loopR + loopR * 3.5) / 2]));
+    let tabProfile = ctx.track(localLoop.add(localBridge));
+    if (Math.abs(keychainAngle - 90) > 0.001) tabProfile = ctx.track(tabProfile.rotate(keychainAngle - 90));
+    tabProfile = ctx.track(tabProfile.translate(keychainAnchor));
+    tabProfile = ctx.simp(ctx.track(tabProfile.subtract(imageSection)));
     const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, keychainThickness)
       .translate([0, 0, keychainBottomZ]));
-    const holeCenter: [number, number] = useImportedBlock && !vertical
-      ? [tabCenter[0] - tabLength / 2 + holeDiameter / 2 + 1.4, tabCenter[1]]
-      : hybridPosition === 'bottom' && !useImportedBlock
-        ? [tabCenter[0], tabCenter[1] - tabLength / 2 + holeDiameter / 2 + 1.4]
-        : [tabCenter[0], tabCenter[1] + tabLength / 2 - holeDiameter / 2 - 1.4];
-    const holeProfile = ctx.track(wasm.CrossSection.circle(holeDiameter / 2, 48)
-      .translate(holeCenter));
+    const holeProfile = ctx.track(wasm.CrossSection.circle(keychainHoleDiameter / 2, 48)
+      .translate(keychainHoleCenter));
     const hole = ctx.track(wasm.Manifold.extrude(holeProfile, keychainThickness + 2)
       .translate([0, 0, keychainBottomZ - 1]));
     badgeBody = ctx.track(badgeBody.add(tabSolid).subtract(hole));
-  }
-
-  // Optional lower image base. Image + Blocks uses the same bottom-image
-  // workflow as Image mode, but the lower silhouette is built as a separate
-  // layer below the imported head so it cannot change the head thickness or
-  // bury the carrier. The union with badgeSection guarantees full coverage
-  // even when the uploaded bottom image is slightly smaller than the top.
-  // Keep the carrier separate while image inlays are carved. Otherwise an
-  // image region that overlaps the neck would also cut a hole through the
-  // white base.
-  let lowerBody = carrier;
-  if (params.bottomOutline?.length) {
-    const bottomBounds = ringBounds(params.bottomOutline);
-    if (bottomBounds.width > 0.01 && bottomBounds.height > 0.01) {
-      const bottomScale = imageSize / Math.max(bottomBounds.width, bottomBounds.height);
-      const bottomCenterX = (bottomBounds.minX + bottomBounds.maxX) / 2;
-      const bottomCenterY = (bottomBounds.minY + bottomBounds.maxY) / 2;
-      const bottomRings = params.bottomOutline
-        .filter((ring) => ring.length >= 3 && Math.abs(getRingArea(ring)) > 0.0001)
-        .map((ring) => ring.map(([x, y]) => [
-          (x - bottomCenterX) * bottomScale + headShiftX,
-          (y - bottomCenterY) * bottomScale + headShiftY,
-        ] as [number, number]));
-      if (bottomRings.length) {
-        let bottomSection = ctx.track(new wasm.CrossSection(bottomRings, 'NonZero'));
-        const expandPercent = clamp(params.bottomExpandPercent, 0, 100, 22);
-        if (expandPercent > 0.001) {
-          const factor = 1 + expandPercent / 100;
-          bottomSection = ctx.track(bottomSection.scale([factor, factor]));
-        }
-        if (Math.abs(params.bottomRotation ?? 0) > 0.001) {
-          bottomSection = ctx.track(bottomSection.rotate(params.bottomRotation));
-        }
-        if (Math.abs(params.bottomOffsetX ?? 0) > 0.001 || Math.abs(params.bottomOffsetY ?? 0) > 0.001) {
-          bottomSection = ctx.track(bottomSection.translate([
-            params.bottomOffsetX ?? 0,
-            params.bottomOffsetY ?? 0,
-          ]));
-        }
-        const bottomPadding = clamp(params.bottomPaddingMm, 0, 12, 1.2);
-        if (bottomPadding > 0.001) {
-          // Keep this as a real silhouette offset, independent from the
-          // percentage expansion control, so Image + Blocks has its own base
-          // margin just like the top image plate.
-          bottomSection = ctx.track(bottomSection.offset(bottomPadding, 'Round', 2, 32));
-        }
-        bottomSection = ctx.simp(ctx.track(bottomSection.add(badgeSection)));
-        const bottomThickness = Math.max(0.8, Math.min(6, baseThickness * 0.45));
-        const lowerBase = ctx.track(wasm.Manifold.extrude(bottomSection, bottomThickness)
-          .translate([0, 0, -baseThickness - bottomThickness]));
-        lowerBody = lowerBody ? ctx.track(lowerBody.add(lowerBase)) : lowerBase;
-      }
+    // The bottom loop sits between the head and vertical block. Bore the
+    // transition too, while the added clearance keeps the original 3MF block
+    // outside the hole and preserves its source triangles exactly.
+    if (keychainPosition === 'bottom' && importedNeck && importedNeckBottomZ !== null && importedNeckHeight > 0) {
+      const neckHole = ctx.track(wasm.Manifold.extrude(holeProfile, importedNeckHeight + 2)
+        .translate([0, 0, importedNeckBottomZ - 1]));
+      importedNeck = ctx.track(importedNeck.subtract(neckHole));
+      carrier = importedNeck;
     }
   }
+
+  // A custom lower image is laid out below the main artwork on the same
+  // visible face. It is part of the head plate rather than a second backside
+  // layer, so both silhouettes have the same height and presentation plane.
+  const lowerBody = carrier;
   // The imported image is the flat-keychain plate in Image + Blocks mode.
   // Keep the plate itself flat and switch-free. Image colour layers start at
   // the badge top plane; the image Extrude control grows them upward from
@@ -587,56 +741,16 @@ export function buildHybridClicker(
   }
   const parts: ClickerPart[] = [...movableParts];
 
-  // Palette regions can share a traced boundary (and anti-aliased source
-  // pixels can make them overlap by a fraction). Remove already placed image
-  // areas before creating the next solid so no two coplanar colour meshes
-  // compete in the depth buffer and produce flicker/white rays.
-  let placedImage2D: any = null;
-  let stackLowerImage2D: any = null;
-  for (const [{ region }, index] of orderedImageRegions.map((entry, layerIndex) => [entry, layerIndex] as const)) {
-    const sameAsCarrier = (
-      (region.filamentRgb[0] - dominantImageColor[0]) ** 2
-      + (region.filamentRgb[1] - dominantImageColor[1]) ** 2
-      + (region.filamentRgb[2] - dominantImageColor[2]) ** 2
-    ) <= 9;
-    // The carrier already provides every component of the dominant colour.
-    // Rebuilding those components would reintroduce coincident faces and the
-    // same depth-buffer/slicer artefact this continuous carrier avoids.
-    // In normal single-colour raster mode the carrier is the lower relief
-    // surface. Keep it continuous, then print only the smaller traced regions
-    // above it so the image remains readable without introducing extra colors.
-    if (sameAsCarrier && !monochromeImageRelief && !stackImageMode) continue;
-    const rings = region.rings
-      .filter((ring) => ring.length >= 3 && Math.abs(getRingArea(ring)) > 0.0001)
-      .map((ring) => ring.map(([x, y]) => [
-        (x - imageCenterX) * imageScale + headShiftX,
-        (y - imageCenterY) * imageScale + headShiftY,
-      ] as [number, number]));
-    if (!rings.length) continue;
-    try {
-      let section = ctx.simp(ctx.track(new wasm.CrossSection(rings, 'NonZero')));
-      if (stackImageMode) {
-        // The carrier is the least-covered colour across the whole image.
-        // Every layer above it is the remaining full silhouette with all
-        // previously placed colour masks removed as visible cut-outs.
-        const currentColorMask = section;
-        const remainingSection = stackLowerImage2D
-          ? ctx.simp(ctx.track(imageSection.subtract(stackLowerImage2D)))
-          : imageSection;
-        stackLowerImage2D = stackLowerImage2D
-          ? ctx.simp(ctx.track(stackLowerImage2D.add(currentColorMask)))
-          : currentColorMask;
-        if (index === 0) continue;
-        section = remainingSection;
-      } else {
-        if (placedImage2D) section = ctx.simp(ctx.track(section.subtract(placedImage2D)));
-        if (sectionIsEmpty(section)) continue;
-      }
-      if (sectionIsEmpty(section)) continue;
+  // Image mode and Image + Imported Block now share cleaned, clipped,
+  // non-overlapping 2D masks. Each mask is also the exact contour subtracted
+  // from the carrier, preventing triangle seams and colour overlap.
+  for (const { region, layerIndex, footprint } of imageMasks) {
+      // Stack mode reserves the first colour as the full-silhouette carrier.
+      if (stackImageMode && layerIndex === orderedImageRegions[0]?.regionIndex) continue;
       const topLayer = imageTopScale === 1
-        ? section
-        : ctx.track(section.scale([imageTopScale, imageTopScale]));
-      const imagePartName = `hybrid-image-${index}`;
+        ? footprint
+        : ctx.track(footprint.scale([imageTopScale, imageTopScale]));
+      const imagePartName = `hybrid-image-${layerIndex}`;
       const extrusionLevel = params.componentHeights?.[imagePartName]
         ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
         ?? 0;
@@ -661,21 +775,43 @@ export function buildHybridClicker(
           const cavity = ctx.track(wasm.Manifold.extrude(topLayer, inlayDepth + 0.02)
             .translate([0, 0, imageLayerBottom]));
           imageCarrier = ctx.track(imageCarrier.subtract(cavity));
-          if (!useImportedBlock) badgeBody = ctx.track(badgeBody.subtract(cavity));
+          if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
           parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
         }
-        if (!stackImageMode) {
-          placedImage2D = placedImage2D
-            ? ctx.simp(ctx.track(placedImage2D.add(section)))
-            : section;
-        }
       }
-    } catch {
-      warnings.push(`Image region ${index + 1} could not be printed.`);
+  }
+
+  for (const { region, layerIndex, footprint } of bottomImageMasks) {
+    const imagePartName = `hybrid-image-${layerIndex}-bottom`;
+    const extrusionLevel = params.componentHeights?.[imagePartName]
+      ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
+      ?? 0;
+    const imageExtrude = clamp(
+      clamp(params.hybridImageExtrudeMm, 0, 6, 0)
+        + extrusionLevel * (params.stepHeight ?? 0.6),
+      0,
+      6,
+      0,
+    );
+    const imageLayerBottom = imageTop - inlayDepth;
+    const layer = ctx.track(wasm.Manifold.extrude(footprint, inlayDepth + imageExtrude)
+      .translate([0, 0, imageLayerBottom]));
+    if (layer.isEmpty()) continue;
+    if (monochromeImageRelief) {
+      bottomImageCarrier = ctx.simp(ctx.track(bottomImageCarrier!.add(layer)));
+    } else {
+      const cavity = ctx.track(wasm.Manifold.extrude(footprint, inlayDepth + 0.02)
+        .translate([0, 0, imageLayerBottom]));
+      bottomImageCarrier = ctx.track(bottomImageCarrier!.subtract(cavity));
+      if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
+      parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
     }
   }
 
   parts.push(toPart(imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
+  if (bottomImageCarrier && !bottomImageCarrier.isEmpty()) {
+    parts.push(toPart(bottomImageCarrier, 'body', 'base', bottomCarrierColor, 'hybrid-bottom-image-base'));
+  }
   if (useImportedBlock && importedBlockParts) {
     parts.push(toPart(badgeBody, 'body', 'base', bodyColor, 'hybrid-image-backing'));
     if (lowerBody && !lowerBody.isEmpty()) {

@@ -72,12 +72,15 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('blockKeySize')?.addEventListener('change', (e: Event) => cb.onBlockKeySize(+(e.target as HTMLSelectElement).value));
   $('hybridImageSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
   $('importedHeadSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
+  $('importedHeadMatchBlockHeight')?.addEventListener('change', (e: Event) => cb.onHybridImageMatchBlockHeight((e.target as HTMLInputElement).checked));
   $('importedHeadThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
   $('importedHeadLateral')?.addEventListener('input', (e: Event) => cb.onHybridImageLateralOffset(+(e.target as HTMLInputElement).value));
+  $('importedBlockLateral')?.addEventListener('input', (e: Event) => cb.onHybridBlockLateralOffset(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychain')?.addEventListener('change', (e: Event) => cb.onKeychainToggle((e.target as HTMLInputElement).checked));
+  $('importedHeadKeychainPosition')?.addEventListener('change', (e: Event) => cb.onHybridKeychainPosition((e.target as HTMLSelectElement).value as 'top' | 'bottom'));
   $('importedNeckEnabled')?.addEventListener('change', (e: Event) => cb.onImportedNeckEnabled((e.target as HTMLInputElement).checked));
   $('importedNeckSmooth')?.addEventListener('change', (e: Event) => cb.onImportedNeckSmooth((e.target as HTMLInputElement).checked));
-  $('importedNeckLength')?.addEventListener('input', (e: Event) => cb.onHybridNeckLength(+(e.target as HTMLInputElement).value));
+  $('importedNeckLength')?.addEventListener('input', (e: Event) => cb.onImportedBlockSpacing(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychainSize')?.addEventListener('input', (e: Event) => cb.onKeychainHoleDiameter(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychainOffset')?.addEventListener('input', (e: Event) => cb.onImportedKeychainOffset(+(e.target as HTMLInputElement).value));
   $('hybridImageThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));

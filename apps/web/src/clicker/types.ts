@@ -145,7 +145,13 @@ export interface BuildParams {
   /** Absolute image badge size in Image + Blocks mode (largest dimension, mm). */
   hybridImageSizeMm?: number;
   hybridImageLateralOffsetMm?: number;
-  /** Total thickness of the imported-image head. It may match the carrier base. */
+  /** Left/right offset for the imported block relative to the image head. */
+  hybridBlockLateralOffsetMm?: number;
+  /** Signed image-to-block spacing in Image + Imported Block mode; negative values overlap. */
+  hybridImportedBlockSpacingMm?: number;
+  /** When enabled, match the image thickness to the imported block's Z height. */
+  hybridImageMatchBlockHeight?: boolean;
+  /** Total thickness of the imported-image head when automatic matching is disabled. */
   hybridImageThicknessMm?: number;
   /** Padding from the imported image silhouette to its flat keychain plate. */
   hybridImagePaddingMm?: number;

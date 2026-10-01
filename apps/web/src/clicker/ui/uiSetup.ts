@@ -396,11 +396,17 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onBlockKeySize: (unit) => { store.set({ blockKeycapUnit: Math.max(1, Math.min(6.5, unit)) }); debouncedRebuild(); },
     onHybridImageSize: (sizeMm) => { store.set({ hybridImageSizeMm: Math.max(30, Math.min(140, sizeMm)) }); debouncedRebuild(); },
     onHybridImageLateralOffset: (value) => { store.set({ hybridImageLateralOffsetMm: Math.max(-25, Math.min(25, value)) }); debouncedRebuild(); },
+    onHybridBlockLateralOffset: (value) => { store.set({ hybridBlockLateralOffsetMm: Math.max(-30, Math.min(30, value)) }); debouncedRebuild(); },
+    onImportedBlockSpacing: (value) => { store.set({ hybridImportedBlockSpacingMm: Math.max(-20, Math.min(30, value)) }); debouncedRebuild(); },
     onImportedKeychainOffset: (value) => { store.set({ keychain: { ...store.get().keychain, offsetMm: Math.max(-15, Math.min(15, value)) } }); debouncedRebuild(); },
-    onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageThicknessMm: Math.max(base, Math.min(24, value)) }); debouncedRebuild(); },
+    onHybridImageMatchBlockHeight: (enabled) => { store.set({ hybridImageMatchBlockHeight: enabled }); debouncedRebuild(); },
+    onHybridImageThickness: (value) => { const base = store.get().hybridBaseThicknessMm; store.set({ hybridImageMatchBlockHeight: false, hybridImageThicknessMm: Math.max(base, Math.min(24, value)) }); debouncedRebuild(); },
     onHybridImagePadding: (value) => { store.set({ hybridImagePaddingMm: Math.max(0, Math.min(20, value)) }); debouncedRebuild(); },
     onHybridKeychainHeight: (value) => { store.set({ hybridKeychainHeightMm: Math.max(1, Math.min(15, value)) }); debouncedRebuild(); },
-    onHybridKeychainPosition: (position) => { store.set({ keychain: { ...store.get().keychain, hybridPosition: position } }); debouncedRebuild(); },
+    // Moving the keyring changes both its XY position and the clearance needed
+    // between an imported block and the image. Rebuild immediately so the
+    // selected end is reflected by the preview without waiting for a slider debounce.
+    onHybridKeychainPosition: (position) => { store.set({ keychain: { ...store.get().keychain, hybridPosition: position } }); rebuild(); },
     onHybridImageExtrude: (value) => { store.set({ hybridImageExtrudeMm: Math.max(0, Math.min(6, value)) }); debouncedRebuild(); },
     onHybridTextExtrude: (value) => { store.set({ hybridTextExtrudeMm: Math.max(0, Math.min(5, value)) }); debouncedRebuild(); },
     onHybridBaseWidth: (value) => { store.set({ hybridBaseWidthMm: Math.max(20, Math.min(60, value)) }); debouncedRebuild(); },

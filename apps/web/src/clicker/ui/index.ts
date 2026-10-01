@@ -290,8 +290,9 @@ export function createUi(
     const importedBlockMode = state.importMode === 'hybrid' && state.useImportedBlock;
     const importedControls: Array<[string, string]> = [
       ['importedHeadSize', `${state.hybridImageSizeMm.toFixed(0)} mm`],
-      ['importedHeadThickness', `${state.hybridImageThicknessMm.toFixed(1)} mm`],
+      ['importedHeadThickness', state.hybridImageMatchBlockHeight ? tx('Matches block height', 'Bằng chiều cao block') : `${state.hybridImageThicknessMm.toFixed(1)} mm`],
       ['importedHeadLateral', `${state.hybridImageLateralOffsetMm.toFixed(1)} mm`],
+      ['importedBlockLateral', `${state.hybridBlockLateralOffsetMm.toFixed(1)} mm`],
       ['importedHeadKeychainSize', `${state.keychain.holeDiameterMm.toFixed(1)} mm`],
       ['importedHeadKeychainOffset', `${(state.keychain.offsetMm ?? 0).toFixed(1)} mm`],
     ];
@@ -299,28 +300,38 @@ export function createUi(
       const input = $<HTMLInputElement>(id);
       if (input && getClickerDocument().activeElement !== input) {
         input.value = String(id === 'importedHeadSize' ? state.hybridImageSizeMm
-          : id === 'importedHeadThickness' ? state.hybridImageThicknessMm
+            : id === 'importedHeadThickness' ? state.hybridImageThicknessMm
             : id === 'importedHeadLateral' ? state.hybridImageLateralOffsetMm
+              : id === 'importedBlockLateral' ? state.hybridBlockLateralOffsetMm
               : id === 'importedHeadKeychainOffset' ? state.keychain.offsetMm ?? 0 : state.keychain.holeDiameterMm);
       }
       if ($(`${id}Value`)) $(`${id}Value`)!.textContent = label;
     }
+    if ($('importedHeadMatchBlockHeight')) $<HTMLInputElement>('importedHeadMatchBlockHeight').checked = state.hybridImageMatchBlockHeight;
+    if ($('importedHeadThickness')) $<HTMLInputElement>('importedHeadThickness').disabled = state.hybridImageMatchBlockHeight;
     if ($('importedHeadKeychain')) $<HTMLInputElement>('importedHeadKeychain').checked = state.keychain.enabled;
+    if ($('importedHeadKeychainPosition')) $<HTMLSelectElement>('importedHeadKeychainPosition').value = state.keychain.hybridPosition === 'bottom' ? 'bottom' : 'top';
+    if ($('importedHeadKeychainPositionRow')) $('importedHeadKeychainPositionRow')!.style.display = state.keychain.enabled ? '' : 'none';
     if ($('importedHeadKeychainSizeRow')) $('importedHeadKeychainSizeRow')!.style.display = state.keychain.enabled ? '' : 'none';
     if ($('importedHeadKeychainOffsetRow')) $('importedHeadKeychainOffsetRow')!.style.display = state.keychain.enabled ? '' : 'none';
     if ($('importedNeckEnabled')) $<HTMLInputElement>('importedNeckEnabled').checked = state.hybridNeckEnabled;
     if ($('importedNeckSmooth')) $<HTMLInputElement>('importedNeckSmooth').checked = state.hybridNeckSmooth;
-    if ($('importedNeckLength')) $<HTMLInputElement>('importedNeckLength').value = String(state.hybridNeckLengthMm);
-    if ($('importedNeckLengthValue')) $('importedNeckLengthValue')!.textContent = `${state.hybridNeckLengthMm.toFixed(1)} mm`;
+    if ($('importedNeckLength')) $<HTMLInputElement>('importedNeckLength').value = String(state.hybridImportedBlockSpacingMm);
+    if ($('importedNeckLengthValue')) $('importedNeckLengthValue')!.textContent = `${state.hybridImportedBlockSpacingMm.toFixed(1)} mm`;
     if ($('importedNeckSmoothRow')) $('importedNeckSmoothRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
-    if ($('importedNeckLengthRow')) $('importedNeckLengthRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
+    if ($('importedNeckLengthRow')) $('importedNeckLengthRow')!.style.display = '';
     const switchRow = $('showswitch')?.closest('.switch-row') as HTMLElement | null;
     if (switchRow) switchRow.style.display = importedBlockMode ? 'none' : '';
     const activeImportTab = importedBlockMode ? 'hybrid-imported' : state.importMode;
     getClickerDocument().querySelectorAll('#importTabs [data-mode]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.mode === activeImportTab));
     if ($('importedBlockModePanel')) $('importedBlockModePanel')!.hidden = !importedBlockMode;
+    if ($('bottomImageBaseLabel')) $('bottomImageBaseLabel')!.textContent = importedBlockMode
+      ? tx('Bottom image (same face)', 'Ảnh phía dưới (cùng mặt)')
+      : tx('Lower image base', 'Base ảnh phía dưới');
+    if ($('bottomImageBaseHint')) $('bottomImageBaseHint')!.textContent = importedBlockMode
+      ? tx('Add a second image below the main artwork, on the same visible face.', 'Thêm ảnh thứ hai bên dưới hình chính, trên cùng mặt hiển thị.')
+      : tx('Use a custom image silhouette for the lower base.', 'Dùng silhouette ảnh tùy chỉnh cho phần base phía dưới.');
     getClickerDocument().querySelectorAll('#importedBlockOrientation [data-imported-orient]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.importedOrient === state.blockOrientation));
-    if ($('lowerImageBaseSection')) $('lowerImageBaseSection')!.hidden = importedBlockMode;
     if ($('importedBlockModeStatus')) $('importedBlockModeStatus')!.textContent = state.importedModelName
       ? `Using ${state.importedModelName} as the block body.`
       : 'Choose a block STL/3MF and upload the image below.';

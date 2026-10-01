@@ -82,7 +82,11 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
           break;
         }
         try {
-          viewer.setParts(msg.parts, !appData.isInitialLoad, store.get().useImportedBlock);
+          // Let the viewer crease small generated meshes normally. The old
+          // hybrid fast-normal override affected every image color part too,
+          // washing out hard edges and making the relief look triangulated.
+          // Large meshes still use indexed normals inside partToGeometry.
+          viewer.setParts(msg.parts, !appData.isInitialLoad);
         } catch (error) {
           if (store.get().useImportedBlock) viewer.setPreviewSource('imported');
           store.set({ building: false, previewSource: store.get().useImportedBlock ? 'imported' : 'generated', status: `Could not display generated mesh: ${error instanceof Error ? error.message : String(error)}` });
@@ -331,6 +335,9 @@ export function rebuild(quiet = false) {
     baseShape: effectiveBaseShape, capWidthMm: s.capWidthMm, topThickness: Math.max(0, s.topThickness),
     imageDepth: s.imageDepth, flatKeychainThicknessMm: s.flatKeychainThicknessMm, hybridImageSizeMm: s.hybridImageSizeMm,
     hybridImageLateralOffsetMm: s.hybridImageLateralOffsetMm,
+    hybridBlockLateralOffsetMm: s.hybridBlockLateralOffsetMm,
+    hybridImportedBlockSpacingMm: s.hybridImportedBlockSpacingMm,
+    hybridImageMatchBlockHeight: s.hybridImageMatchBlockHeight,
     hybridImageThicknessMm: s.hybridImageThicknessMm, hybridImagePaddingMm: s.hybridImagePaddingMm,
     hybridKeychainHeightMm: s.hybridKeychainHeightMm, hybridImageExtrudeMm: s.hybridImageExtrudeMm,
     hybridBaseWidthMm: s.hybridBaseWidthMm,

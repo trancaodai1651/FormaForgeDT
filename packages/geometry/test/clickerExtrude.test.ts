@@ -33,6 +33,19 @@ function largestTopZ(parts: ClickerPart[], name: string): number {
   return zBounds(part).max;
 }
 
+function partSectionArea(wasm: any, part: ClickerPart, z: number): number {
+  const solid = wasm.Manifold.ofMesh(new wasm.Mesh({
+    numProp: part.numProp,
+    vertProperties: new Float32Array(part.vertProperties),
+    triVerts: new Uint32Array(part.triVerts),
+  }));
+  const section = solid.slice(z);
+  const area = section.area();
+  section.delete();
+  solid.delete();
+  return area;
+}
+
 function expectThreeMfKeepsPartHeight(part: ClickerPart) {
   const sourceHeight = zBounds(part).max - zBounds(part).min;
   const archive = unzipSync(buildThreeMF([part]));
@@ -90,6 +103,61 @@ async function setup() {
 }
 
 describe('Clicker viewport Extrude', () => {
+  it('does not merge a distinct near-white Image palette entry into the carrier', async () => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalizedOutline: Ring[] = [[[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]];
+    const nearWhiteAccent: Ring = [[-0.1, -0.1], [0.1, -0.1], [0.1, 0.1], [-0.1, 0.1]];
+    const regions: BuildRegion[] = [
+      { partName: 'top-color-0-0', filamentRgb: [250, 248, 245], coverage: 0.96,
+        rings: [[[-0.45, -0.45], [0.45, -0.45], [0.45, 0.45], [-0.45, 0.45]]] },
+      { partName: 'top-color-1-0', filamentRgb: [248, 248, 245], coverage: 0.04, rings: [nearWhiteAccent] },
+    ];
+    const result = buildClicker(wasm, socket, stem, regions, normalizedOutline, {
+      ...params, rasterImageMode: true,
+    });
+    const accent = result.parts.find((part) => part.name === 'top-color-1-0');
+    expect(accent).toBeDefined();
+    expect(accent?.colorRgb).toEqual([248, 248, 245]);
+    expect(accent?.triVerts.length).toBeGreaterThan(0);
+    socket.delete(); stem.delete();
+  });
+
+  it('keeps the Image color inlay and backing pocket on the same contour', async () => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalizedOutline: Ring[] = [[[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]];
+    const normalizedRegions: BuildRegion[] = [
+      { partName: 'top-color-0-0', filamentRgb: [250, 248, 245], coverage: 0.9,
+        rings: [[[-0.45, -0.45], [0.45, -0.45], [0.45, 0.45], [-0.45, 0.45]]] },
+      { partName: 'top-color-1-0', filamentRgb: [25, 30, 35], coverage: 0.1,
+        rings: [[[-0.1, -0.1], [0.1, -0.1], [0.1, -0.1], [0.1, 0.1], [-0.1, 0.1], [Number.NaN, Number.NaN]]] },
+    ];
+    const plain = buildClicker(wasm, socket, stem, [], normalizedOutline, {
+      ...params, rasterImageMode: true,
+    });
+    const colored = buildClicker(wasm, socket, stem, normalizedRegions, normalizedOutline, {
+      ...params, rasterImageMode: true,
+    });
+    const topZ = 3 + params.topThickness + params.imageDepth - 0.01;
+    const expectedArea = partSectionArea(wasm, plain.parts.find((part) => part.name === 'top-base')!, topZ);
+    const topBase = colored.parts.find((part) => part.name === 'top-base')!;
+    const colorInlay = colored.parts.find((part) => part.name === 'top-color-1-0')!;
+    const actualArea = partSectionArea(wasm, topBase, topZ)
+      + partSectionArea(wasm, colorInlay, topZ);
+
+    // A contour mismatch leaves a visible strip of the carrier between the
+    // color region and its pocket. Compare the complete top surface to the
+    // same cap without color cuts so even sub-pixel gaps fail this check.
+    expect(Math.abs(actualArea - expectedArea)).toBeLessThan(0.02);
+
+    const archive = unzipSync(buildThreeMF([topBase, colorInlay]));
+    const model = archive['3D/3dmodel.model'];
+    expect(model).toBeDefined();
+    const modelXml = strFromU8(model!);
+    expect(modelXml).toContain('top-base');
+    expect(modelXml).toContain('top-color-1-0');
+    socket.delete(); stem.delete();
+  });
+
   it.each([
     { mode: 'Image', regions: imageRegions, rasterImageMode: true, selectedRegion: 1, outputName: 'top-color-1-0' },
     // Vector regions retain their source component identity. The raster-only

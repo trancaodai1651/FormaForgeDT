@@ -1,5 +1,6 @@
 import type { BuildParams, BuildRegion, ClickerPart, PartGroup, Ring, RGB, SwitchPlacement } from '../types';
 import { BuildContext } from './buildContext';
+import { buildImageMaskPipeline } from './imageMaskPipeline';
 import { sectionIsEmpty, getRingArea, removeHoles, edgePointAt } from './geometry/sectionUtils';
 import { roundedRect, ribbedProfile, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
 import { resolveSwitches } from './sizing/switchPlacement';
@@ -284,7 +285,6 @@ export function buildClicker(
   // Track the footprint actually used by the inlay. The previous version
   // tracked the unexpanded source region while rendering the color-bleed
   // region, leaving overlapping walls between each inlay and top-base.
-  let placedFootprint2D: any = null;
   const holesByLevel = new Map<number, any>();
 
   // A single-material image should be one continuous solid. Anti-aliased
@@ -315,7 +315,7 @@ export function buildClicker(
     && monoReference
     && !monochromeImageRelief
     && regions.every((r) => (
-      colorDistanceSq(r.filamentRgb, monoReference.filamentRgb) <= 9
+      colorDistanceSq(r.filamentRgb, monoReference.filamentRgb) === 0
       && Math.abs(componentLevel(r) - monoLevel) <= 0.0001
     )),
   );
@@ -332,10 +332,11 @@ export function buildClicker(
   // carrier (`top-base`). Rebuilding that same colour as a second inlay creates
   // coplanar duplicate faces around every accent, which is what lets the flag
   // colour leak into the star in the preview and in slicers. Keep only the
-  // non-carrier colours as independent top meshes. SVG/icon/text keep the old
-  // per-region behaviour because they may intentionally use a custom carrier.
+  // different filament colours as independent top meshes. Do not use a fuzzy
+  // RGB threshold here: a nearby palette colour is still an intentional image
+  // colour and should remain visible in the preview and export.
   const geometryRegions: BuildRegion[] = rasterImageMode && monoReference && !stackImageMode && !monochromeImageRelief
-    ? allGeometryRegions.filter((r) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) > 16)
+    ? allGeometryRegions.filter((r) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) > 0)
     : allGeometryRegions;
 
   // Engine regions already follow the explicit bottom -> top palette order in
@@ -348,66 +349,27 @@ export function buildClicker(
   const stackFullFootprint2D = stackImageMode
     ? ctx.simp(ctx.track(fatImageArea.intersect(plate)))
     : null;
-  let stackLowerFootprint2D: any = null;
   let monochromeReliefSolid: any = null;
+  const imageMasks = buildImageMaskPipeline(ctx, {
+    inputs: orderedGeometryRegions.map(({ r }, layerIndex) => ({ region: r, layerIndex })),
+    imageScale,
+    minimumArea: MIN_AREA,
+    colorBleed: params.colorBleed,
+    imageArea: fatImageArea,
+    plate,
+    stack: stackImageMode,
+    stackFullFootprint: stackFullFootprint2D ?? undefined,
+    solidSilhouette: useSolidMonochromeTop,
+    componentLevel: (region) => useSolidMonochromeTop ? monoLevel : componentLevel(region),
+  });
 
   // --- Tạo Các Mảng Màu (Inlays) ---
-  for (const [{ r }, layerIndex] of orderedGeometryRegions.map((entry, index) => [entry, index] as const)) {
-    let fp: any;
-    if (useSolidMonochromeTop) {
-      // Use the already-clean silhouette instead of re-tracing its individual
-      // colour components. This produces one watertight top and one matching
-      // cavity, with no coincident internal walls.
-      fp = ctx.simp(ctx.track(fatImageArea.intersect(plate)));
-    } else {
-      const validRings = scaleRings(r.rings).filter(ring => ring.length >= 3 && Math.abs(getRingArea(ring)) > MIN_AREA);
-      if (validRings.length === 0) continue;
-
-      const baseCs = ctx.simp(ctx.track(new ctx.wasm.CrossSection(validRings, 'NonZero')));
-      const fatCs = params.colorBleed > 0.001 ? ctx.grow(baseCs, params.colorBleed) : baseCs;
-      fp = ctx.simp(ctx.track(fatCs.intersect(fatImageArea)));
-    }
-
-    if (sectionIsEmpty(fp)) continue;
-
-    if (stackImageMode) {
-      // Each upper object is a complete remaining silhouette. The previous
-      // color masks are holes in that object, so the lower color remains
-      // visible wherever the source artwork placed it.
-      const currentColorMask = fp;
-      const remainingFootprint = stackFullFootprint2D && stackLowerFootprint2D
-        ? ctx.simp(ctx.track(stackFullFootprint2D.subtract(stackLowerFootprint2D)))
-        : stackFullFootprint2D;
-      stackLowerFootprint2D = stackLowerFootprint2D
-        ? ctx.simp(ctx.track(stackLowerFootprint2D.add(currentColorMask)))
-        : currentColorMask;
-      if (layerIndex === 0) continue;
-      fp = remainingFootprint;
-    } else {
-      if (placedFootprint2D) {
-        fp = ctx.simp(ctx.track(fp.subtract(placedFootprint2D)));
-      }
-      if (sectionIsEmpty(fp)) continue;
-    }
-    if (sectionIsEmpty(fp)) continue;
-
-    // Keep the cavity footprint identical to the inlay footprint. The old
-    // 0.02 mm expansion created a real perimeter gap; the vertical overlap
-    // below is the robust way to avoid coplanar seams without shrinking the
-    // printed artwork.
-    const cutSource = rasterImageMode && !monochromeImageRelief
-      ? ctx.grow(fp, Math.max(0.04, params.colorBleed * 0.35))
-      : fp;
-    const cutFp = ctx.simp(ctx.track(cutSource.intersect(plate)));
-    if (sectionIsEmpty(cutFp)) continue;
-    placedFootprint2D = placedFootprint2D
-      ? ctx.simp(ctx.track(placedFootprint2D.add(cutFp)))
-      : cutFp;
+  for (const { region: r, footprint: fp, level } of imageMasks) {
+    const cutFp = fp;
 
     // Keep raster artwork coplanar by default. The Extrude tool writes an
     // explicit component height; only that user-selected level moves a color
     // above or below the carrier surface.
-    const level = useSolidMonochromeTop ? monoLevel : componentLevel(r);
     const heightShift = level * params.stepHeight;
     const imagePlaneZ = imageBottomZ + Math.min(0, heightShift);
     const bottomZ = imagePlaneZ - topMeshOverlap;
