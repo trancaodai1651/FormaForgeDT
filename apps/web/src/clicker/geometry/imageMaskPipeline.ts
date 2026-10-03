@@ -53,10 +53,6 @@ export function mapCleanRings(
   return valid;
 }
 
-function simplifySection(ctx: BuildContext, section: any): any {
-  return ctx.simp(section);
-}
-
 /**
  * Turn traced color contours into non-overlapping printable top masks.
  *
@@ -73,7 +69,9 @@ export function buildImageMaskPipeline(
   let placedFootprint: any = null;
   let lowerStackFootprint: any = null;
 
-  const clipToPlate = (section: any): any => simplifySection(ctx, ctx.track(section.intersect(plate)));
+  // Tracing already simplifies the artwork. Further approximation of a
+  // boolean result changes its shared boundary with neighbouring colours.
+  const clipToPlate = (section: any): any => ctx.track(section.intersect(plate));
 
   for (const { region, layerIndex } of inputs) {
     let sourceMask: any;
@@ -87,7 +85,7 @@ export function buildImageMaskPipeline(
       );
       if (rings.length === 0) continue;
 
-      const contour = simplifySection(ctx, ctx.track(new ctx.wasm.CrossSection(rings, 'NonZero')));
+      const contour = ctx.track(new ctx.wasm.CrossSection(rings, 'NonZero'));
       const withBleed = colorBleed > 0.001 ? ctx.grow(contour, colorBleed) : contour;
       sourceMask = clipToPlate(ctx.track(withBleed.intersect(imageArea)));
     }
@@ -101,7 +99,7 @@ export function buildImageMaskPipeline(
         ? clipToPlate(ctx.track(fullFootprint.subtract(lowerStackFootprint)))
         : fullFootprint;
       lowerStackFootprint = lowerStackFootprint
-        ? simplifySection(ctx, ctx.track(lowerStackFootprint.add(sourceMask)))
+        ? ctx.track(lowerStackFootprint.add(sourceMask))
         : sourceMask;
       if (layerIndex === 0) continue;
     } else if (placedFootprint) {
@@ -118,7 +116,7 @@ export function buildImageMaskPipeline(
       level: options.componentLevel(region),
     });
     placedFootprint = placedFootprint
-      ? simplifySection(ctx, ctx.track(placedFootprint.add(footprint)))
+      ? ctx.track(placedFootprint.add(footprint))
       : footprint;
   }
 

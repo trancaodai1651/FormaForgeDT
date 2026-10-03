@@ -257,6 +257,8 @@ export interface ClickerPart extends MeshData {
   group: PartGroup;
   colorRgb: RGB;
   name: string;
+  /** Stable traced component identity when a hybrid builder renames the part. */
+  sourcePartName?: string;
   /** 1-based filament slot for slicer color assignment (shared per unique color). */
   extruder?: number;
 }

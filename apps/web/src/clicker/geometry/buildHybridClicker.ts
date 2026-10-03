@@ -623,7 +623,9 @@ export function buildHybridClicker(
     inputs: maskInputs.map(({ region, regionIndex }) => ({ region, layerIndex: regionIndex })),
     imageScale,
     minimumArea: 0.05,
-    colorBleed: clamp(params.colorBleed, 0, 2, 0.12),
+    // Image contours already tile their source colours. Growing each colour
+    // independently expands a small orange region into neighbouring black.
+    colorBleed: 0,
     imageArea: imageSection,
     plate: badgeSection,
     stack: stackImageMode,
@@ -647,7 +649,7 @@ export function buildHybridClicker(
       inputs: bottomImageRegions.map(({ region, regionIndex }) => ({ region, layerIndex: regionIndex })),
       imageScale: 1,
       minimumArea: 0.05,
-      colorBleed: clamp(params.colorBleed, 0, 2, 0.12),
+      colorBleed: 0,
       imageArea: bottomImageArea,
       plate: badgeSection,
       stack: false,
@@ -776,7 +778,7 @@ export function buildHybridClicker(
             .translate([0, 0, imageLayerBottom]));
           imageCarrier = ctx.track(imageCarrier.subtract(cavity));
           if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
-          parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
+          parts.push({ ...toPart(layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
         }
       }
   }
@@ -804,7 +806,7 @@ export function buildHybridClicker(
         .translate([0, 0, imageLayerBottom]));
       bottomImageCarrier = ctx.track(bottomImageCarrier!.subtract(cavity));
       if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
-      parts.push(toPart(layer, 'body', 'base', region.filamentRgb, imagePartName));
+      parts.push({ ...toPart(layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
     }
   }
 

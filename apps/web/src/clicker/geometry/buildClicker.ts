@@ -354,7 +354,7 @@ export function buildClicker(
     inputs: orderedGeometryRegions.map(({ r }, layerIndex) => ({ region: r, layerIndex })),
     imageScale,
     minimumArea: MIN_AREA,
-    colorBleed: params.colorBleed,
+    colorBleed: rasterImageMode ? 0 : params.colorBleed,
     imageArea: fatImageArea,
     plate,
     stack: stackImageMode,
@@ -381,7 +381,7 @@ export function buildClicker(
     if (Math.abs(heightShift) > 0.001) {
       boundingVolume = ctx.track(capSurfaceShell.translate([0, 0, heightShift]));
     }
-    let inlay = ctx.simp(ctx.track(inlayVolume.intersect(boundingVolume)));
+    let inlay = ctx.track(inlayVolume.intersect(boundingVolume));
 
     // Profiled caps use a surface shell whose lower face starts exactly at
     // imageBottomZ. Add a short connector from the same footprint into the
@@ -391,9 +391,9 @@ export function buildClicker(
       ? ctx.track(capVolume.translate([0, 0, heightShift]))
       : capVolume;
     const connectorColumn = ctx.extrudeAt(fp, topMeshOverlap, bottomZ, sectionIsEmpty);
-    const connector = ctx.simp(ctx.track(connectorColumn.intersect(levelCapVolume)));
+    const connector = ctx.track(connectorColumn.intersect(levelCapVolume));
     if (!connector.isEmpty()) {
-      inlay = ctx.simp(ctx.track(inlay.add(connector)));
+      inlay = ctx.track(inlay.add(connector));
     }
 
     if (inlay.isEmpty()) continue;
@@ -438,7 +438,7 @@ export function buildClicker(
         ? ctx.track(capSurfaceShell.translate([0, 0, heightShift]))
         : capSurfaceShell;
       const holeVolume = ctx.track(holeColumn.intersect(holeShell));
-      base = ctx.simp(ctx.track(base.subtract(holeVolume)));
+      base = ctx.track(base.subtract(holeVolume));
     }
   }
 

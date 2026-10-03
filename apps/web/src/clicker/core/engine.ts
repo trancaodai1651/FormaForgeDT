@@ -1,5 +1,6 @@
 ﻿import { getClickerDocument } from '../runtime';
 import { store, appData } from '../store/appState';
+import { partMatchesPalette, rememberPartColor } from './partColors';
 import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
 import { parseLetter } from '../image/letter';
@@ -147,7 +148,7 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
       store.set({ selectedParts: [partName] });
       const part = appData.latestParts[index];
       if (!part) return;
-      const target = partColorTarget(part.name, s);
+      const target = partColorTarget(part.sourcePartName ?? part.name, s);
       if (!target) return;
       
       const options = getAvailableColorOptions(s);
@@ -523,14 +524,13 @@ export function applyModelRecolor(target: ColorTarget, rgb: RGB, partIndex: numb
       const part = appData.latestParts[partIndex];
       viewer.setPartColor(partIndex, rgb);
       appData.latestParts[partIndex] = { ...appData.latestParts[partIndex], colorRgb: rgb };
-      overrides[part.name] = rgb;
+      rememberPartColor(overrides, part, rgb);
     } else {
-      const prefixes = [`top-color-${i}-`, `hybrid-image-${i}`];
       appData.latestParts.forEach((p: ClickerPart, idx: number) => {
-        if (prefixes.some((prefix) => p.name.startsWith(prefix))) {
+        if (partMatchesPalette(p, i)) {
           viewer.setPartColor(idx, rgb);
           appData.latestParts[idx] = { ...appData.latestParts[idx], colorRgb: rgb };
-          overrides[p.name] = rgb;
+          rememberPartColor(overrides, p, rgb);
         }
       });
       const palette = s.palette.slice();

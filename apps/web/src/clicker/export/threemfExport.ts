@@ -18,17 +18,20 @@ function hex(rgb: RGB): string {
   return `#${h(rgb[0])}${h(rgb[1])}${h(rgb[2])}FF`;
 }
 
-function assignExtruders(parts: ClickerPart[]): number[] {
+function assignExtruders(parts: ClickerPart[]): { extruders: number[]; colors: string[] } {
   const slotByColor = new Map<string, number>();
-  return parts.map((p) => {
-    const key = p.colorRgb.join(',');
+  const extruders = parts.map((p) => {
+    const key = hex(p.colorRgb);
     let slot = slotByColor.get(key);
     if (slot === undefined) {
       slot = slotByColor.size + 1;
       slotByColor.set(key, slot);
     }
-    return p.extruder ?? slot;
+    // Imported slot numbers refer to the source project's palette. Rebuild
+    // them from the final RGB so recoloring cannot reuse an unrelated slot.
+    return slot;
   });
+  return { extruders, colors: [...slotByColor.keys()] };
 }
 
 function meshXml(p: ClickerPart, minZ: number): string {
@@ -57,7 +60,7 @@ function transformAttr(
 
 export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
   // Äi qua bá»™ lá»c lÃ m sáº¡ch lÆ°á»›i 3D
-  const parts = rawParts.map(sanitizeMesh);
+  const parts = rawParts.map(sanitizeMesh).filter(part => part.triVerts.length >= 3);
 
   let minZ = Infinity;
   for (const p of parts) {
@@ -67,7 +70,7 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
   }
   if (!isFinite(minZ)) minZ = 0;
 
-  const extruders = assignExtruders(parts);
+  const { extruders, colors } = assignExtruders(parts);
 
   const groups: { id: PartGroup; label: string }[] = [
     { id: 'top', label: 'clicker_top' },
@@ -75,7 +78,7 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
   ].filter((g) => parts.some((p) => p.group === g.id)) as { id: PartGroup; label: string }[];
 
   const baseMaterials = parts
-    .map((p) => `<base name="${p.name}" displaycolor="${hex(p.colorRgb)}"/>`)
+    .map((p) => `<base name="${esc(p.name)}" displaycolor="${hex(p.colorRgb)}"/>`)
     .join('');
   const leafObjects = parts
     .map((p, i) => `<object id="${i + 2}" type="model" pid="1" pindex="${i}">${meshXml(p, minZ)}</object>`)
@@ -117,9 +120,12 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
   const buildId = viteEnv.VITE_BUILD_ID ?? 'dev';
   const creationDate = new Date().toISOString().slice(0, 10);
   const metadata =
+    `<metadata name="BambuStudio:3mfVersion">1</metadata>` +
     `<metadata name="Title">Clicker</metadata>` +
     `<metadata name="Designer">FormaForgeDT</metadata>` +
-    `<metadata name="Application">FormaForgeDT Clicker Generator</metadata>` +
+    // Bambu Studio only reads project_settings.config when Application starts
+    // with this compatibility identifier. Keep actual authorship in Generator.
+    `<metadata name="Application">BambuStudio-02.00.00.00</metadata>` +
     `<metadata name="CreationDate">${creationDate}</metadata>` +
     `<metadata name="Generator">FormaForgeDT Clicker Generator</metadata>` +
     `<metadata name="Build">${esc(buildId)}</metadata>`;
@@ -128,7 +134,8 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<model unit="millimeter" xml:lang="en-US"` +
     ` xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"` +
-    ` xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02">` +
+    ` xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02"` +
+    ` xmlns:BambuStudio="http://schemas.bambulab.com/package/2021">` +
     metadata +
     `<resources>` +
     `<basematerials id="1">${baseMaterials}</basematerials>` +
@@ -144,7 +151,7 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
         .map((p, i) =>
           p.group === g.id
             ? `<part id="${i + 2}" subtype="normal_part">` +
-              `<metadata key="name" value="${p.name}"/>` +
+              `<metadata key="name" value="${esc(p.name)}"/>` +
               `<metadata key="extruder" value="${extruders[i]}"/>` +
               `</part>`
             : '',
@@ -162,12 +169,24 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
   const modelSettings =
     `<?xml version="1.0" encoding="UTF-8"?>\n` + `<config>` + objectCfg + `</config>`;
 
+  // Object display colors alone are insufficient for a project import:
+  // slicers render assigned filament slots from this separate palette.
+  // Leave printer/process selection to the user's slicer.
+  const projectSettings = JSON.stringify({
+    version: '02.00.00.00',
+    filament_colour: colors,
+    filament_type: colors.map(() => 'PLA'),
+    filament_diameter: colors.map(() => '1.75'),
+  });
+
   const contentTypes =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
     `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
     `<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>` +
     `<Default Extension="config" ContentType="text/xml"/>` +
+    `<Default Extension="txt" ContentType="text/plain"/>` +
+    `<Override PartName="/Metadata/project_settings.config" ContentType="application/json"/>` +
     `</Types>`;
 
   const rels =
@@ -191,6 +210,7 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
       '_rels/.rels': strToU8(rels),
       '3D/3dmodel.model': strToU8(model),
       'Metadata/model_settings.config': strToU8(modelSettings),
+      'Metadata/project_settings.config': strToU8(projectSettings),
       'Metadata/generator.txt': strToU8(provenance),
     },
     { level: 6 },

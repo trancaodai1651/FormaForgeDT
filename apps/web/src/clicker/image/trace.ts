@@ -80,7 +80,12 @@ export function traceRegions(
         const r = ring as [number, number][];
         const A = Math.abs(ringArea(r));
         if (A < minRingArea) continue;
-        const sampled = resampleClosed(r, resampleStep);
+        // A hole and the enclosed colour traverse the same pixel boundary in
+        // opposite directions and from different starting vertices. Resample
+        // and simplify a canonical traversal once, then restore winding. This
+        // prevents a thin strip of the carrier appearing between the colours.
+        const canonical = canonicalRing(r);
+        const sampled = resampleClosed(canonical, resampleStep);
         // Adaptive smoothing: the large outer silhouette keeps full sigma, but small
         // rings (letter counters, eyes) get up to ~4× less so their features survive
         // the same kernel that only lightly touches the silhouette.
@@ -101,7 +106,8 @@ export function traceRegions(
           resampleStep * 0.25,
         );
         if (smoothedArea >= minSmoothedArea && simplified.length >= 3) {
-          compRings.push(simplified.map(norm));
+          const oriented = ringArea(r) < 0 ? simplified.slice().reverse() : simplified;
+          compRings.push(oriented.map(norm));
         }
       }
       if (compRings.length > 0) out.push(compRings);
@@ -220,6 +226,16 @@ function openRing(points: [number, number][]): [number, number][] {
     return points.slice(0, -1);
   }
   return points.slice();
+}
+
+function canonicalRing(points: [number, number][]): [number, number][] {
+  const ring = openRing(points);
+  if (ringArea(ring) < 0) ring.reverse();
+  let first = 0;
+  for (let i = 1; i < ring.length; i++) {
+    if (ring[i][0] < ring[first][0] || (ring[i][0] === ring[first][0] && ring[i][1] < ring[first][1])) first = i;
+  }
+  return [...ring.slice(first), ...ring.slice(0, first)];
 }
 
 /** Resample a closed ring to roughly uniform spacing (px) so smoothing is even. */
