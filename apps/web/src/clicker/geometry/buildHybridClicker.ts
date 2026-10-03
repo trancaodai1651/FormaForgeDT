@@ -614,8 +614,12 @@ export function buildHybridClicker(
   const sameAsCarrier = (region: BuildRegion) => region.filamentRgb.every(
     (channel, index) => channel === dominantImageColor[index],
   );
+  const componentLevel = (region: BuildRegion, regionIndex: number) =>
+    params.componentHeights?.[`hybrid-image-${regionIndex}`]
+      ?? (sameAsCarrier(region) ? params.componentHeights?.['hybrid-image-base'] : undefined)
+      ?? params.componentHeights?.[region.partName]
+      ?? 0;
   const maskInputs = orderedImageRegions
-    .filter(({ region }) => stackImageMode || monochromeImageRelief || !sameAsCarrier(region))
     .sort((a, b) => stackImageMode
       ? a.regionIndex - b.regionIndex
       : a.region.coverage - b.region.coverage || a.regionIndex - b.regionIndex);
@@ -631,12 +635,24 @@ export function buildHybridClicker(
     stack: stackImageMode,
     stackFullFootprint: imageSection,
     solidSilhouette: false,
-    componentLevel: (region) => params.componentHeights?.[region.partName ?? ''] ?? 0,
+    componentLevel: (region) => componentLevel(region, imageRegions.indexOf(region)),
     mapPoint: (x, y) => [
       (x - imageCenterX) * imageScale + headShiftX,
       (y - imageCenterY) * imageScale + headShiftY,
     ],
   });
+  // Stack masks omit the first colour because it is already the carrier.
+  // Explicit edits to that colour still need its own resolved source mask.
+  if (stackImageMode && carrierRegion && componentLevel(carrierRegion, 0) > 0) {
+    imageMasks.push(...buildImageMaskPipeline(ctx, {
+      inputs: [...maskInputs].sort((a, b) => a.region.coverage - b.region.coverage)
+        .map(({ region, regionIndex }) => ({ region, layerIndex: regionIndex })),
+      imageScale, minimumArea: 0.05, colorBleed: 0,
+      imageArea: imageSection, plate: badgeSection, stack: false, solidSilhouette: false,
+      componentLevel: (region) => componentLevel(region, imageRegions.indexOf(region)),
+      mapPoint: (x, y) => [(x - imageCenterX) * imageScale + headShiftX, (y - imageCenterY) * imageScale + headShiftY],
+    }).filter(({ region }) => region === carrierRegion));
+  }
   const bottomImageRegions = (params.bottomRegions ?? [])
     .map((region, regionIndex) => ({ region, regionIndex }))
     .sort((a, b) => a.region.coverage - b.region.coverage || a.regionIndex - b.regionIndex);
@@ -746,16 +762,16 @@ export function buildHybridClicker(
   // Image mode and Image + Imported Block now share cleaned, clipped,
   // non-overlapping 2D masks. Each mask is also the exact contour subtracted
   // from the carrier, preventing triangle seams and colour overlap.
-  for (const { region, layerIndex, footprint } of imageMasks) {
-      // Stack mode reserves the first colour as the full-silhouette carrier.
-      if (stackImageMode && layerIndex === orderedImageRegions[0]?.regionIndex) continue;
+  for (const { region, layerIndex, footprint, level: extrusionLevel } of imageMasks) {
+      const editsCarrier = sameAsCarrier(region)
+        && (!stackImageMode || region === carrierRegion);
+      // Keep the default carrier continuous, but do not discard its Extrude
+      // edit. Resolve all masks before skipping it so accents keep their edges.
+      if (editsCarrier && !monochromeImageRelief && extrusionLevel === 0 && !params.hybridImageExtrudeMm) continue;
       const topLayer = imageTopScale === 1
         ? footprint
         : ctx.track(footprint.scale([imageTopScale, imageTopScale]));
       const imagePartName = `hybrid-image-${layerIndex}`;
-      const extrusionLevel = params.componentHeights?.[imagePartName]
-        ?? (region.partName ? params.componentHeights?.[region.partName] : undefined)
-        ?? 0;
       const imageExtrude = clamp(
         clamp(params.hybridImageExtrudeMm, 0, 6, 0)
           + extrusionLevel * (params.stepHeight ?? 0.6),
@@ -771,8 +787,10 @@ export function buildHybridClicker(
       const layer = ctx.track(wasm.Manifold.extrude(topLayer, imageLayerHeight)
         .translate([0, 0, imageLayerBottom]));
       if (!layer.isEmpty()) {
-        if (monochromeImageRelief) {
-          imageCarrier = ctx.simp(ctx.track(imageCarrier.add(layer)));
+        if (monochromeImageRelief || editsCarrier) {
+          // Retain the picked carrier name across rebuilds and weld its
+          // raised white areas into one printable solid.
+          imageCarrier = ctx.track(imageCarrier.add(layer));
         } else {
           const cavity = ctx.track(wasm.Manifold.extrude(topLayer, inlayDepth + 0.02)
             .translate([0, 0, imageLayerBottom]));

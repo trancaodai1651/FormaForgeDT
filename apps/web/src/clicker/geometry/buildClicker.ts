@@ -305,7 +305,11 @@ export function buildClicker(
   const rasterImageMode = params.rasterImageMode === true;
   const monochromeImageRelief = params.monochromeImageRelief === true;
   const stackImageMode = rasterImageMode && params.stackColorLayers === true;
-  const componentLevel = (r: BuildRegion) => params.componentHeights?.[r.partName] ?? 0;
+  const sameAsCarrier = (r: BuildRegion) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) === 0;
+  const componentLevel = (r: BuildRegion) =>
+    (rasterImageMode && sameAsCarrier(r) ? params.componentHeights?.['top-base'] : undefined)
+    ?? params.componentHeights?.[r.partName]
+    ?? 0;
   const monoReference = regions.length > 0
     ? regions.reduce((best, current) => (current.coverage > best.coverage ? current : best))
     : null;
@@ -331,12 +335,13 @@ export function buildClicker(
   // In raster Image mode the dominant colour is already the continuous top
   // carrier (`top-base`). Rebuilding that same colour as a second inlay creates
   // coplanar duplicate faces around every accent, which is what lets the flag
-  // colour leak into the star in the preview and in slicers. Keep only the
-  // different filament colours as independent top meshes. Do not use a fuzzy
+  // colour leak into the star in the preview and in slicers. Keep the flush
+  // carrier combined, but retain its raised masks for explicit Extrude edits.
+  // Different filament colours remain independent top meshes. Do not use a fuzzy
   // RGB threshold here: a nearby palette colour is still an intentional image
   // colour and should remain visible in the preview and export.
   const geometryRegions: BuildRegion[] = rasterImageMode && monoReference && !stackImageMode && !monochromeImageRelief
-    ? allGeometryRegions.filter((r) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) > 0)
+    ? allGeometryRegions.filter((r) => !sameAsCarrier(r) || componentLevel(r) > 0)
     : allGeometryRegions;
 
   // Engine regions already follow the explicit bottom -> top palette order in
@@ -362,6 +367,14 @@ export function buildClicker(
     solidSilhouette: useSolidMonochromeTop,
     componentLevel: (region) => useSolidMonochromeTop ? monoLevel : componentLevel(region),
   });
+  if (stackImageMode && regions[0] && sameAsCarrier(regions[0]) && componentLevel(regions[0]) > 0) {
+    imageMasks.push(...buildImageMaskPipeline(ctx, {
+      inputs: allGeometryRegions.map((region, layerIndex) => ({ region, layerIndex }))
+        .sort((a, b) => a.region.coverage - b.region.coverage),
+      imageScale, minimumArea: MIN_AREA, colorBleed: 0,
+      imageArea: fatImageArea, plate, stack: false, solidSilhouette: false, componentLevel,
+    }).filter(({ region }) => region === regions[0]));
+  }
 
   // --- Tạo Các Mảng Màu (Inlays) ---
   for (const { region: r, footprint: fp, level } of imageMasks) {
@@ -409,7 +422,7 @@ export function buildClicker(
       const radius = Math.min(es ? es.radius : 0.5, (topZ - bottomZ) * 0.49, 3.0);
       if (radius >= 0.05) { const modBlock = createEdgeBevelBlock(ctx, fp, radius, eStyle, topZ, false); if (modBlock) inlay = ctx.track(inlay.subtract(modBlock)); }
     }
-    if (monochromeImageRelief) {
+    if (monochromeImageRelief || (rasterImageMode && sameAsCarrier(r) && (!stackImageMode || r === regions[0]))) {
       monochromeReliefSolid = monochromeReliefSolid
         ? ctx.track(monochromeReliefSolid.add(inlay))
         : inlay;
@@ -423,7 +436,7 @@ export function buildClicker(
   // The relief and carrier are the same filament. Emit one solid so no
   // coincident inlay/cavity walls can appear in either preview or export.
   let base = monochromeReliefSolid
-    ? ctx.simp(ctx.track(capVolume.add(monochromeReliefSolid)))
+    ? ctx.track(capVolume.add(monochromeReliefSolid))
     : capVolume;
   // Raster Image always needs the accent cavities even when the user asks to
   // merge the top frame and artwork. Without the cut, the carrier remains

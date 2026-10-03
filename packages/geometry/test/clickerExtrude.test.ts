@@ -103,6 +103,53 @@ async function setup() {
 }
 
 describe('Clicker viewport Extrude', () => {
+  it.each([1, 3])('raises the white Image carrier by level %i and preserves the accent height', async level => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalized = (rings: Ring[]) => rings.map(r => r.map(([x, y]) => [x / 40, y / 40] as [number, number]));
+    const regions = imageRegions.map(r => ({ ...r, rings: normalized(r.rings) }));
+    for (const stackColorLayers of [false, true]) {
+      const build = (componentHeights: Record<string, number>) => buildClicker(wasm, socket, stem, regions, normalized(outline), {
+        ...params, rasterImageMode: true, stackColorLayers,
+        componentHeights: { ...(stackColorLayers ? { 'top-color-0-0': 0, 'top-color-1-0': 1 } : {}), ...componentHeights },
+      });
+      const plain = build({});
+      const raised = build({ 'top-base': level });
+      const carrier = raised.parts.find(p => p.name === 'top-base')!;
+      expect(zBounds(carrier).max - largestTopZ(plain.parts, 'top-base')).toBeCloseTo(level * 0.6, 4);
+      expect(largestTopZ(raised.parts, 'top-color-1-0')).toBeCloseTo(largestTopZ(plain.parts, 'top-color-1-0'), 4);
+      expect(partSectionArea(wasm, carrier, largestTopZ(plain.parts, 'top-base') + 0.3)).toBeGreaterThan(100);
+      expectThreeMfKeepsPartHeight(carrier);
+      const reset = build({ 'top-base': 0 });
+      expect(largestTopZ(reset.parts, 'top-base')).toBeCloseTo(largestTopZ(plain.parts, 'top-base'), 4);
+    }
+    socket.delete(); stem.delete();
+  });
+
+  it.each([1, 3])('raises the white hybrid carrier by level %i in generated and imported block modes', async level => {
+    const { wasm, assets, keycap, socket, blockParams, params } = await setup();
+    const source = wasm.Manifold.cube([20, 20, 12], true).translate([0, 0, 6]);
+    const mesh = source.getMesh();
+    const imported: ClickerPart[] = [{ kind: 'body', group: 'base', name: 'imported-block', colorRgb: [240, 185, 103],
+      numProp: mesh.numProp, vertProperties: mesh.vertProperties, triVerts: mesh.triVerts }];
+    for (const block of [undefined, imported]) for (const stackColorLayers of [false, true]) {
+      const build = (componentHeights: Record<string, number>) => buildHybridClicker(wasm, assets, keycap, socket, imageRegions, outline, {
+        ...params, stackColorLayers,
+        componentHeights: { ...(stackColorLayers ? { 'top-color-0-0': 0, 'top-color-1-0': 1 } : {}), ...componentHeights },
+      }, blockParams, block);
+      const plain = build({});
+      const raised = build({ 'hybrid-image-base': level });
+      const carrier = raised.parts.find(p => p.name === 'hybrid-image-base')!;
+      expect(zBounds(carrier).max - largestTopZ(plain.parts, carrier.name)).toBeCloseTo(level * 0.6, 4);
+      expect(largestTopZ(raised.parts, 'hybrid-image-1')).toBeCloseTo(largestTopZ(plain.parts, 'hybrid-image-1'), 4);
+      expect(partSectionArea(wasm, carrier, largestTopZ(plain.parts, carrier.name) + 0.3)).toBeGreaterThan(100);
+      expectThreeMfKeepsPartHeight(carrier);
+      if (block) expect(raised.parts.find(p => p.name === 'imported-block')?.triVerts).toEqual(mesh.triVerts);
+      const reset = build({ 'hybrid-image-base': 0 });
+      expect(largestTopZ(reset.parts, carrier.name)).toBeCloseTo(largestTopZ(plain.parts, carrier.name), 4);
+    }
+    socket.delete(); source.delete();
+  });
+
   it('does not merge a distinct near-white Image palette entry into the carrier', async () => {
     const { wasm, socket, stem, params } = await setup();
     const normalizedOutline: Ring[] = [[[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]];
