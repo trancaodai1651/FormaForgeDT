@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
-import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+import { partToGeometry } from './partGeometry';
 import { type ClickerPart, type MeshData, type RGB, type SwitchPlacement, type ViewMode } from '../types';
 
 export type SectionAxis = 'x' | 'y' | 'z';
@@ -70,33 +70,6 @@ export interface Viewer {
 // grid lines up through the lower body.
 const GRID_GAP = 1.0;
 const MODULAR_SPLIT_EXTRA = 9;
-
-function partToGeometry(p: ClickerPart, fastNormals = false): THREE.BufferGeometry {
-  const geo = new THREE.BufferGeometry();
-  let positions: Float32Array;
-  if (p.numProp === 3) {
-    positions = p.vertProperties;
-  } else {
-    const count = p.vertProperties.length / p.numProp;
-    positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = p.vertProperties[i * p.numProp];
-      positions[i * 3 + 1] = p.vertProperties[i * p.numProp + 1];
-      positions[i * 3 + 2] = p.vertProperties[i * p.numProp + 2];
-    }
-  }
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setIndex(new THREE.BufferAttribute(p.triVerts, 1));
-  // Crease splitting duplicates every triangle and can freeze the browser on
-  // a dense traced image. Indexed normals keep large artwork interactive.
-  if (fastNormals || p.triVerts.length > 36_000) {
-    geo.computeVertexNormals();
-    return geo;
-  }
-  const creased = toCreasedNormals(geo, (35 * Math.PI) / 180);
-  geo.dispose();
-  return creased;
-}
 
 function color(rgb: RGB): THREE.Color {
   return new THREE.Color().setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, THREE.SRGBColorSpace);
