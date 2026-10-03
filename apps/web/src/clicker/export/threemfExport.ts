@@ -1,12 +1,11 @@
-﻿import { getClickerDocument } from '../runtime';
+import { getClickerDocument } from '../runtime';
 // src/export/threemfExport.ts
 import { zipSync, strToU8 } from 'fflate';
 import type { ClickerPart, PartGroup, RGB } from '../types';
-import { sanitizeMesh, groupBBox } from './meshUtils';
+import { splitMeshShells, groupBBox } from './meshUtils';
 
-// 3MF stores coordinates as text. Keep the same high precision as the mesh
-// sanitizer instead of reducing every vertex to 0.0001 mm on export.
-const f = (n: number): string => String(Math.round(n * 1e5) / 1e5);
+// Preserve round-trip coordinates: quantization can collapse narrow triangles.
+const f = (n: number): string => String(n);
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -59,8 +58,11 @@ function transformAttr(
 }
 
 export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
-  // Äi qua bá»™ lá»c lÃ m sáº¡ch lÆ°á»›i 3D
-  const parts = rawParts.map(sanitizeMesh).filter(part => part.triVerts.length >= 3);
+  // Validate and partition volumes without changing the generated surfaces.
+  const shells = rawParts.map(splitMeshShells);
+  // Keep each original part's first leaf ID stable; append additional shells.
+  const parts = [...shells.map(parts => parts[0]), ...shells.flatMap(parts => parts.slice(1))]
+    .filter(part => part.triVerts.length >= 3);
 
   let minZ = Infinity;
   for (const p of parts) {
@@ -171,10 +173,21 @@ export function buildThreeMF(rawParts: ClickerPart[]): Uint8Array {
 
   // Object display colors alone are insufficient for a project import:
   // slicers render assigned filament slots from this separate palette.
-  // Leave printer/process selection to the user's slicer.
+  // Use an A1 compatibility preset; users can change printer/process in the slicer.
   const projectSettings = JSON.stringify({
+    name: 'project_settings',
     version: '02.00.00.00',
-    filament_colour: colors,
+    // A complete single-nozzle compatibility preset is required for Bambu
+    // project import. An incomplete config is ignored, including its palette.
+    printer_technology: 'FFF',
+    printer_model: 'Bambu Lab A1',
+    printer_settings_id: 'Bambu Lab A1 0.4 nozzle',
+    print_settings_id: '0.20mm Standard @BBL A1',
+    nozzle_diameter: ['0.4'],
+    printable_area: ['0x0', '256x0', '256x256', '0x256'],
+    printable_height: '256',
+    filament_settings_id: colors.map(() => 'Bambu PLA Basic @BBL A1'),
+    filament_colour: colors.map(color => color.slice(0, 7)),
     filament_type: colors.map(() => 'PLA'),
     filament_diameter: colors.map(() => '1.75'),
   });
@@ -229,5 +242,3 @@ export function downloadThreeMF(parts: ClickerPart[], fileName = 'clicker.3mf') 
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-
-

@@ -92,7 +92,7 @@ describe('Clicker image color boundaries', () => {
       { vertical: true, bodyColorRgb: [255, 255, 255] } as never, [imported]);
     expect(rebuilt.parts.find(p => p.sourcePartName === blackPart.sourcePartName)?.colorRgb).toEqual([16, 32, 48]);
     const recoloredArchive = unzipSync(buildThreeMFObjects(rebuilt.parts));
-    expect(JSON.parse(strFromU8(recoloredArchive['Metadata/project_settings.config'])).filament_colour).toContain('#102030FF');
+    expect(JSON.parse(strFromU8(recoloredArchive['Metadata/project_settings.config'])).filament_colour).toContain('#102030');
     const solids = inkParts.map(p => wasm.Manifold.ofMesh(new wasm.Mesh(p)));
     const slices = solids.map(s => s.slice(8.03));
     const black = slices[inkParts.findIndex(p => p.colorRgb[0] === 0)];
@@ -143,7 +143,11 @@ describe('Clicker 3MF selected filament colors', () => {
     const archive = unzipSync(exportFile(parts));
     expect(archive['Metadata/project_settings.config']).toBeDefined();
     const project = JSON.parse(strFromU8(archive['Metadata/project_settings.config']));
-    expect(project.filament_colour.map((c: string) => c.toLowerCase().slice(0, 7))).toEqual(['#000000', '#ff8700', '#ffffff']);
+    expect(project.filament_colour).toEqual(['#000000', '#ff8700', '#ffffff']);
+    expect(project.name).toBe('project_settings');
+    expect(project.nozzle_diameter).toEqual(['0.4']);
+    expect(project.printer_technology).toBe('FFF');
+    expect(project.filament_settings_id).toHaveLength(3);
     const settings = strFromU8(archive['Metadata/model_settings.config']);
     const slots = [...settings.matchAll(/<part\b[^>]*>([\s\S]*?)<\/part>/g)].map(m => Number(m[1].match(/key="extruder" value="(\d+)"/)![1]));
     expect(slots).toEqual([1, 2, 3, 1]);

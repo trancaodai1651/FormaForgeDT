@@ -124,8 +124,17 @@ function smoothNeckOutline(
   return [low[0], high[0], ...high.slice(1), ...low.slice().reverse().slice(0, -1)];
 }
 
-function toPart(solid: any, kind: 'cap' | 'body', group: PartGroup, colorRgb: RGB, name: string): ClickerPart {
-  const mesh = solid.getMesh();
+function toPart(wasm: any, solid: any, kind: 'cap' | 'body', group: PartGroup, colorRgb: RGB, name: string): ClickerPart {
+  // Each output part is one material. Discard boolean face provenance before
+  // tessellation so coplanar cuts/raised carrier unions do not retain tiny
+  // internal seams that collapse when exported as Float32 coordinates.
+  const printable = solid.asOriginal();
+  // Reconstruct at the exact Float32 precision sent to the viewer/exporter.
+  // The kernel collapses rounded zero-length edges while keeping closed topology.
+  const rounded = wasm.Manifold.ofMesh(new wasm.Mesh(printable.getMesh()));
+  const mesh = rounded.getMesh();
+  rounded.delete();
+  printable.delete();
   return {
     kind,
     group,
@@ -796,7 +805,7 @@ export function buildHybridClicker(
             .translate([0, 0, imageLayerBottom]));
           imageCarrier = ctx.track(imageCarrier.subtract(cavity));
           if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
-          parts.push({ ...toPart(layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
+          parts.push({ ...toPart(wasm, layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
         }
       }
   }
@@ -824,23 +833,23 @@ export function buildHybridClicker(
         .translate([0, 0, imageLayerBottom]));
       bottomImageCarrier = ctx.track(bottomImageCarrier!.subtract(cavity));
       if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
-      parts.push({ ...toPart(layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
+      parts.push({ ...toPart(wasm, layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
     }
   }
 
-  parts.push(toPart(imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
+  parts.push(toPart(wasm, imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
   if (bottomImageCarrier && !bottomImageCarrier.isEmpty()) {
-    parts.push(toPart(bottomImageCarrier, 'body', 'base', bottomCarrierColor, 'hybrid-bottom-image-base'));
+    parts.push(toPart(wasm, bottomImageCarrier, 'body', 'base', bottomCarrierColor, 'hybrid-bottom-image-base'));
   }
   if (useImportedBlock && importedBlockParts) {
-    parts.push(toPart(badgeBody, 'body', 'base', bodyColor, 'hybrid-image-backing'));
+    parts.push(toPart(wasm, badgeBody, 'body', 'base', bodyColor, 'hybrid-image-backing'));
     if (lowerBody && !lowerBody.isEmpty()) {
-      parts.push(toPart(lowerBody, 'body', 'base', importedBlockParts[importedBodyIndex].colorRgb, 'hybrid-continuous-base'));
+      parts.push(toPart(wasm, lowerBody, 'body', 'base', importedBlockParts[importedBodyIndex].colorRgb, 'hybrid-continuous-base'));
     }
     parts.push(...importedPartsMoved);
   } else {
     const mergedBody = ctx.track(badgeBody.add(lowerBody));
-    parts.push(toPart(mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'));
+    parts.push(toPart(wasm, mergedBody, 'body', 'base', bodyColor, 'hybrid-continuous-base'));
   }
 
   ctx.cleanup();
