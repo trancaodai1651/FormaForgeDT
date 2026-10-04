@@ -473,7 +473,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     ui.update(s);
     const indices: number[] = [];
     s.selectedParts.forEach((name: string) => { const idx = appData.latestParts.findIndex((p: ClickerPart) => p.name === name); if (idx >= 0) indices.push(idx); });
-    viewer.highlightParts(indices);
+    viewer.highlightParts(indices, s.editMode === 'extrude' ? s.selectedParts : []);
     
     import('../store/historyManager').then(m => {
       if (!m.pendingHistoryReset) m.commitHistory();

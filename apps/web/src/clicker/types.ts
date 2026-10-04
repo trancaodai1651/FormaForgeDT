@@ -259,6 +259,8 @@ export interface ClickerPart extends MeshData {
   name: string;
   /** Stable traced component identity when a hybrid builder renames the part. */
   sourcePartName?: string;
+  /** Independent artwork picks inside a continuous same-material carrier. */
+  extrudeRegions?: { name: string; rings: Ring[]; topZ: number }[];
   /** 1-based filament slot for slicer color assignment (shared per unique color). */
   extruder?: number;
 }

@@ -5,6 +5,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
 import { partToGeometry } from './partGeometry';
+import { extrudeRegionAt } from './extrudeRegionPick';
 import { type ClickerPart, type MeshData, type RGB, type SwitchPlacement, type ViewMode } from '../types';
 
 export type SectionAxis = 'x' | 'y' | 'z';
@@ -36,13 +37,13 @@ export interface Viewer {
   renderToPng(): Promise<Blob | null>;
   setTheme(theme: string): void;
   /** Register a callback fired when the user clicks a colored part of the model, or null if clicking empty space. */
-  onPartPick(cb: (index: number | null, clientX: number, clientY: number, shiftKey: boolean) => void): void;
+  onPartPick(cb: (index: number | null, clientX: number, clientY: number, shiftKey: boolean, extrudeRegionName?: string) => void): void;
   /** Live-recolor a single part's material (no rebuild â€” geometry is unchanged). */
   setPartColor(index: number, rgb: RGB): void;
   /** Mark a part as the active selection (highlight), or null to clear. */
   highlightPart(index: number | null): void;
   /** Mark multiple parts as active selection. */
-  highlightParts(indices: number[]): void;
+  highlightParts(indices: number[], regionNames?: string[]): void;
   /** Clear hover + selection highlights. */
   clearHighlight(): void;
   /** Scale the current camera distance without changing the orbit target. */
@@ -231,7 +232,9 @@ export function createViewer(container: HTMLElement): Viewer {
   const HILITE = new THREE.Color(0x3b82f6);
   let hoveredIndex: number | null = null;
   let selectedIndices: number[] = [];
-  let pickCb: ((index: number | null, clientX: number, clientY: number, shiftKey: boolean) => void) | null = null;
+  let selectedRegionNames: string[] = [];
+  let pickCb: ((index: number | null, clientX: number, clientY: number, shiftKey: boolean, extrudeRegionName?: string) => void) | null = null;
+  let pickedRegionName: string | undefined;
   let downX = 0;
   let downY = 0;
   let downT = 0;
@@ -372,6 +375,7 @@ export function createViewer(container: HTMLElement): Viewer {
     partMeshes.length = 0;
     hoveredIndex = null;
     selectedIndices = [];
+    selectedRegionNames = [];
     modularCount = parts.filter((part) => part.kind === 'body' && /^flex-module-\d+$/.test(part.name)).length;
 
     for (let i = 0; i < parts.length; i++) {
@@ -387,6 +391,7 @@ export function createViewer(container: HTMLElement): Viewer {
       const mesh = new THREE.Mesh(partToGeometry(p, fastNormals), mat);
       mesh.userData.partIndex = i; // raycast hit -> part/material index
       mesh.userData.partName = p.name; // essential for live preview and syncing heights
+      mesh.userData.extrudeRegions = p.extrudeRegions;
       const moduleMatch = /^(?:flex-module|keycap)-(\d+)/.exec(p.name);
       if (moduleMatch) mesh.userData.moduleIndex = Number(moduleMatch[1]) - 1;
       partMeshes.push(mesh);
@@ -784,8 +789,25 @@ export function createViewer(container: HTMLElement): Viewer {
       }
     }
 
-    if (selectedIndices.length > 0) {
+    if (selectedIndices.length > 0 || selectedRegionNames.length > 0) {
       const outlineGroup = new THREE.Group();
+      for (const mesh of partMeshes) {
+        for (const region of (mesh.userData.extrudeRegions ?? []) as NonNullable<ClickerPart['extrudeRegions']>) {
+          if (!selectedRegionNames.includes(region.name)) continue;
+          const positions: number[] = [];
+          for (const ring of region.rings) for (let i = 0; i < ring.length; i++) {
+            const a = ring[i], b = ring[(i + 1) % ring.length];
+            positions.push(a[0], a[1], region.topZ + 0.025, b[0], b[1], region.topZ + 0.025);
+          }
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+          const lines = new THREE.LineSegments(geometry, outlineMaterial);
+          lines.position.copy(mesh.position);
+          lines.quaternion.copy(mesh.quaternion);
+          lines.scale.copy(mesh.scale);
+          outlineGroup.add(lines);
+        }
+      }
       for (const idx of selectedIndices) {
         const mesh = partMeshes[idx];
         if (mesh) {
@@ -795,7 +817,8 @@ export function createViewer(container: HTMLElement): Viewer {
       }
       const anchor = selectedIndices
         .map((idx) => partMeshes[idx])
-        .find((mesh): mesh is THREE.Mesh => Boolean(mesh));
+        .find((mesh): mesh is THREE.Mesh => Boolean(mesh))
+        ?? partMeshes.find(mesh => (mesh.userData.extrudeRegions ?? []).some((region: { name: string }) => selectedRegionNames.includes(region.name)));
       if (outlineGroup.children.length > 0 && anchor) {
         outlineMesh = outlineGroup as any;
         outlineMesh!.renderOrder = 999;
@@ -813,6 +836,7 @@ export function createViewer(container: HTMLElement): Viewer {
   }
 
   function pickIndexAt(clientX: number, clientY: number): number | null {
+    pickedRegionName = undefined;
     if (partMeshes.length === 0) return null;
     const rect = renderer.domElement.getBoundingClientRect();
     pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -821,7 +845,11 @@ export function createViewer(container: HTMLElement): Viewer {
     const hits = raycaster.intersectObjects(partMeshes, false);
     for (const h of hits) {
       const idx = (h.object.userData as { partIndex?: number }).partIndex;
-      if (typeof idx === 'number') return idx;
+      if (typeof idx === 'number') {
+        const local = h.object.worldToLocal(h.point.clone());
+        pickedRegionName = extrudeRegionAt(h.object.userData, local.x, local.y);
+        return idx;
+      }
     }
     return null;
   }
@@ -870,14 +898,14 @@ export function createViewer(container: HTMLElement): Viewer {
       selectedIndices = [idx];
     }
     applyHighlight();
-    pickCb?.(idx, e.clientX, e.clientY, e.shiftKey);
+    pickCb?.(idx, e.clientX, e.clientY, e.shiftKey, pickedRegionName);
   };
   renderer.domElement.addEventListener('pointermove', onPointerMove);
   renderer.domElement.addEventListener('pointerleave', onPointerLeave);
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
   renderer.domElement.addEventListener('pointerup', onPointerUp);
 
-  function onPartPick(cb: (index: number | null, clientX: number, clientY: number, shiftKey: boolean) => void) {
+  function onPartPick(cb: (index: number | null, clientX: number, clientY: number, shiftKey: boolean, extrudeRegionName?: string) => void) {
     pickCb = cb;
   }
   function setPartColor(index: number, rgb: RGB) {
@@ -886,14 +914,17 @@ export function createViewer(container: HTMLElement): Viewer {
   }
   function highlightPart(index: number | null) {
     selectedIndices = index !== null ? [index] : [];
+    selectedRegionNames = [];
     applyHighlight();
   }
-  function highlightParts(indices: number[]) {
+  function highlightParts(indices: number[], regionNames: string[] = []) {
     selectedIndices = indices;
+    selectedRegionNames = regionNames;
     applyHighlight();
   }
   function clearHighlight() {
     selectedIndices = [];
+    selectedRegionNames = [];
     hoveredIndex = null;
     applyHighlight();
   }

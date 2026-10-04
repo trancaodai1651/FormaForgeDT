@@ -135,13 +135,14 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
   // worker can finish evaluating before this module completes its bootstrap.
   worker.postMessage({ type: 'ping' });
 
-  viewer.onPartPick((index: number | null, clientX: number, clientY: number, shiftKey: boolean) => {
+  viewer.onPartPick((index: number | null, clientX: number, clientY: number, shiftKey: boolean, extrudeRegionName?: string) => {
     const s = store.get();
     if (index === null) {
       store.set({ selectedParts: [] });
       return;
     }
-    const partName = appData.latestParts[index]?.name;
+    const partName = s.editMode === 'extrude' && extrudeRegionName
+      ? extrudeRegionName : appData.latestParts[index]?.name;
     if (!partName) return;
 
     if (s.editMode === 'color') {

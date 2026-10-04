@@ -5,6 +5,7 @@ import { buildBlocks } from '../../../apps/web/src/clicker/geometry/buildBlocks'
 import { buildClicker } from '../../../apps/web/src/clicker/geometry/buildClicker';
 import { buildHybridClicker } from '../../../apps/web/src/clicker/geometry/buildHybridClicker';
 import { buildThreeMF } from '../../../apps/web/src/clicker/export/threemfExport';
+import { extrudeRegionAt } from '../../../apps/web/src/clicker/viewer/extrudeRegionPick';
 import type { BuildParams, BuildRegion, ClickerPart, Ring } from '../../../apps/web/src/clicker/types';
 
 const outline: Ring[] = [[[-20, -20], [20, -20], [20, 20], [-20, 20]]];
@@ -103,6 +104,49 @@ async function setup() {
 }
 
 describe('Clicker viewport Extrude', () => {
+  it.each(['image', 'blocks', 'imported'] as const)('raises only the picked white island in %s mode', async mode => {
+    const { wasm, assets, keycap, socket, stem, blockParams, params } = await setup();
+    // The star is a white island inside orange, disconnected from the white background.
+    const regions: BuildRegion[] = [
+      { partName: 'top-color-0-0', filamentRgb: [250, 248, 245], coverage: 0.8,
+        rings: [square(18), square(8).reverse()] },
+      { partName: 'top-color-0-1', filamentRgb: [250, 248, 245], coverage: 0.8, rings: [square(2)] },
+      { partName: 'top-color-1-0', filamentRgb: [255, 135, 0], coverage: 0.2,
+        rings: [square(8), square(2).reverse()] },
+    ];
+    const source = wasm.Manifold.cube([20, 20, 12], true);
+    const mesh = source.getMesh();
+    const imported: ClickerPart[] = [{ kind: 'body', group: 'base', name: 'imported-block', colorRgb: [240, 185, 103],
+      numProp: mesh.numProp, vertProperties: mesh.vertProperties, triVerts: mesh.triVerts }];
+    const build = (componentHeights: Record<string, number>) => mode === 'image'
+      ? buildClicker(wasm, socket, stem,
+        regions.map(r => ({ ...r, rings: r.rings.map(ring => ring.map(([x, y]) => [x / 40, y / 40] as [number, number])) })),
+        outline.map(ring => ring.map(([x, y]) => [x / 40, y / 40] as [number, number])),
+        { ...params, imageMargin: 0, rasterImageMode: true, componentHeights })
+      : buildHybridClicker(wasm, assets, keycap, socket, regions, outline, { ...params, componentHeights }, blockParams,
+        mode === 'imported' ? imported : undefined);
+    const plain = build({});
+    const carrierName = mode === 'image' ? 'top-base' : 'hybrid-image-base';
+    const carrier = plain.parts.find(p => p.name === carrierName)!;
+    const starName = mode === 'image' ? 'top-color-0-1' : 'hybrid-image-1';
+    const backgroundName = mode === 'image' ? 'top-color-0-0' : 'hybrid-image-0';
+    const starPick = carrier.extrudeRegions!.find(p => p.name === starName)!;
+    const ring = starPick.rings[0];
+    const center = ring.reduce((sum, p) => [sum[0] + p[0] / ring.length, sum[1] + p[1] / ring.length], [0, 0]);
+    expect(extrudeRegionAt(carrier, center[0], center[1])).toBe(starName);
+    expect(extrudeRegionAt(carrier, center[0] + 12, center[1])).toBe(backgroundName);
+    expect(extrudeRegionAt(carrier, center[0] + 5, center[1])).toBeUndefined();
+    const baseline = zBounds(carrier).max;
+    for (const level of [1, 3]) {
+      const raised = build({ [starName]: level }).parts.find(p => p.name === carrierName)!;
+      expect(zBounds(raised).max - baseline).toBeCloseTo(level * 0.6, 4);
+      // Only the small star exists above the baseline, never the large white background.
+      expect(partSectionArea(wasm, raised, baseline + 0.3)).toBeCloseTo(16, 2);
+      expectThreeMfKeepsPartHeight(raised);
+    }
+    socket.delete(); stem.delete(); source.delete();
+  });
+
   it.each([1, 3])('raises the white Image carrier by level %i and preserves the accent height', async level => {
     const { wasm, socket, stem, params } = await setup();
     const normalized = (rings: Ring[]) => rings.map(r => r.map(([x, y]) => [x / 40, y / 40] as [number, number]));

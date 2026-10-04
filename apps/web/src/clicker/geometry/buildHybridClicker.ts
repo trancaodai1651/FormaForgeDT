@@ -837,7 +837,13 @@ export function buildHybridClicker(
     }
   }
 
-  parts.push(toPart(wasm, imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'));
+  parts.push({
+    ...toPart(wasm, imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'),
+    extrudeRegions: imageMasks.filter(({ region }) => sameAsCarrier(region)).map(({ layerIndex, footprint, level }) => ({
+      name: `hybrid-image-${layerIndex}`, rings: footprint.toPolygons(),
+      topZ: imageTop + clamp((params.hybridImageExtrudeMm ?? 0) + level * (params.stepHeight ?? 0.6), 0, 6, 0),
+    })),
+  });
   if (bottomImageCarrier && !bottomImageCarrier.isEmpty()) {
     parts.push(toPart(wasm, bottomImageCarrier, 'body', 'base', bottomCarrierColor, 'hybrid-bottom-image-base'));
   }

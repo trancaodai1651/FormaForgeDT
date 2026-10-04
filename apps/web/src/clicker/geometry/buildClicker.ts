@@ -307,8 +307,9 @@ export function buildClicker(
   const stackImageMode = rasterImageMode && params.stackColorLayers === true;
   const sameAsCarrier = (r: BuildRegion) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) === 0;
   const componentLevel = (r: BuildRegion) =>
-    (rasterImageMode && sameAsCarrier(r) ? params.componentHeights?.['top-base'] : undefined)
+    (stackImageMode && sameAsCarrier(r) ? params.componentHeights?.['top-base'] : undefined)
     ?? params.componentHeights?.[r.partName]
+    ?? (rasterImageMode && sameAsCarrier(r) ? params.componentHeights?.['top-base'] : undefined)
     ?? 0;
   const monoReference = regions.length > 0
     ? regions.reduce((best, current) => (current.coverage > best.coverage ? current : best))
@@ -591,6 +592,20 @@ export function buildClicker(
     }
   }
 
+  if (rasterImageMode && !stackImageMode) {
+    const carrier = parts.find(part => part.name === 'top-base');
+    if (carrier) {
+      const picks = buildImageMaskPipeline(ctx, {
+        inputs: regions.map((region, layerIndex) => ({ region, layerIndex }))
+          .sort((a, b) => a.region.coverage - b.region.coverage || a.layerIndex - b.layerIndex),
+        imageScale, minimumArea: MIN_AREA, colorBleed: 0, imageArea: fatImageArea, plate,
+        stack: false, solidSilhouette: false, componentLevel,
+      });
+      carrier.extrudeRegions = picks.filter(({ region }) => sameAsCarrier(region))
+        .map(({ region, footprint }) => ({ name: region.partName, rings: footprint.toPolygons(),
+          topZ: capTopZ + Math.max(0, componentLevel(region) * params.stepHeight) }));
+    }
+  }
   ctx.cleanup();
   const finalWarnings = warnings.concat(pinched ? ['Switches pulled together to fit the cap.'] : []);
   return {
