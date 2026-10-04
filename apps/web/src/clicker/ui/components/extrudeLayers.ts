@@ -40,7 +40,19 @@ export function updateExtrudeLayers(state: UiState) {
   $<HTMLInputElement>('extrudeLayersMixed').checked = config.mixed;
   $('extrudeLayersControls').hidden = !config.enabled;
   $('resetExtrudeLayerOverrides').hidden = !config.mixed;
-  const bands = appData.latestParts.flatMap(part => part.extrudeLayer ? [part.extrudeLayer] : []);
+  const bands = appData.latestParts.flatMap(part => {
+    const actual = part.extrudeLayer ? [part.extrudeLayer] : [];
+    const origin = part.extrudeOrigin;
+    if (!origin || !part.extrudeRegions?.length) return actual;
+    const step = Math.max(0.1, origin.stepMm);
+    const available = part.extrudeRegions.flatMap(region => {
+      const maxLevel = Math.ceil((region.topZ - origin.bottomZ) / step - 1e-5);
+      return Array.from({ length: Math.max(0, maxLevel) }, (_, index) => ({
+        level: index + 1, regionName: region.name,
+      }));
+    });
+    return [...actual, ...available];
+  });
   const key = JSON.stringify([config, bands]);
   const list = $('extrudeLayersList');
   if (key === previousKey && list.childElementCount) return;

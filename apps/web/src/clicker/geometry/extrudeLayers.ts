@@ -49,10 +49,18 @@ export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?
       const [raised, lower] = solid.splitByPlane([0, 0, 1], z0).map(track);
       emit(lower, part.name, 0);
       let remainder = raised;
-      // A continuous white carrier can contain independent islands (e.g. a star).
-      // Retain those original region identities in every band for local painting.
+      // Keep same-color regions merged unless a regional override actually needs
+      // separate geometry. Repeatedly cutting every traced image region is both
+      // expensive and a source of tiny sliver faces in the exported bands.
       const pieces: { solid: any; name: string }[] = [];
-      for (const region of part.extrudeRegions ?? []) {
+      const activeRegions = config.mixed ? (part.extrudeRegions ?? []).filter(region => {
+        const regionMaxLevel = Math.ceil((region.topZ - z0) / step - 1e-5);
+        for (let level = 1; level <= regionMaxLevel; level++) {
+          if (config.overrides[`${level}:${region.name}`] !== undefined) return true;
+        }
+        return false;
+      }) : [];
+      for (const region of activeRegions) {
         const section = track(new wasm.CrossSection(region.rings.map(ring => ring.map(([x, y]) => [Math.fround(x), Math.fround(y)])), 'NonZero'));
         const column = track(track(wasm.Manifold.extrude(section, maxZ - z0 + 1)).translate([0, 0, z0]));
         pieces.push({ solid: track(remainder.intersect(column)), name: region.name });
