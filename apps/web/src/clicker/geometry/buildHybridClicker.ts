@@ -11,7 +11,8 @@ import type {
 import { BuildContext } from './buildContext';
 import { buildBlocks, type KeycapAsset, type PreparedBlockAssets } from './buildBlocks';
 import { buildImageMaskPipeline, mapCleanRings } from './imageMaskPipeline';
-import { edgePointAt, sectionIsEmpty } from './geometry/sectionUtils';
+import { sectionIsEmpty } from './geometry/sectionUtils';
+import { imageKeyringProfile } from './geometry/imageKeyring';
 import { ribbedProfile, roundedRect, vaseCarrier } from './geometry/shapeFactory';
 
 const DEFAULT_BODY: RGB = [238, 238, 240];
@@ -402,28 +403,13 @@ export function buildHybridClicker(
   const badgeDepth = badgeBounds.max[1] - badgeBounds.min[1];
   const keychainEnabled = params.keychain?.enabled === true;
   const keychainPosition = params.keychain?.hybridPosition === 'bottom' ? 'bottom' : 'top';
-  const keychainAngle = keychainPosition === 'bottom' ? 270 : 90;
   const keychainHoleDiameter = clamp(params.keychain?.holeDiameterMm, 3, 16, 5.2);
-  const keychainLoopRadius = Math.max(3.2, keychainHoleDiameter / 2 + 1.8);
-  const keychainDirection = [Math.cos(keychainAngle * Math.PI / 180), Math.sin(keychainAngle * Math.PI / 180)] as [number, number];
-  const keychainEdge = edgePointAt(badgeSection, keychainAngle);
-  const keychainOffset = useImportedBlock ? clamp(params.keychain?.offsetMm, -15, 15, 0) : 0;
-  const keychainAnchor: [number, number] = [
-    keychainEdge.p[0] - keychainEdge.dir[1] * keychainOffset,
-    keychainEdge.p[1] + keychainEdge.dir[0] * keychainOffset,
-  ];
-  const keychainHoleCenter: [number, number] = [
-    keychainAnchor[0] + keychainDirection[0] * keychainLoopRadius,
-    keychainAnchor[1] + keychainDirection[1] * keychainLoopRadius,
-  ];
   const carrierHeadEdge = vertical ? -badgeDepth / 2 + overlap : badgeWidth / 2 - overlap;
   const shiftX = vertical ? 0 : carrierHeadEdge + carrierWidth / 2;
   const shiftY = vertical ? carrierHeadEdge - carrierDepth / 2 : 0;
 
   const importedPartsMoved: ClickerPart[] = [];
   let importedNeck: any = null;
-  let importedNeckBottomZ: number | null = null;
-  let importedNeckHeight = 0;
   let carrier: any;
   if (useImportedBlock && importedBlockParts) {
     // A 3MF scene may contain the block shell, ribs and inserts as several
@@ -431,16 +417,11 @@ export function buildHybridClicker(
     // mesh with the most triangles can leave other source components floating
     // into the image or make the generated neck meet the wrong component.
     const bounds = combinedPartBounds(importedBlockParts);
-    // Leave room for a bottom keyring between the image and vertical block.
-    // Its hole must stay outside the source mesh, which remains unchanged.
-    const ringClearance = keychainEnabled && vertical && keychainPosition === 'bottom'
-      ? keychainLoopRadius + keychainHoleDiameter / 2 + 1.25
-      : 0;
     // This value is the actual gap between the image and imported block. Keep
     // it active when the neck is hidden so the distance control stays useful;
     // the neck itself is then regenerated to span the new gap when enabled.
     const spacing = clamp(params.hybridImportedBlockSpacingMm, -20, 30, headLength);
-    const attachedHeadLength = ringClearance > 0 ? Math.max(spacing, ringClearance) : spacing;
+    const attachedHeadLength = spacing;
     const dx = vertical
       ? -(bounds.minX + bounds.maxX) / 2 + blockLateralShift
       : badgeBounds.max[0] + attachedHeadLength - bounds.minX;
@@ -501,8 +482,6 @@ export function buildHybridClicker(
       const neckBottom = mb.minZ;
       const neckTop = Math.min(mb.maxZ, imageCarrierBottom);
       const neckHeight = Math.max(0.8, neckTop - neckBottom);
-      importedNeckBottomZ = neckBottom;
-      importedNeckHeight = neckHeight;
       importedNeck = ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]));
       carrier = importedNeck;
     } else {
@@ -712,36 +691,22 @@ export function buildHybridClicker(
     // Use the same round loop and long bridge as Image mode. Clip the bridge
     // to the image silhouette so it joins the backing cleanly without a filled
     // or partially covered hole.
-    const loopR = keychainLoopRadius;
     const keychainThickness = clamp(params.hybridKeychainHeightMm, 1, 15, 4);
     // Top follows the image face; Bottom sits flush with the backing's base.
     // Moving only the XY anchor leaves both choices at the front surface.
     const keychainBottomZ = keychainPosition === 'bottom'
       ? -baseThickness
       : imageTop - keychainThickness;
-    const localLoop = ctx.track(wasm.CrossSection.circle(loopR, 64).translate([0, loopR]));
-    const localBridge = ctx.track(wasm.CrossSection.square([loopR * 2, loopR + loopR * 3.5], true)
-      .translate([0, loopR - (loopR + loopR * 3.5) / 2]));
-    let tabProfile = ctx.track(localLoop.add(localBridge));
-    if (Math.abs(keychainAngle - 90) > 0.001) tabProfile = ctx.track(tabProfile.rotate(keychainAngle - 90));
-    tabProfile = ctx.track(tabProfile.translate(keychainAnchor));
-    tabProfile = ctx.simp(ctx.track(tabProfile.subtract(imageSection)));
+    // Both heights attach at the artwork's head, using Image's actual profile.
+    // Bottom changes Z only; it must not flip the tab to the artwork's tail.
+    const keyring = imageKeyringProfile(ctx, badgeSection, keychainHoleDiameter,
+      90, clamp(params.keychain?.offsetMm, -15, 15, 0));
+    const tabProfile = ctx.track(keyring.footprint.subtract(imageSection));
     const tabSolid = ctx.track(wasm.Manifold.extrude(tabProfile, keychainThickness)
       .translate([0, 0, keychainBottomZ]));
-    const holeProfile = ctx.track(wasm.CrossSection.circle(keychainHoleDiameter / 2, 48)
-      .translate(keychainHoleCenter));
-    const hole = ctx.track(wasm.Manifold.extrude(holeProfile, keychainThickness + 2)
+    const hole = ctx.track(wasm.Manifold.extrude(keyring.bore, keychainThickness + 2)
       .translate([0, 0, keychainBottomZ - 1]));
     badgeBody = ctx.track(badgeBody.add(tabSolid).subtract(hole));
-    // The bottom loop sits between the head and vertical block. Bore the
-    // transition too, while the added clearance keeps the original 3MF block
-    // outside the hole and preserves its source triangles exactly.
-    if (keychainPosition === 'bottom' && importedNeck && importedNeckBottomZ !== null && importedNeckHeight > 0) {
-      const neckHole = ctx.track(wasm.Manifold.extrude(holeProfile, importedNeckHeight + 2)
-        .translate([0, 0, importedNeckBottomZ - 1]));
-      importedNeck = ctx.track(importedNeck.subtract(neckHole));
-      carrier = importedNeck;
-    }
   }
 
   // A custom lower image is laid out below the main artwork on the same

@@ -1,7 +1,8 @@
 import type { BuildParams, BuildRegion, ClickerPart, PartGroup, Ring, RGB, SwitchPlacement } from '../types';
 import { BuildContext } from './buildContext';
 import { buildImageMaskPipeline } from './imageMaskPipeline';
-import { sectionIsEmpty, getRingArea, removeHoles, edgePointAt } from './geometry/sectionUtils';
+import { sectionIsEmpty, getRingArea, removeHoles } from './geometry/sectionUtils';
+import { imageKeyringProfile } from './geometry/imageKeyring';
 import { roundedRect, ribbedProfile, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
 import { resolveSwitches } from './sizing/switchPlacement';
 import { createEdgeBevelBlock, applyEdges } from './modifiers/edgeBuilder';
@@ -552,18 +553,13 @@ export function buildClicker(
 
   // --- 7. Móc Khóa & Lỗ Switch Socket ---
   if (params.keychain?.enabled) {
-    const { p, dir } = edgePointAt(isFlatKeychain ? plate : bodyFootprint, params.keychain.angleDeg ?? 90);
-    const px = p[0] + -dir[1] * (params.keychain.offsetMm ?? 0), py = p[1] + dir[0] * (params.keychain.offsetMm ?? 0);
-    const loopR = Math.max(3.2, Math.max(1.5, (params.keychain.holeDiameterMm ?? 5.2) / 2) + 1.8);
-    const localLoop = ctx.track(ctx.wasm.CrossSection.circle(loopR, 64).translate([0, loopR]));
-    const localBridge = ctx.track(ctx.wasm.CrossSection.square([loopR * 2, loopR + loopR * 3.5], true).translate([0, loopR - (loopR + loopR * 3.5) / 2]));
-    let loopFootprint = ctx.track(localLoop.add(localBridge));
-    if (Math.abs((params.keychain.angleDeg ?? 90) - 90) > 0.001) loopFootprint = ctx.track(loopFootprint.rotate((params.keychain.angleDeg ?? 90) - 90));
-    loopFootprint = ctx.track(loopFootprint.translate([px, py]));
+    const keyring = imageKeyringProfile(ctx, isFlatKeychain ? plate : bodyFootprint,
+      params.keychain.holeDiameterMm ?? 5.2, params.keychain.angleDeg ?? 90, params.keychain.offsetMm ?? 0);
+    let loopFootprint = keyring.footprint;
     if (isFlatKeychain) loopFootprint = ctx.track(loopFootprint.subtract(imageArea));
     const loopTh = isFlatKeychain ? flatThickness : Math.max(2.5, Math.min(4.0, (bodyTopZ - bodyBottomZ) * 0.35));
     const loopZb = isFlatKeychain ? slabBottomZ : bodyBottomZ;
-    const hole = ctx.extrudeAt(ctx.track(ctx.wasm.CrossSection.circle(Math.max(1.5, (params.keychain.holeDiameterMm ?? 5.2) / 2), 48).translate([-loopR * Math.sin(((params.keychain.angleDeg ?? 90) - 90) * Math.PI / 180) + px, loopR * Math.cos(((params.keychain.angleDeg ?? 90) - 90) * Math.PI / 180) + py])), loopTh + 2, loopZb - 1, sectionIsEmpty);
+    const hole = ctx.extrudeAt(keyring.bore, loopTh + 2, loopZb - 1, sectionIsEmpty);
     if (isFlatKeychain) { base = ctx.track(base.add(ctx.extrudeAt(loopFootprint, loopTh, loopZb, sectionIsEmpty))); base = ctx.track(base.subtract(hole)); } 
     else { body = ctx.track(body.add(ctx.extrudeAt(loopFootprint, loopTh, loopZb, sectionIsEmpty))); body = ctx.track(body.subtract(hole)); }
   }

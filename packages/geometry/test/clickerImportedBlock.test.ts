@@ -475,13 +475,9 @@ describe('Clicker imported block image attachment', () => {
       // The hole is centered one loop radius beyond the padded image edge.
       // Check a smaller disk at the middle of its Z range against every output
       // mesh; this catches the imported block or neck filling the hole.
-      const holeCenterY = (position === 'top' ? 1 : -1) * (20 + 1.2 + 4.4);
-      if (position === 'top') {
-        expect(holeCenterY).toBeGreaterThan(neckBounds.max[1] + 2.6);
-      } else {
-        expect(holeCenterY).toBeGreaterThan(neckBounds.min[1] + 2.6);
-        expect(holeCenterY).toBeLessThan(neckBounds.max[1] - 2.6);
-      }
+      // Both choices are at the head of the artwork, opposite the block.
+      const holeCenterY = 20 + 1.2 + 4.4;
+      expect(holeCenterY).toBeGreaterThan(neckBounds.max[1] + 2.6);
       const holeInterior = wasm.CrossSection.circle(2.1, 48).translate([0, holeCenterY]);
       const imageTop = 17 - 9 + 0.04;
       const holePlaneZ = position === 'top' ? imageTop - 0.05 : -9 + 4 - 0.05;
