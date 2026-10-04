@@ -20,6 +20,7 @@ import { setupWelcomeModal, showTutorialPrompt } from './components/modals';
 import { showColorPopoverAt, renderPalette } from './components/colorPicker';
 import { appData } from '../store/appState';
 import { clickerText as tx } from '../i18n';
+import { slicerProfiles } from '../export/slicerLayout';
 
 export function createUi(
   sidebarLeft: HTMLElement,
@@ -88,6 +89,11 @@ export function createUi(
   // 5. HÃ€M UPDATE STATE THáº¦N THÃNH
   function update(state: UiState) {
     updateExtrudeLayers(state);
+    $<HTMLSelectElement>('exportSlicer').value = state.slicerExport.target;
+    $<HTMLSelectElement>('exportTopOrientation').value = state.slicerExport.topOrientation;
+    $<HTMLSelectElement>('exportSupports').value = state.slicerExport.supports;
+    const profile = slicerProfiles[state.slicerExport.target];
+    $('exportSlicerHint').textContent = `${profile.model}, 0.4 mm compatibility preset. Open as a project to retain colors and supports, then select your actual printer/nozzle. These settings apply to 3MF.`;
     statusEl.innerHTML = (state.building ? '<span class="spinner"></span> ' : '') + state.status;
     
     const setVal = (id: string, text: string) => { const el = getClickerDocument().getElementById(id) as HTMLInputElement | null; if (el && getClickerDocument().activeElement !== el) el.value = text; };

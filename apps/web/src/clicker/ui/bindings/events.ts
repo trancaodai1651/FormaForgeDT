@@ -296,6 +296,9 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   });
 
   // --- Export & Save/Load ---
+  $('exportSlicer')?.addEventListener('change', e => cb.onSlicerExport({ target: (e.target as HTMLSelectElement).value as 'bambu' | 'flashforge' }));
+  $('exportTopOrientation')?.addEventListener('change', e => cb.onSlicerExport({ topOrientation: (e.target as HTMLSelectElement).value as 'auto' | 'face-up' | 'face-down' }));
+  $('exportSupports')?.addEventListener('change', e => cb.onSlicerExport({ supports: (e.target as HTMLSelectElement).value as 'auto' | 'on' | 'off' }));
   $('export')?.addEventListener('click', () => cb.onExport());
   $('exportStl')?.addEventListener('click', () => cb.onExportSTL());
   $('saveProj')?.addEventListener('click', () => cb.onSaveProject());

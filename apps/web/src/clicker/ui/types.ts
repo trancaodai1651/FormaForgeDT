@@ -9,6 +9,7 @@ import type { RgbaImage } from '../image/decode';
 import type { SectionAxis } from '../viewer/viewer';
 
 export interface UiState {
+  slicerExport: import('../export/slicerLayout').SlicerExportOptions;
   extrudeLayerColors: import('../types').ExtrudeLayerColors;
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
   baseShape: BaseShapeKind; bottomBaseMode: 'match' | 'custom';
@@ -60,6 +61,7 @@ export interface UiCallbacks {
   onFlatKeychainThickness(mm: number): void;
   onRemoveBg(on: boolean): void; onPhotoFlatten(on: boolean): void; onView(mode: ViewMode): void; onShowSwitch(on: boolean): void;
   onSection(axis: SectionAxis, pos: number): void; onExport(): void; onExportSTL(): void;
+  onSlicerExport(options: Partial<import('../export/slicerLayout').SlicerExportOptions>): void;
   onRenderPng(): void; onAiPrompt(): void; onSaveProject(): void; onLoadProject(file: File): void;
   onBodyColor(hex: string): void; onImportMode(mode: 'image' | 'svg' | 'icon' | 'text' | 'blocks' | 'hybrid' | 'hybrid-imported'): void;
   onSvgUpload(file: File): void; onSelectSvg(svgText: string, name: string): void;

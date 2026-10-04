@@ -1,4 +1,5 @@
 import { defaultExtrudeLayerColors } from '../geometry/extrudeLayers';
+import { defaultSlicerExport } from '../export/slicerLayout';
 import { createStore } from './store';
 import type { ClickerPart, RegionSet, RGB } from '../types';
 import type { UiState } from '../ui/types';
@@ -6,6 +7,7 @@ import type { RgbaImage } from '../image/decode';
 
 // Khởi tạo trạng thái giao diện UI
 export const store = createStore<UiState>({
+  slicerExport: defaultSlicerExport(),
   isFlatKeychain: false,
   status: 'Loading switch assets…',
   building: false,

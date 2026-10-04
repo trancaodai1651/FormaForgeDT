@@ -8,7 +8,7 @@ import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
 import { importFontFile } from '../image/letter';
 import { downloadThreeMF, downloadSTLMaterialsZip, downloadSTLSplit } from '../export';
-import { downloadThreeMFObjects } from '../features/multiColor/export/threemfExport';
+import { prepareSlicerLayout, slicerProfiles } from '../export/slicerLayout';
 import { hexToRgb, downloadBlob } from '../utils/helpers';
 import { saveProject, loadProject } from '../project/saveLoad';
 import type { ClickerPart } from '../types';
@@ -170,15 +170,17 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on && !store.get().useImportedBlock); },
     onSection: (axis, pos) => viewer.setSection(axis, pos),
     
+    onSlicerExport: (options) => store.set({ slicerExport: { ...store.get().slicerExport, ...options } }),
     onExport: () => {
       if (!appData.latestParts.length) return;
-      const mode = store.get().importMode;
-      if (store.get().multiColorEnabled && (mode === 'image' || mode === 'hybrid')) {
-        downloadThreeMFObjects(appData.latestParts, mode === 'hybrid' ? 'clicker-image-blocks.3mf' : 'clicker-image.3mf');
-        store.set({ status: 'Multi-color 3MF exported with one filament material per image color.' });
-        return;
+      const options = store.get().slicerExport;
+      try {
+        const layout = prepareSlicerLayout(appData.latestParts, options);
+        downloadThreeMF(appData.latestParts, `clicker-${options.target}.3mf`, options);
+        store.set({ status: `${slicerProfiles[options.target].label} 3MF exported. Open as a project; select your printer. Supports ${layout.supportEnabled ? 'enabled' : 'disabled'}.` });
+      } catch (error) {
+        store.set({ status: `Could not export 3MF: ${error instanceof Error ? error.message : String(error)}` });
       }
-      downloadThreeMF(appData.latestParts, 'clicker.3mf');
     },
     onExportSTL: () => {
       if (!appData.latestParts.length) return;

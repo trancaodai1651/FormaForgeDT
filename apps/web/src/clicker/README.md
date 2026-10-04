@@ -13,3 +13,10 @@ Thư viện React/TypeScript/Three.js cho các công cụ tạo vật thể in 3
 - Dùng chung cho Image, SVG, Icon, Text, Blocks, Image + Blocks và Image + Imported Block. Các khối 3MF nhập sẵn không bị cắt hoặc đổi màu theo tầng của artwork.
 - Các builder cung cấp `extrudeOrigin` (mặt gốc/chiều dày một bước); worker chạy `applyExtrudeLayerColors` sau khi bố trí geometry. `extrudePartName` giữ danh tính vùng khi tăng/giảm Extrude; `extrudeLayer` giữ màu riêng của vùng trong từng tầng.
 - Project và Undo/Redo lưu `extrudeLayerColors`. Preview và 3MF dùng chung kết quả mesh đã chia tầng; STL không chứa thông tin màu.
+
+## Xuất 3MF cho slicer
+
+- Mở **3MF export settings**, chọn **Bambu Studio** hoặc **Flashforge Studio / Orca-Flashforge**. Mở file dưới dạng project để giữ các part, màu filament và cấu hình support.
+- **Automatic** đặt mặt ảnh có Extrude hướng lên và bật support cho phần nhô ra/stem. Mẫu phẳng được đặt úp để mặt ảnh nằm trên bàn in. Có thể chọn hướng và support riêng.
+- Đặt toàn bộ từng cụm top/base xuống Z=0, giữ nguyên vị trí tương đối của các tầng màu; không hạ từng màu riêng xuống bàn in. Preview không bị đổi hướng bởi tùy chọn xuất.
+- Profile tương thích mặc định là Bambu A1 hoặc Flashforge AD5X, nozzle 0.4 mm. Chọn lại đúng máy, nozzle, vật liệu và số slot màu trong slicer trước khi in. File xuất là project 3MF, không phải G-code.
