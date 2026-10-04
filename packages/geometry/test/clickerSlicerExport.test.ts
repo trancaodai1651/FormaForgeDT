@@ -48,6 +48,7 @@ describe('Slicer-specific 3MF print placement', () => {
       expect(config.printer_model).toBe(target === 'bambu' ? 'Bambu Lab A1' : 'Flashforge Creator 5 Pro');
       expect(xml).toContain(target === 'bambu' ? 'BambuStudio-02.00.00.00' : 'OrcaSlicer-02.01.01.00');
       expect(config.filament_colour).toEqual(['#f0f0f0', '#ffffff', '#000000', '#ff8700']);
+      expect(config.single_extruder_multi_material).toBe(target === 'bambu' ? '1' : '0');
       expect(config.enable_support).toBe('1');
       expect(config.support_on_build_plate_only).toBe('0');
       expect(Math.min(...vertices(xml, 2).map(v => v[2]))).toBe(0);

@@ -170,7 +170,7 @@ export function buildThreeMF(rawParts: ClickerPart[], options: SlicerExportOptio
     nozzle_diameter: ['0.4'],
     printable_area: ['0x0', `${profile.bed}x0`, `${profile.bed}x${profile.bed}`, `0x${profile.bed}`],
     printable_height: String(profile.bed),
-    single_extruder_multi_material: '1',
+    single_extruder_multi_material: profile.singleExtruderMultiMaterial ? '1' : '0',
     enable_support: layout.supportEnabled ? '1' : '0',
     support_type: 'normal(auto)',
     support_on_build_plate_only: '0',
