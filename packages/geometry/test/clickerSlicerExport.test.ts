@@ -45,7 +45,7 @@ describe('Slicer-specific 3MF print placement', () => {
       const archive = unzipSync(buildThreeMF(parts, options));
       const xml = strFromU8(archive['3D/3dmodel.model']);
       const config = JSON.parse(strFromU8(archive['Metadata/project_settings.config']));
-      expect(config.printer_model).toBe(target === 'bambu' ? 'Bambu Lab A1' : 'Flashforge AD5X');
+      expect(config.printer_model).toBe(target === 'bambu' ? 'Bambu Lab A1' : 'Flashforge Creator 5 Pro');
       expect(xml).toContain(target === 'bambu' ? 'BambuStudio-02.00.00.00' : 'OrcaSlicer-02.01.01.00');
       expect(config.filament_colour).toEqual(['#f0f0f0', '#ffffff', '#000000', '#ff8700']);
       expect(config.enable_support).toBe('1');

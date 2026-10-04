@@ -7,15 +7,15 @@ export interface SlicerExportOptions {
   topOrientation: 'auto' | 'face-up' | 'face-down';
   supports: 'auto' | 'on' | 'off';
 }
-export const defaultSlicerExport = (): SlicerExportOptions => ({ target: 'bambu', topOrientation: 'auto', supports: 'auto' });
+export const defaultSlicerExport = (): SlicerExportOptions => ({ target: 'flashforge', topOrientation: 'auto', supports: 'auto' });
 
 export const slicerProfiles = {
   bambu: { label: 'Bambu Studio', application: 'BambuStudio-02.00.00.00', version: '02.00.00.00',
     model: 'Bambu Lab A1', printer: 'Bambu Lab A1 0.4 nozzle', process: '0.20mm Standard @BBL A1',
     filament: 'Bambu PLA Basic @BBL A1', bed: 256, flavor: 'marlin' },
   flashforge: { label: 'Flashforge Studio', application: 'OrcaSlicer-02.01.01.00', version: '2.1.1.0',
-    model: 'Flashforge AD5X', printer: 'Flashforge AD5X 0.4 nozzle', process: '0.20mm Standard @FF AD5X',
-    filament: 'Flashforge PLA Basic @FF AD5X', bed: 220, flavor: 'klipper' },
+    model: 'Flashforge Creator 5 Pro', printer: 'Flashforge Creator 5 Pro 0.4 nozzle', process: '0.20mm Standard @FF C5',
+    filament: 'Flashforge PLA Basic @FF C5', bed: 256, flavor: 'klipper' },
 } as const;
 
 /** Keep every material in one logical object. Ground the whole object once,

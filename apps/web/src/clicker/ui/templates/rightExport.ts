@@ -6,7 +6,7 @@ export const renderRightExport = () => `
         <label for="exportSlicer">Slicer</label>
         <select id="exportSlicer" style="width:100%;margin:4px 0 8px;">
           <option value="bambu">Bambu Studio</option>
-          <option value="flashforge">Flashforge Studio / Orca-Flashforge</option>
+            <option value="flashforge">Flashforge Studio (Creator 5 Pro)</option>
         </select>
         <label for="exportTopOrientation">Top / image print orientation</label>
         <select id="exportTopOrientation" style="width:100%;margin:4px 0 8px;">

@@ -19,4 +19,4 @@ Thư viện React/TypeScript/Three.js cho các công cụ tạo vật thể in 3
 - Mở **3MF export settings**, chọn **Bambu Studio** hoặc **Flashforge Studio / Orca-Flashforge**. Mở file dưới dạng project để giữ các part, màu filament và cấu hình support.
 - **Automatic** đặt mặt ảnh có Extrude hướng lên và bật support cho phần nhô ra/stem. Mẫu phẳng được đặt úp để mặt ảnh nằm trên bàn in. Có thể chọn hướng và support riêng.
 - Đặt toàn bộ từng cụm top/base xuống Z=0, giữ nguyên vị trí tương đối của các tầng màu; không hạ từng màu riêng xuống bàn in. Preview không bị đổi hướng bởi tùy chọn xuất.
-- Profile tương thích mặc định là Bambu A1 hoặc Flashforge AD5X, nozzle 0.4 mm. Chọn lại đúng máy, nozzle, vật liệu và số slot màu trong slicer trước khi in. File xuất là project 3MF, không phải G-code.
+- Profile mặc định là Flashforge Creator 5 Pro, nozzle 0.4 mm; có thể chọn thêm Bambu A1. Chọn lại đúng máy, nozzle, vật liệu và số slot màu trong slicer trước khi in. File xuất là project 3MF, không phải G-code.
