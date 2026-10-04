@@ -185,7 +185,9 @@ export function buildClicker(
 
   const parts: ClickerPart[] = [];
   const toPart = (solid: any, kind: 'cap'|'body', group: PartGroup, colorRgb: RGB, name: string): ClickerPart => {
-    const mesh = solid.getMesh();
+    const original = ctx.track(solid.asOriginal());
+    const printable = ctx.track(wasm.Manifold.ofMesh(new wasm.Mesh(original.getMesh())));
+    const mesh = printable.getMesh();
     return { kind, group, colorRgb, name, numProp: mesh.numProp, vertProperties: new Float32Array(mesh.vertProperties), triVerts: new Uint32Array(mesh.triVerts) };
   };
 
@@ -411,6 +413,13 @@ export function buildClicker(
       inlay = ctx.track(inlay.add(connector));
     }
 
+    // Raising a surface shell alone leaves a floating skin once the height
+    // exceeds its thickness. Fill from the original inlay plane up to the
+    // lifted shell so every Extrude step contains printable material.
+    if (heightShift > 0.001) {
+      inlay = ctx.track(inlay.add(ctx.extrudeAt(fp, heightShift + topMeshOverlap, bottomZ, sectionIsEmpty)));
+    }
+
     if (inlay.isEmpty()) continue;
 
     const es = params.edgeSettings?.find(s => s.target === r.partName);
@@ -429,7 +438,8 @@ export function buildClicker(
         ? ctx.track(monochromeReliefSolid.add(inlay))
         : inlay;
     } else {
-      parts.push(toPart(inlay, 'cap', 'top', r.filamentRgb, r.partName));
+      parts.push({ ...toPart(inlay, 'cap', 'top', r.filamentRgb, r.partName),
+        extrudeOrigin: { bottomZ: capTopZ, stepMm: params.stepHeight } });
       holesByLevel.set(level, holesByLevel.get(level) ? ctx.track(holesByLevel.get(level).add(cutFp)) : cutFp);
     }
   }
@@ -449,7 +459,7 @@ export function buildClicker(
       const heightShift = level * params.stepHeight;
       const bottomZ = imageBottomZ + Math.min(0, heightShift);
       const holeColumn = ctx.extrudeAt(hole2D, (capTopZ - bottomZ) + Math.max(0, heightShift) + 1.0, bottomZ - 0.01, sectionIsEmpty);
-      const holeShell = Math.abs(heightShift) > 0.001
+      const holeShell = heightShift < -0.001
         ? ctx.track(capSurfaceShell.translate([0, 0, heightShift]))
         : capSurfaceShell;
       const holeVolume = ctx.track(holeColumn.intersect(holeShell));
@@ -545,7 +555,8 @@ export function buildClicker(
       
       let inlay = ctx.extrudeAt(fp, topZ - bottomZ, bottomZ, sectionIsEmpty);
       if (!inlay.isEmpty()) {
-        parts.push(toPart(inlay, 'body', 'base', r.filamentRgb, r.partName));
+        parts.push({ ...toPart(inlay, 'body', 'base', r.filamentRgb, r.partName),
+          extrudeOrigin: { bottomZ: bodyTopZ, stepMm: params.stepHeight } });
         body = ctx.track(body.subtract(ctx.extrudeAt(cutFp, topZ - bottomZ + 0.01, bottomZ - 0.01, sectionIsEmpty)));
       }
     }
@@ -602,6 +613,8 @@ export function buildClicker(
           topZ: capTopZ + Math.max(0, componentLevel(region) * params.stepHeight) }));
     }
   }
+  const topCarrier = parts.find(part => part.name === 'top-base');
+  if (topCarrier) topCarrier.extrudeOrigin = { bottomZ: capTopZ, stepMm: params.stepHeight };
   ctx.cleanup();
   const finalWarnings = warnings.concat(pinched ? ['Switches pulled together to fit the cap.'] : []);
   return {

@@ -142,14 +142,18 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
       return;
     }
     const partName = s.editMode === 'extrude' && extrudeRegionName
-      ? extrudeRegionName : appData.latestParts[index]?.name;
+      ? extrudeRegionName : s.editMode === 'extrude'
+        ? appData.latestParts[index]?.extrudePartName ?? appData.latestParts[index]?.name
+        : appData.latestParts[index]?.name;
     if (!partName) return;
 
     if (s.editMode === 'color') {
       store.set({ selectedParts: [partName] });
       const part = appData.latestParts[index];
       if (!part) return;
-      const target = partColorTarget(part.sourcePartName ?? part.name, s);
+      const target: ColorTarget | null = part.extrudeLayer && s.extrudeLayerColors.enabled
+        ? { kind: 'extrudeLayer', ...part.extrudeLayer }
+        : partColorTarget(part.sourcePartName ?? part.name, s);
       if (!target) return;
       
       const options = getAvailableColorOptions(s);
@@ -359,6 +363,7 @@ export function rebuild(quiet = false) {
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: imageMultiColorMode && s.stackColorLayers ? colorLayerStepMm : 0.6, travel: 4.0, floorThickness: 1.6,
     switches: s.switches, keychain: s.keychain, baseFilamentRgb: capBaseColor, bodyColorRgb: s.bodyColorRgb ?? [120, 124, 130],
+    extrudeLayerColors: s.extrudeLayerColors,
     edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights,
     // Raster art uses a continuous carrier and coplanar colour inlays when
     // Multi-color is off. Only the enabled stack raises physical colour layers.
@@ -420,6 +425,7 @@ export function rebuild(quiet = false) {
           legendExtrudeMm: s.hybridTextExtrudeMm,
           componentHeights: s.componentHeights,
           stepHeight: 0.6,
+          extrudeLayerColors: s.extrudeLayerColors,
           vertical: s.blockOrientation === 'vertical',
           glyphs: appData.regionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),
@@ -472,6 +478,7 @@ export function rebuild(quiet = false) {
           legendExtrudeMm: s.hybridTextExtrudeMm,
           componentHeights: s.componentHeights,
           stepHeight: 0.6,
+          extrudeLayerColors: s.extrudeLayerColors,
           vertical: s.blockOrientation === 'vertical',
           glyphs: blockRegionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),
@@ -515,6 +522,16 @@ export function rebuild(quiet = false) {
 
 export function applyModelRecolor(target: ColorTarget, rgb: RGB, partIndex: number, viewer: any) {
   const s = store.get();
+  if (target.kind === 'extrudeLayer') {
+    const config = s.extrudeLayerColors;
+    const colors = { ...config.colors };
+    const overrides = { ...config.overrides };
+    if (config.mixed) overrides[`${target.level}:${target.regionName}`] = rgb;
+    else colors[target.level] = rgb;
+    store.set({ extrudeLayerColors: { ...config, colors, overrides } });
+    debouncedQuietRebuild();
+    return;
+  }
   if (target.kind === 'region') {
     const i = target.index;
     const overrides = s.partOverrides ? { ...s.partOverrides } : {};

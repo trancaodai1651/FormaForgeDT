@@ -88,6 +88,12 @@ export function buildImageMaskPipeline(
       const contour = ctx.track(new ctx.wasm.CrossSection(rings, 'NonZero'));
       const withBleed = colorBleed > 0.001 ? ctx.grow(contour, colorBleed) : contour;
       sourceMask = clipToPlate(ctx.track(withBleed.intersect(imageArea)));
+      // Pixel contours can kiss at a single corner. Extruding that contact
+      // gives the carrier four faces on one geometric edge in a slicer.
+      // Regularize before resolving overlap; the inlay and its pocket still
+      // use one identical contour. Changes stay below 0.0001 mm.
+      const inset = ctx.track(sourceMask.offset(-0.0001, 'Round', 2, 16));
+      if (!sectionIsEmpty(inset)) sourceMask = ctx.track(inset.offset(0.0001, 'Round', 2, 16));
     }
     if (sectionIsEmpty(sourceMask)) continue;
 

@@ -1,3 +1,4 @@
+import { defaultExtrudeLayerColors } from '../geometry/extrudeLayers';
 import { createStore } from './store';
 import type { ClickerPart, RegionSet, RGB } from '../types';
 import type { UiState } from '../ui/types';
@@ -138,6 +139,7 @@ export const store = createStore<UiState>({
   importedModelRotateZ: 0,
   extrudeHeight: null,
   componentHeights: {},
+  extrudeLayerColors: defaultExtrudeLayerColors(),
   selectedParts: [],
   canUndo: false,
   canRedo: false,

@@ -9,6 +9,7 @@ import type { RgbaImage } from '../image/decode';
 import type { SectionAxis } from '../viewer/viewer';
 
 export interface UiState {
+  extrudeLayerColors: import('../types').ExtrudeLayerColors;
   status: string; building: boolean; hasParts: boolean; colorCount: number; palette: PaletteEntry[];
   baseShape: BaseShapeKind; bottomBaseMode: 'match' | 'custom';
   designSizePercent: number; lockBaseSize: boolean; hollowBase: boolean; switchPocketFitPercent: number;
@@ -69,6 +70,9 @@ export interface UiCallbacks {
   onFontSelect(fontId: string): void; onImportFont(file: File): void; onThemeChange(theme: string): void;
   onEditMode(mode: EditMode): void; onEdgeStyle(target: string, style: EdgeStyle): void;
   onEdgeStep(target: string, delta: number): void; onExtrudeStep(delta: number): void;
+  onExtrudeLayerEnabled(on: boolean): void; onExtrudeLayerMixed(on: boolean): void;
+  onExtrudeLayerColor(level: number, hex: string, regionName?: string): void;
+  onResetExtrudeLayerOverrides(): void;
   onExtrudeChamfer(on: boolean): void; onSeparateLetters(on: boolean): void;
   onBlockText(text: string): void; onBlockOrientation(orientation: 'horizontal' | 'vertical'): void;
   onLegendScale(scale: number): void; onLegendBold(bold: number): void;

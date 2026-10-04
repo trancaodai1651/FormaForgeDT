@@ -770,7 +770,8 @@ export function buildHybridClicker(
             .translate([0, 0, imageLayerBottom]));
           imageCarrier = ctx.track(imageCarrier.subtract(cavity));
           if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
-          parts.push({ ...toPart(wasm, layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
+          parts.push({ ...toPart(wasm, layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName,
+            extrudeOrigin: { bottomZ: imageTop, stepMm: params.stepHeight ?? 0.6 } });
         }
       }
   }
@@ -798,19 +799,22 @@ export function buildHybridClicker(
         .translate([0, 0, imageLayerBottom]));
       bottomImageCarrier = ctx.track(bottomImageCarrier!.subtract(cavity));
       if (!useImportedBlock && !stackImageMode) badgeBody = ctx.track(badgeBody.subtract(cavity));
-      parts.push({ ...toPart(wasm, layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName });
+      parts.push({ ...toPart(wasm, layer, 'body', 'base', region.filamentRgb, imagePartName), sourcePartName: region.partName,
+            extrudeOrigin: { bottomZ: imageTop, stepMm: params.stepHeight ?? 0.6 } });
     }
   }
 
   parts.push({
     ...toPart(wasm, imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'),
+    extrudeOrigin: { bottomZ: imageTop, stepMm: params.stepHeight ?? 0.6 },
     extrudeRegions: imageMasks.filter(({ region }) => sameAsCarrier(region)).map(({ layerIndex, footprint, level }) => ({
       name: `hybrid-image-${layerIndex}`, rings: footprint.toPolygons(),
       topZ: imageTop + clamp((params.hybridImageExtrudeMm ?? 0) + level * (params.stepHeight ?? 0.6), 0, 6, 0),
     })),
   });
   if (bottomImageCarrier && !bottomImageCarrier.isEmpty()) {
-    parts.push(toPart(wasm, bottomImageCarrier, 'body', 'base', bottomCarrierColor, 'hybrid-bottom-image-base'));
+    parts.push({ ...toPart(wasm, bottomImageCarrier, 'body', 'base', bottomCarrierColor, 'hybrid-bottom-image-base'),
+      extrudeOrigin: { bottomZ: imageTop, stepMm: params.stepHeight ?? 0.6 } });
   }
   if (useImportedBlock && importedBlockParts) {
     parts.push(toPart(wasm, badgeBody, 'body', 'base', bodyColor, 'hybrid-image-backing'));

@@ -3,7 +3,7 @@ import { debounce } from '../utils/helpers';
 
 const HISTORY_FIELDS = [
   'palette', 'paletteOverrides', 'partOverrides', 'bodyColorRgb', 'baseColorOverride',
-  'componentHeights', 'multiColorEnabled', 'stackColorLayers', 'colorLayerHeightMm', 'colorLayerGapMm', 'edgeSettings', 'extrudeChamfer', 'baseShape', 'capWidthMm', 'topThickness',
+  'extrudeLayerColors', 'componentHeights', 'multiColorEnabled', 'stackColorLayers', 'colorLayerHeightMm', 'colorLayerGapMm', 'edgeSettings', 'extrudeChamfer', 'baseShape', 'capWidthMm', 'topThickness',
   'imageDepth', 'flatKeychainThicknessMm', 'imageMargin', 'borderWidth', 'hybridImageSizeMm', 'hybridBlockLateralOffsetMm', 'hybridImportedBlockSpacingMm', 'hybridImageMatchBlockHeight', 'hybridImageThicknessMm', 'hybridImagePaddingMm', 'hybridKeychainHeightMm', 'hybridBaseStyle', 'hybridBaseCornerRadiusMm', 'hybridBaseWidthMm', 'hybridBaseEndPaddingMm', 'hybridBaseThicknessMm', 'hybridVaseProfile', 'hybridVaseWavinessMm', 'hybridVaseThicknessMm', 'hybridVaseGapMm', 'mergeTopFrame', 'tolerance', 'stemTolerance', 'switches', 'keychain', 'keepMeshesSeparate',
 ] as const;
 

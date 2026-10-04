@@ -1,3 +1,4 @@
+import { setupExtrudeLayers, updateExtrudeLayers } from './components/extrudeLayers';
 ﻿import { getClickerDocument } from '../runtime';
 import type { UiState, UiCallbacks, EditMode, EdgeStyle } from './types';
 import { $, friendlyTargetLabel, hexRgb } from './helpers';
@@ -72,6 +73,7 @@ export function createUi(
   }
 
   // 3. Gáº®N Sá»° KIá»†N Tá»ª BINDINGS MODULES
+  setupExtrudeLayers(cb);
   bindGlobalEvents(cb);
   bindHistoryEvents(cb);
   bindImageEvents(cb);
@@ -85,6 +87,7 @@ export function createUi(
 
   // 5. HÃ€M UPDATE STATE THáº¦N THÃNH
   function update(state: UiState) {
+    updateExtrudeLayers(state);
     statusEl.innerHTML = (state.building ? '<span class="spinner"></span> ' : '') + state.status;
     
     const setVal = (id: string, text: string) => { const el = getClickerDocument().getElementById(id) as HTMLInputElement | null; if (el && getClickerDocument().activeElement !== el) el.value = text; };

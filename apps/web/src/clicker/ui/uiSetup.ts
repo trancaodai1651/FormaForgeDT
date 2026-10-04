@@ -448,6 +448,17 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onEdgeStep: (target: string, delta: number) => { const s = store.get(); const edgeSettings = [...s.edgeSettings]; const idx = edgeSettings.findIndex(x => x.target === target); const next = Math.max(0.2, Math.min(5.0, (idx >= 0 ? edgeSettings[idx].radius : 1.0) + delta)); if (idx >= 0) { edgeSettings[idx] = { ...edgeSettings[idx], radius: next }; } else { edgeSettings.push({ target, style: 'chamfer', radius: next }); } store.set({ edgeSettings }); debouncedQuietRebuild(); },
     
     onExtrudeStep: (delta: number) => { const s = store.get(); if (s.selectedParts.length === 0) return; const componentHeights = { ...s.componentHeights }; let changed = false; for (const partName of s.selectedParts) { const current = componentHeights[partName] ?? 0; const next = Math.max(-5, Math.min(6, current + delta)); if (current !== next) { componentHeights[partName] = next; changed = true; } } if (changed) { store.set({ componentHeights }); debouncedQuietRebuild(); } },
+    onExtrudeLayerEnabled: (enabled) => { store.set({ extrudeLayerColors: { ...store.get().extrudeLayerColors, enabled } }); debouncedQuietRebuild(); },
+    onExtrudeLayerMixed: (mixed) => { store.set({ extrudeLayerColors: { ...store.get().extrudeLayerColors, mixed } }); debouncedQuietRebuild(); },
+    onExtrudeLayerColor: (level, hex, regionName) => {
+      const config = store.get().extrudeLayerColors;
+      const rgb = hexToRgb(hex);
+      store.set({ extrudeLayerColors: regionName
+        ? { ...config, overrides: { ...config.overrides, [`${level}:${regionName}`]: rgb } }
+        : { ...config, colors: { ...config.colors, [level]: rgb } } });
+      debouncedQuietRebuild();
+    },
+    onResetExtrudeLayerOverrides: () => { store.set({ extrudeLayerColors: { ...store.get().extrudeLayerColors, overrides: {} } }); debouncedQuietRebuild(); },
     onExtrudeChamfer: (on) => { store.set({ extrudeChamfer: on }); debouncedQuietRebuild(); },
     onSeparateLetters: (on) => { store.set({ separateLetters: on, selectedParts: [] }); reprocess(); },
     
@@ -472,7 +483,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
   store.subscribe((s) => {
     ui.update(s);
     const indices: number[] = [];
-    s.selectedParts.forEach((name: string) => { const idx = appData.latestParts.findIndex((p: ClickerPart) => p.name === name); if (idx >= 0) indices.push(idx); });
+    appData.latestParts.forEach((p: ClickerPart, idx: number) => { if (s.selectedParts.includes(p.name) || (p.extrudePartName && s.selectedParts.includes(p.extrudePartName))) indices.push(idx); });
     viewer.highlightParts(indices, s.editMode === 'extrude' ? s.selectedParts : []);
     
     import('../store/historyManager').then(m => {

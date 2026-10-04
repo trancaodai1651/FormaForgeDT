@@ -1003,7 +1003,8 @@ export function buildBlocks(
       // Connector assets may rotate the physical cap to close a side seam.
       // Keep the printed character readable instead of rotating it with that
       // connector orientation (the end character was previously mirrored).
-      parts.push(toPart(legend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`));
+      parts.push({ ...toPart(legend, position, 'cap', 'top', entry.glyph.filamentRgb ?? DEFAULT_LETTER, entry.glyph.partName ?? `top-color-${index}-0`),
+        extrudeOrigin: { bottomZ: capTopZ + 0.04, stepMm: params.stepHeight ?? 0.6 } });
     }
     if (useKeycapImage) {
       slotImageRegions.forEach((region, regionIndex) => {
@@ -1022,7 +1023,8 @@ export function buildBlocks(
             // extrusion is selected; this avoids a visible raised outline.
             : ctx.track(wasm.Manifold.extrude(imageSection, 0.04).translate([0, 0, capTopZ - 0.02]));
           if (!image.isEmpty()) {
-            parts.push(toPart(image, position, 'cap', 'top', region.filamentRgb, regionPartName));
+            parts.push({ ...toPart(image, position, 'cap', 'top', region.filamentRgb, regionPartName),
+              extrudeOrigin: { bottomZ: capTopZ + 0.04, stepMm: params.stepHeight ?? 0.6 } });
           }
         } catch {
           warnings.push(`Keycap image region ${regionIndex + 1} could not be printed.`);

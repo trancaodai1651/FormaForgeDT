@@ -1,3 +1,4 @@
+import { renderExtrudeLayersPanel } from '../components/extrudeLayers';
 import { ASSET_BASE } from '../constants';
 import { tip } from '../helpers';
 import { clickerText } from '../../i18n';
@@ -41,6 +42,8 @@ export const renderLeftSidebar = () => `
       <label class="toggle"><input id="showswitch" type="checkbox" /><span class="slider"></span></label>
     </div>
   </div>
+
+${renderExtrudeLayersPanel()}
 
   <div class="section" id="blocksSection" hidden>
     <span class="label">Blocks</span>

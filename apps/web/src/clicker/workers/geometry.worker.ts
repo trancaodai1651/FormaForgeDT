@@ -3,6 +3,7 @@
 import Module from 'manifold-3d';
 import wasmUrl from 'manifold-3d/manifold.wasm?url';
 import { parse3MF } from '../geometry/threemfImport';
+import { applyExtrudeLayerColors } from '../geometry/extrudeLayers';
 import { buildClicker } from '../geometry/buildClicker';
 import { buildBlocks, prepareBlockAssets, type KeycapAsset, type PreparedBlockAssets } from '../geometry/buildBlocks';
 import { buildHybridClicker } from '../geometry/buildHybridClicker';
@@ -160,6 +161,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
         bottomOutline,
       );
 
+      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors));
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) {
         transfer.push(p.vertProperties.buffer, p.triVerts.buffer);
@@ -173,6 +175,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
     if (msg.type === 'buildBlocks') {
       if (!blockAssets || !keycapAsset) throw new Error('Block assets not initialized');
       const { parts, switchPlacements, warnings } = buildBlocks(wasm, blockAssets, keycapAsset, msg.params, socket);
+      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors));
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) transfer.push(p.vertProperties.buffer, p.triVerts.buffer);
       post({ type: 'parts', requestId: msg.params.requestId, parts, switchPlacements, warnings }, transfer);
@@ -192,6 +195,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
         msg.blockParams,
         msg.importedBlockParts,
       );
+      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors));
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) transfer.push(p.vertProperties.buffer, p.triVerts.buffer);
       post({ type: 'parts', parts, switchPlacements, warnings }, transfer);

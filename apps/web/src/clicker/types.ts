@@ -137,7 +137,15 @@ export const DEFAULT_PREPROCESS: PreprocessParams = {
 /** Parameters the geometry worker needs to build the clicker (all mm).
  *  Design: the BODY is a solid block with a recessed well + raised border cut
  *  into the top; the cap nests INSIDE that well (button-in-bezel). */
+export interface ExtrudeLayerColors {
+  enabled: boolean;
+  mixed: boolean;
+  colors: Record<number, RGB>;
+  overrides: Record<string, RGB>;
+}
+
 export interface BuildParams {
+  extrudeLayerColors?: ExtrudeLayerColors;
   baseShape: BaseShapeKind;
   capWidthMm: number;
   topThickness: number;
@@ -259,6 +267,10 @@ export interface ClickerPart extends MeshData {
   name: string;
   /** Stable traced component identity when a hybrid builder renames the part. */
   sourcePartName?: string;
+  /** Original face plane and step for printable Extrude color bands. */
+  extrudeOrigin?: { bottomZ: number; stepMm: number };
+  extrudePartName?: string;
+  extrudeLayer?: { level: number; regionName: string };
   /** Independent artwork picks inside a continuous same-material carrier. */
   extrudeRegions?: { name: string; rings: Ring[]; topZ: number }[];
   /** 1-based filament slot for slicer color assignment (shared per unique color). */
@@ -282,6 +294,7 @@ export interface BlockGlyph {
 }
 
 export interface BlocksBuildParams {
+  extrudeLayerColors?: ExtrudeLayerColors;
   requestId?: number;
   blockWidthMm: number;
   blockHeightMm: number;
@@ -439,4 +452,4 @@ export type GeometryResponse =
   | { type: 'parts'; requestId?: number; parts: ClickerPart[]; switchPlacements: SwitchPlacement[]; warnings: string[] }
   | { type: 'blocksParts'; requestId?: number; parts: ClickerPart[]; switchPlacements: SwitchPlacement[]; warnings: string[] }
   | { type: 'error'; message: string };
-export type ColorTarget = { kind: 'region'; index: number; compIndex: number } | { kind: 'body' } | { kind: 'base' };
+export type ColorTarget = { kind: 'extrudeLayer'; level: number; regionName: string } | { kind: 'region'; index: number; compIndex: number } | { kind: 'body' } | { kind: 'base' };
