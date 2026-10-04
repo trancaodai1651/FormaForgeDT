@@ -448,7 +448,7 @@ describe('Clicker imported block image attachment', () => {
     cube.delete();
   });
 
-  it('keeps the Image-style keyring hole open above and below an imported image head', async () => {
+  it('places Top keyrings at the image face and Bottom keyrings at the backing base, with open holes', async () => {
     const wasm = await Module();
     wasm.setup();
     const cube = wasm.Manifold.cube([27, 27, 16], true).translate([0, 0, 8]);
@@ -484,7 +484,7 @@ describe('Clicker imported block image attachment', () => {
       }
       const holeInterior = wasm.CrossSection.circle(2.1, 48).translate([0, holeCenterY]);
       const imageTop = 17 - 9 + 0.04;
-      const holePlaneZ = imageTop - 0.05;
+      const holePlaneZ = position === 'top' ? imageTop - 0.05 : -9 + 4 - 0.05;
       let coveredArea = 0;
       for (const part of result.parts) {
         if (!part.triVerts.length) continue;
@@ -495,9 +495,8 @@ describe('Clicker imported block image attachment', () => {
         overlap.delete(); slice.delete(); solid.delete();
       }
       expect(coveredArea).toBeLessThan(0.02);
-      // A small point on the loop wall must exist on this same image-facing
-      // plane. This proves the ring is actually raised to the image layer,
-      // instead of merely leaving an empty hole at that height.
+      // Witness real loop material at the selected height, rather than just
+      // an empty hole. Bottom must not also leave a tab at the image face.
       const ringWitness = wasm.CrossSection.circle(0.2, 24).translate([3.4, holeCenterY]);
       let ringArea = 0;
       for (const part of result.parts) {
@@ -509,6 +508,38 @@ describe('Clicker imported block image attachment', () => {
         overlap.delete(); slice.delete(); solid.delete();
       }
       expect(ringArea).toBeGreaterThan(0.08);
+      if (position === 'bottom') {
+        let frontArea = 0;
+        for (const part of result.parts) {
+          const solid = wasm.Manifold.ofMesh(new wasm.Mesh({ numProp: part.numProp, vertProperties: part.vertProperties, triVerts: part.triVerts }));
+          const slice = solid.slice(imageTop - 0.05);
+          const overlap = ringWitness.intersect(slice);
+          frontArea += overlap.area();
+          overlap.delete(); slice.delete(); solid.delete();
+        }
+        expect(frontArea).toBeLessThan(0.001);
+      }
+      // Read the exported mesh, after its print-bed Z translation, and verify
+      // the ring and through-hole survive at the selected height.
+      const archive = unzipSync(buildThreeMF(result.parts));
+      const model = strFromU8(archive['3D/3dmodel.model']);
+      let exportedRingArea = 0;
+      let exportedHoleArea = 0;
+      for (const object of model.matchAll(/<object[^>]*>([\s\S]*?)<\/object>/g)) {
+        const vertices = [...object[1].matchAll(/<vertex x="([^"]+)" y="([^"]+)" z="([^"]+)"\/>/g)]
+          .flatMap((match) => [Number(match[1]), Number(match[2]), Number(match[3])]);
+        const triangles = [...object[1].matchAll(/<triangle v1="(\d+)" v2="(\d+)" v3="(\d+)"\/>/g)]
+          .flatMap((match) => [Number(match[1]), Number(match[2]), Number(match[3])]);
+        if (!triangles.length) continue;
+        const solid = wasm.Manifold.ofMesh(new wasm.Mesh({ numProp: 3, vertProperties: new Float32Array(vertices), triVerts: new Uint32Array(triangles) }));
+        const slice = solid.slice(holePlaneZ + 9);
+        const wall = ringWitness.intersect(slice);
+        const bore = holeInterior.intersect(slice);
+        exportedRingArea += wall.area(); exportedHoleArea += bore.area();
+        wall.delete(); bore.delete(); slice.delete(); solid.delete();
+      }
+      expect(exportedRingArea).toBeGreaterThan(0.08);
+      expect(exportedHoleArea).toBeLessThan(0.02);
       ringWitness.delete(); holeInterior.delete(); neckSolid.delete();
     }
     cube.delete();

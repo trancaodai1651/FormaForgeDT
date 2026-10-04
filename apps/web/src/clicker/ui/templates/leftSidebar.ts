@@ -154,6 +154,7 @@ export const renderLeftSidebar = () => `
           <option value="top">${tx('Top of image', 'Phía trên hình ảnh')}</option>
           <option value="bottom">${tx('Bottom of image', 'Phía dưới hình ảnh')}</option>
         </select>
+        <small class="hint-text">${tx('Top aligns with the image face; Bottom sits flush with the underside.', 'Top ngang mặt ảnh; Bottom nằm sát mặt đáy của thân mẫu.')}</small>
       </div>
       <div class="prow-stacked">
         <div class="prow-header"><label for="hybridKeychainHeight">${tx('Keychain thickness', 'Độ dày móc khóa')}</label><input type="text" class="val" id="hybridKeychainHeightVal" /></div>

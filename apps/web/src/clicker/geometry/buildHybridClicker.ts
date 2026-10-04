@@ -714,11 +714,11 @@ export function buildHybridClicker(
     // or partially covered hole.
     const loopR = keychainLoopRadius;
     const keychainThickness = clamp(params.hybridKeychainHeightMm, 1, 15, 4);
-    // Keep the keyring tab on the same front plane as the image layers.
-    // Previously it was extruded from the underside of the badge, making the
-    // loop look detached and burying its connection when viewed from above.
-    const keychainTopZ = imageTop;
-    const keychainBottomZ = keychainTopZ - keychainThickness;
+    // Top follows the image face; Bottom sits flush with the backing's base.
+    // Moving only the XY anchor leaves both choices at the front surface.
+    const keychainBottomZ = keychainPosition === 'bottom'
+      ? -baseThickness
+      : imageTop - keychainThickness;
     const localLoop = ctx.track(wasm.CrossSection.circle(loopR, 64).translate([0, loopR]));
     const localBridge = ctx.track(wasm.CrossSection.square([loopR * 2, loopR + loopR * 3.5], true)
       .translate([0, loopR - (loopR + loopR * 3.5) / 2]));
