@@ -7,6 +7,7 @@ import { parseLetter } from '../image/letter';
 import { buildSvg, LUCIDE_ICONS } from '../image/lucideIcons';
 import { setPendingHistoryReset } from '../store/historyManager';
 import { rgbToHex, firstLine, debounce } from '../utils/helpers';
+import { reconcileExtrudeLayerColors, uniqueExtrudePalette } from '../geometry/extrudeLayers';
 import type { RgbaImage } from '../image/decode';
 import type { BuildParams, BuildRegion, GeometryResponse, PaletteEntry, RGB, ColorTarget, ClickerPart } from '../types';
 
@@ -325,6 +326,30 @@ export function rebuild(quiet = false) {
     ? appData.bottomRegionSet.outline
     : undefined;
 
+  // Use the current un-raised model colors as the Extrude palette. Filtering
+  // old raised bands prevents a previous Extrude color from becoming a new
+  // palette choice after a rebuild. While a new model is being traced, derive
+  // the same palette from its pending build inputs instead of stale meshes.
+  const renderedModelColors = !s.building
+    ? appData.latestParts.filter(part => !part.extrudeLayer).map(part => part.colorRgb)
+    : [];
+  const buildModelColors: RGB[] = s.importMode === 'blocks'
+    ? [
+        [145, 145, 148], [247, 247, 245], s.bodyColorRgb ?? [238, 238, 240],
+        ...(appData.keycapImageRegionSet?.regions.map(region => region.quantRgb) ?? []),
+      ]
+    : [
+        ...regions.map(region => region.filamentRgb),
+        ...bottomRegions.map(region => region.filamentRgb),
+        capBaseColor,
+        s.bodyColorRgb ?? [120, 124, 130],
+        ...(s.importMode === 'hybrid' ? [[145, 145, 148] as RGB, [247, 247, 245] as RGB, s.bodyColorRgb ?? [238, 238, 240]] : []),
+        ...(s.importMode === 'hybrid' && s.useImportedBlock ? appData.importedBlockParts.map(part => part.colorRgb) : []),
+      ];
+  const extrudeLayerPalette = uniqueExtrudePalette(renderedModelColors.length ? renderedModelColors : buildModelColors);
+  const extrudeLayerColors = reconcileExtrudeLayerColors(s.extrudeLayerColors, extrudeLayerPalette);
+  if (extrudeLayerColors !== s.extrudeLayerColors) store.set({ extrudeLayerColors });
+
   // Image and Image + Blocks can be printed as a physical colour stack. Keep
   // explicit user extrude edits, while assigning untouched colour components
   // to their palette order (bottom -> top) automatically.
@@ -363,7 +388,8 @@ export function rebuild(quiet = false) {
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: imageMultiColorMode && s.stackColorLayers ? colorLayerStepMm : 0.6, travel: 4.0, floorThickness: 1.6,
     switches: s.switches, keychain: s.keychain, baseFilamentRgb: capBaseColor, bodyColorRgb: s.bodyColorRgb ?? [120, 124, 130],
-    extrudeLayerColors: s.extrudeLayerColors,
+    extrudeLayerColors,
+    extrudeLayerPalette,
     edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights,
     // Raster art uses a continuous carrier and coplanar colour inlays when
     // Multi-color is off. Only the enabled stack raises physical colour layers.
@@ -425,7 +451,8 @@ export function rebuild(quiet = false) {
           legendExtrudeMm: s.hybridTextExtrudeMm,
           componentHeights: s.componentHeights,
           stepHeight: 0.6,
-          extrudeLayerColors: s.extrudeLayerColors,
+          extrudeLayerColors,
+          extrudeLayerPalette,
           vertical: s.blockOrientation === 'vertical',
           glyphs: appData.regionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),
@@ -478,7 +505,8 @@ export function rebuild(quiet = false) {
           legendExtrudeMm: s.hybridTextExtrudeMm,
           componentHeights: s.componentHeights,
           stepHeight: 0.6,
-          extrudeLayerColors: s.extrudeLayerColors,
+          extrudeLayerColors,
+          extrudeLayerPalette,
           vertical: s.blockOrientation === 'vertical',
           glyphs: blockRegionSet.regions.map((r, i) => ({
             rings: r.components.flatMap((component) => component.rings),

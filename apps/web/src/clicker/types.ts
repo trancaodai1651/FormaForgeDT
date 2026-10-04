@@ -146,6 +146,8 @@ export interface ExtrudeLayerColors {
 
 export interface BuildParams {
   extrudeLayerColors?: ExtrudeLayerColors;
+  /** Active model colors used to resolve missing/stale Extrude layer picks. */
+  extrudeLayerPalette?: RGB[];
   baseShape: BaseShapeKind;
   capWidthMm: number;
   topThickness: number;
@@ -295,6 +297,8 @@ export interface BlockGlyph {
 
 export interface BlocksBuildParams {
   extrudeLayerColors?: ExtrudeLayerColors;
+  /** Active model colors used to resolve missing/stale Extrude layer picks. */
+  extrudeLayerPalette?: RGB[];
   requestId?: number;
   blockWidthMm: number;
   blockHeightMm: number;

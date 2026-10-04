@@ -7,17 +7,69 @@ export const defaultExtrudeLayerColors = (): ExtrudeLayerColors => ({
 });
 
 export const layerRegionKey = (level: number, region: string) => `${level}:${region}`;
-export function extrudeLayerColor(config: ExtrudeLayerColors, level: number, region: string): RGB {
-  return (config.mixed ? config.overrides[layerRegionKey(level, region)] : undefined)
-    ?? config.colors[level] ?? (level % 2 === 0 ? [255, 255, 255] : [0, 0, 0]);
+const fallbackLayerColor = (level: number): RGB => level % 2 === 0 ? [255, 255, 255] : [0, 0, 0];
+const colorKey = (rgb: RGB) => `#${rgb.map(channel => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0')).join('')}`;
+
+/** Colors that can be selected for raised layers, in stable palette order. */
+export function uniqueExtrudePalette(colors: readonly RGB[]): RGB[] {
+  const byHex = new Map<string, RGB>();
+  for (const rgb of colors) if (rgb?.length >= 3) byHex.set(colorKey(rgb), [...rgb] as RGB);
+  return [...byHex.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, rgb]) => rgb);
+}
+
+function nearestPaletteColor(rgb: RGB, palette: readonly RGB[]): RGB {
+  let best = palette[0];
+  let bestDistance = Infinity;
+  for (const candidate of palette) {
+    const distance = (rgb[0] - candidate[0]) ** 2 + (rgb[1] - candidate[1]) ** 2 + (rgb[2] - candidate[2]) ** 2;
+    if (distance < bestDistance) { best = candidate; bestDistance = distance; }
+  }
+  return [...best] as RGB;
+}
+
+/** Keep a saved/default layer color inside the colors actually used by this model. */
+export function extrudeLayerColor(config: ExtrudeLayerColors, level: number, region: string, availableColors: readonly RGB[] = []): RGB {
+  const requested = (config.mixed ? config.overrides[layerRegionKey(level, region)] : undefined)
+    ?? config.colors[level] ?? fallbackLayerColor(level);
+  if (!availableColors.length || availableColors.some(color => colorKey(color) === colorKey(requested))) return requested;
+  return nearestPaletteColor(requested, availableColors);
+}
+
+/** Remap stale saved defaults/overrides to an existing model color before building. */
+export function reconcileExtrudeLayerColors(
+  config: ExtrudeLayerColors,
+  availableColors: readonly RGB[],
+  minimumLevels = 6,
+): ExtrudeLayerColors {
+  const palette = uniqueExtrudePalette(availableColors);
+  if (!palette.length) return config;
+
+  const levelCount = Math.max(minimumLevels, ...Object.keys(config.colors).map(Number));
+  const colors: Record<number, RGB> = { ...config.colors };
+  for (let level = 1; level <= levelCount; level++) {
+    colors[level] = extrudeLayerColor({ ...config, mixed: false }, level, '', palette);
+  }
+  const overrides = Object.fromEntries(Object.entries(config.overrides).map(([key, rgb]) => {
+    const [, levelText] = key.match(/^(\d+):/) ?? [];
+    const level = Number(levelText) || 1;
+    const requested = palette.some(color => colorKey(color) === colorKey(rgb)) ? rgb : nearestPaletteColor(rgb, palette);
+    return [key, requested ?? colors[level] ?? palette[0]];
+  })) as Record<string, RGB>;
+
+  const sameColors = Object.keys(colors).length === Object.keys(config.colors).length
+    && Object.entries(colors).every(([level, rgb]) => colorKey(rgb) === colorKey(config.colors[Number(level)]));
+  const sameOverrides = Object.keys(overrides).length === Object.keys(config.overrides).length
+    && Object.entries(overrides).every(([key, rgb]) => colorKey(rgb) === colorKey(config.overrides[key]));
+  return sameColors && sameOverrides ? config : { ...config, colors, overrides };
 }
 
 /** Partition raised material into closed horizontal solids, never overlapping skins.
  * The builder supplies the original face plane: imported blocks and backing are
  * intentionally excluded. All cuts use the same Float32 plane in preview/export.
  */
-export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?: ExtrudeLayerColors): ClickerPart[] {
+export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?: ExtrudeLayerColors, availableColors: readonly RGB[] = []): ClickerPart[] {
   if (!config?.enabled) return parts;
+  const palette = uniqueExtrudePalette(availableColors);
   return parts.flatMap(part => {
     const origin = part.extrudeOrigin;
     if (!origin || part.extrudeLayer) return [part];
@@ -40,7 +92,7 @@ export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?
         output.push({ ...part, numProp: mesh.numProp,
           vertProperties: new Float32Array(mesh.vertProperties), triVerts: new Uint32Array(mesh.triVerts),
           name: level ? `${part.name}::layer-${level}::${regionName}` : part.name,
-          colorRgb: level ? extrudeLayerColor(config, level, regionName) : part.colorRgb,
+          colorRgb: level ? extrudeLayerColor(config, level, regionName, palette) : part.colorRgb,
           extrudePartName: level ? regionName : part.extrudePartName,
           extrudeLayer: level ? { level, regionName } : undefined,
           extrudeRegions: level ? undefined : part.extrudeRegions,

@@ -2,7 +2,7 @@ import { getClickerDocument } from '../../runtime';
 import type { UiState, UiCallbacks } from '../types';
 import { $, hexRgb, rgbHex } from '../helpers';
 import { appData } from '../../store/appState';
-import { extrudeLayerColor } from '../../geometry/extrudeLayers';
+import { extrudeLayerColor, uniqueExtrudePalette } from '../../geometry/extrudeLayers';
 import { clickerText as tx } from '../../i18n';
 
 export function renderExtrudeLayersPanel() {
@@ -41,11 +41,18 @@ export function updateExtrudeLayers(state: UiState) {
   $<HTMLInputElement>('extrudeLayersMixed').checked = config.mixed;
   $('extrudeLayersControls').hidden = !config.enabled;
   $('resetExtrudeLayerOverrides').hidden = !config.mixed;
-  const colorsByHex = new Map<string, [number, number, number]>();
-  const addColor = (rgb: [number, number, number]) => colorsByHex.set(rgbHex(rgb).toLowerCase(), rgb);
-  appData.latestParts.forEach(part => addColor(part.colorRgb));
-  state.palette.forEach(entry => addColor(entry.filamentRgb));
-  const usedColors = [...colorsByHex.entries()];
+  const renderedModelColors = !state.building
+    ? appData.latestParts.filter(part => !part.extrudeLayer).map(part => part.colorRgb)
+    : [];
+  const availableColors = renderedModelColors.length ? renderedModelColors : [
+    ...state.palette.map(entry => entry.filamentRgb),
+    state.bodyColorRgb,
+    ...(state.baseColorOverride ? [state.baseColorOverride] : []),
+    ...Object.values(state.partOverrides),
+    ...(state.useImportedBlock ? appData.importedBlockParts.map(part => part.colorRgb) : []),
+  ];
+  const usedPalette = uniqueExtrudePalette(availableColors);
+  const usedColors = usedPalette.map(rgb => [rgbHex(rgb).toLowerCase(), rgb] as const);
   const bands = appData.latestParts.flatMap(part => {
     const actual = part.extrudeLayer ? [part.extrudeLayer] : [];
     const origin = part.extrudeOrigin;
@@ -97,7 +104,7 @@ export function updateExtrudeLayers(state: UiState) {
     summary.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--border);border-radius:8px;cursor:pointer';
     const label = getClickerDocument().createElement('span');
     label.textContent = `Extrude +${level}`; label.style.flex = '1';
-    summary.append(label, colorPicker(extrudeLayerColor({ ...config, mixed: false }, level, ''), level));
+    summary.append(label, colorPicker(extrudeLayerColor({ ...config, mixed: false }, level, '', usedPalette), level));
     summary.addEventListener('click', e => {
       if (!config.mixed && !(e.target as HTMLElement).closest('[data-existing-extrude-color]')) e.preventDefault();
     });
@@ -109,7 +116,7 @@ export function updateExtrudeLayers(state: UiState) {
         row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;font-size:12px';
         const regionLabel = getClickerDocument().createElement('span');
         regionLabel.textContent = `${tx('Region', 'Vùng')} ${regionIndex + 1}`;
-        row.append(regionLabel, colorPicker(extrudeLayerColor(config, level, region), level, region));
+        row.append(regionLabel, colorPicker(extrudeLayerColor(config, level, region, usedPalette), level, region));
         details.append(row);
       }
       if (!regions.length) {

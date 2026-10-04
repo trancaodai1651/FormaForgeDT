@@ -161,7 +161,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
         bottomOutline,
       );
 
-      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors));
+      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors, msg.params.extrudeLayerPalette));
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) {
         transfer.push(p.vertProperties.buffer, p.triVerts.buffer);
@@ -175,7 +175,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
     if (msg.type === 'buildBlocks') {
       if (!blockAssets || !keycapAsset) throw new Error('Block assets not initialized');
       const { parts, switchPlacements, warnings } = buildBlocks(wasm, blockAssets, keycapAsset, msg.params, socket);
-      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors));
+      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors, msg.params.extrudeLayerPalette));
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) transfer.push(p.vertProperties.buffer, p.triVerts.buffer);
       post({ type: 'parts', requestId: msg.params.requestId, parts, switchPlacements, warnings }, transfer);
@@ -195,7 +195,7 @@ self.onmessage = async (e: MessageEvent<GeometryRequest>) => {
         msg.blockParams,
         msg.importedBlockParts,
       );
-      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors));
+      parts.splice(0, parts.length, ...applyExtrudeLayerColors(wasm, parts, msg.params.extrudeLayerColors, msg.params.extrudeLayerPalette));
       const transfer: Transferable[] = [];
       for (const p of parts as ClickerPart[]) transfer.push(p.vertProperties.buffer, p.triVerts.buffer);
       post({ type: 'parts', parts, switchPlacements, warnings }, transfer);
