@@ -1,6 +1,6 @@
 import { getClickerDocument } from '../../runtime';
 import type { UiState, UiCallbacks } from '../types';
-import { $, rgbHex } from '../helpers';
+import { $, hexRgb, rgbHex } from '../helpers';
 import { appData } from '../../store/appState';
 import { extrudeLayerColor } from '../../geometry/extrudeLayers';
 import { clickerText as tx } from '../../i18n';
@@ -25,8 +25,9 @@ export function setupExtrudeLayers(cb: UiCallbacks) {
   $('extrudeLayersMixed')?.addEventListener('change', e => cb.onExtrudeLayerMixed((e.target as HTMLInputElement).checked));
   $('resetExtrudeLayerOverrides')?.addEventListener('click', cb.onResetExtrudeLayerOverrides);
   $('extrudeLayersList')?.addEventListener('change', e => {
-    const input = e.target as HTMLInputElement;
-    if (input.type === 'color') cb.onExtrudeLayerColor(Number(input.dataset.level), input.value, input.dataset.region);
+    const select = e.target as HTMLSelectElement;
+    if (!select.matches('[data-existing-extrude-color]')) return;
+    cb.onExtrudeLayerColor(Number(select.dataset.level), select.value, select.dataset.region);
   });
 }
 
@@ -40,6 +41,11 @@ export function updateExtrudeLayers(state: UiState) {
   $<HTMLInputElement>('extrudeLayersMixed').checked = config.mixed;
   $('extrudeLayersControls').hidden = !config.enabled;
   $('resetExtrudeLayerOverrides').hidden = !config.mixed;
+  const colorsByHex = new Map<string, [number, number, number]>();
+  const addColor = (rgb: [number, number, number]) => colorsByHex.set(rgbHex(rgb).toLowerCase(), rgb);
+  appData.latestParts.forEach(part => addColor(part.colorRgb));
+  state.palette.forEach(entry => addColor(entry.filamentRgb));
+  const usedColors = [...colorsByHex.entries()];
   const bands = appData.latestParts.flatMap(part => {
     const actual = part.extrudeLayer ? [part.extrudeLayer] : [];
     const origin = part.extrudeOrigin;
@@ -53,12 +59,44 @@ export function updateExtrudeLayers(state: UiState) {
     });
     return [...actual, ...available];
   });
-  const key = JSON.stringify([config, bands]);
+  const key = JSON.stringify([config, bands, usedColors]);
   const list = $('extrudeLayersList');
   if (key === previousKey && list.childElementCount) return;
   previousKey = key;
   const open = new Set([...list.querySelectorAll('details[open]')].map(el => (el as HTMLElement).dataset.level));
   list.replaceChildren();
+  const colorPicker = (rgb: [number, number, number], level: number, region?: string) => {
+    const select = getClickerDocument().createElement('select');
+    const selectedHex = rgbHex(rgb).toLowerCase();
+    select.dataset.existingExtrudeColor = '';
+    select.dataset.level = String(level);
+    if (region) select.dataset.region = region;
+    select.setAttribute('aria-label', region ? `Choose an existing color for Extrude +${level}, ${region}` : `Choose an existing color for Extrude +${level}`);
+    select.title = tx('Choose a color already used in this model', 'Chọn màu đang được dùng trong mô hình');
+    select.style.cssText = `width:76px;height:30px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;background:${selectedHex};color:${(rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114) < 145 ? '#fff' : '#171717'};cursor:pointer;flex:none`;
+    if (!usedColors.some(([hex]) => hex === selectedHex)) {
+      const current = getClickerDocument().createElement('option');
+      current.value = selectedHex; current.textContent = `${tx('Current', 'Đang chọn')} ${selectedHex}`;
+      current.disabled = true; current.hidden = true; current.selected = true;
+      select.append(current);
+    }
+    for (const [hex] of usedColors) {
+      const option = getClickerDocument().createElement('option');
+      option.value = hex; option.textContent = hex.toUpperCase();
+      option.style.backgroundColor = hex;
+      const [red, green, blue] = hexRgb(hex);
+      option.style.color = (red * 0.299 + green * 0.587 + blue * 0.114) < 145 ? '#fff' : '#171717';
+      option.selected = hex === selectedHex;
+      select.append(option);
+    }
+    if (!usedColors.length) {
+      const empty = getClickerDocument().createElement('option');
+      empty.value = selectedHex; empty.textContent = tx('No model colors yet', 'Chưa có màu mô hình');
+      empty.disabled = true; empty.selected = true;
+      select.append(empty);
+    }
+    return select;
+  };
   const count = Math.max(6, ...Object.keys(config.colors).map(Number), ...bands.map(band => band.level));
   for (let level = 1; level <= count; level++) {
     const details = getClickerDocument().createElement('details');
@@ -68,25 +106,19 @@ export function updateExtrudeLayers(state: UiState) {
     summary.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--border);border-radius:8px;cursor:pointer';
     const label = getClickerDocument().createElement('span');
     label.textContent = `Extrude +${level}`; label.style.flex = '1';
-    const colorInput = (rgb: [number, number, number], region?: string) => {
-      const input = getClickerDocument().createElement('input');
-      input.type = 'color'; input.value = rgbHex(rgb); input.dataset.level = String(level);
-      if (region) input.dataset.region = region;
-      input.setAttribute('aria-label', region ? `Extrude +${level}: ${region}` : `Extrude +${level} color`);
-      input.style.cssText = 'width:40px;height:28px;padding:0;border:0;background:transparent;cursor:pointer';
-      input.addEventListener('click', e => e.stopPropagation());
-      return input;
-    };
-    summary.append(label, colorInput(extrudeLayerColor({ ...config, mixed: false }, level, '')));
+    summary.append(label, colorPicker(extrudeLayerColor({ ...config, mixed: false }, level, ''), level));
+    summary.addEventListener('click', e => {
+      if (!config.mixed && !(e.target as HTMLElement).closest('[data-existing-extrude-color]')) e.preventDefault();
+    });
     details.append(summary);
     if (config.mixed) {
       const regions = [...new Set(bands.filter(b => b.level === level).map(b => b.regionName))];
       for (const [regionIndex, region] of regions.entries()) {
-        const row = getClickerDocument().createElement('label');
+        const row = getClickerDocument().createElement('div');
         row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;font-size:12px';
         const regionLabel = getClickerDocument().createElement('span');
         regionLabel.textContent = `${tx('Region', 'Vùng')} ${regionIndex + 1}`;
-        row.append(regionLabel, colorInput(extrudeLayerColor(config, level, region), region));
+        row.append(regionLabel, colorPicker(extrudeLayerColor(config, level, region), level, region));
         details.append(row);
       }
       if (!regions.length) {
