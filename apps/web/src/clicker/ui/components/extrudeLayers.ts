@@ -74,12 +74,6 @@ export function updateExtrudeLayers(state: UiState) {
     select.setAttribute('aria-label', region ? `Choose an existing color for Extrude +${level}, ${region}` : `Choose an existing color for Extrude +${level}`);
     select.title = tx('Choose a color already used in this model', 'Chọn màu đang được dùng trong mô hình');
     select.style.cssText = `width:76px;height:30px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;background:${selectedHex};color:${(rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114) < 145 ? '#fff' : '#171717'};cursor:pointer;flex:none`;
-    if (!usedColors.some(([hex]) => hex === selectedHex)) {
-      const current = getClickerDocument().createElement('option');
-      current.value = selectedHex; current.textContent = `${tx('Current', 'Đang chọn')} ${selectedHex}`;
-      current.disabled = true; current.hidden = true; current.selected = true;
-      select.append(current);
-    }
     for (const [hex] of usedColors) {
       const option = getClickerDocument().createElement('option');
       option.value = hex; option.textContent = hex.toUpperCase();
@@ -89,12 +83,9 @@ export function updateExtrudeLayers(state: UiState) {
       option.selected = hex === selectedHex;
       select.append(option);
     }
-    if (!usedColors.length) {
-      const empty = getClickerDocument().createElement('option');
-      empty.value = selectedHex; empty.textContent = tx('No model colors yet', 'Chưa có màu mô hình');
-      empty.disabled = true; empty.selected = true;
-      select.append(empty);
-    }
+    if (usedColors.some(([hex]) => hex === selectedHex)) select.value = selectedHex;
+    else select.selectedIndex = -1;
+    select.disabled = !usedColors.length;
     return select;
   };
   const count = Math.max(6, ...Object.keys(config.colors).map(Number), ...bands.map(band => band.level));
