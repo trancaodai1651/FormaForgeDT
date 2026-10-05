@@ -180,4 +180,37 @@ describe('Printable colors by Extrude level', () => {
     expectClosed3mf(applyExtrudeLayerColors(wasm, source, config));
   });
 
+  it('rebuilds dense mixed-color layer stacks repeatedly without exhausting the WASM geometry table', async () => {
+    const { wasm } = await setup();
+    const rings = Array.from({ length: 6 }, (_, index) => square(
+      0.45,
+      (index % 3) * 2.2 - 2.2,
+      Math.floor(index / 3) * 2.2 - 1.1,
+    ));
+    const section = new wasm.CrossSection(rings, 'NonZero');
+    const solid = wasm.Manifold.extrude(section, 6);
+    const mesh = solid.getMesh();
+    const part: ClickerPart = {
+      ...mesh,
+      name: 'dense-layer-stack', kind: 'body', group: 'base', colorRgb: [240, 240, 240],
+      extrudeOrigin: { bottomZ: 0, stepMm: 0.2 },
+      extrudeRegions: rings.map((ring, index) => ({ name: `region-${index}`, rings: [ring], topZ: 6 })),
+    };
+    const mixed = {
+      ...config,
+      mixed: true,
+      overrides: Object.fromEntries(rings.map((_, index) => [
+        layerRegionKey(1, `region-${index}`), [0, 0, 0] as [number, number, number],
+      ])),
+    };
+
+    for (let rebuild = 0; rebuild < 3; rebuild++) {
+      const result = applyExtrudeLayerColors(wasm, [part], mixed);
+      expect(result.filter(item => item.extrudeLayer)).toHaveLength(6 * 30);
+      expect(result.every(item => item.vertProperties.length > 0 && item.triVerts.length > 0)).toBe(true);
+    }
+
+    solid.delete(); section.delete();
+  });
+
 });

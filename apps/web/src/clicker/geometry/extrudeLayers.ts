@@ -75,6 +75,12 @@ export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?
     if (!origin || part.extrudeLayer) return [part];
     const owned: any[] = [];
     const track = (value: any) => { owned.push(value); return value; };
+    const release = (value: any) => {
+      const index = owned.lastIndexOf(value);
+      if (index < 0) return;
+      owned.splice(index, 1);
+      try { value.delete(); } catch { /* already released by the WASM binding */ }
+    };
     try {
       const solid = track(wasm.Manifold.ofMesh(new wasm.Mesh(part)));
       const z0 = Math.fround(origin.bottomZ);
@@ -84,22 +90,33 @@ export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?
       const output: ClickerPart[] = [];
       const emit = (volume: any, regionName: string, level: number) => {
         if (volume.isEmpty() || volume.volume() <= 1e-9) return;
-        const original = track(volume.asOriginal());
-        const printable = track(wasm.Manifold.ofMesh(new wasm.Mesh(original.getMesh())));
-        if (printable.status().value !== 0) throw new Error(`Invalid Extrude layer: ${part.name} (status ${printable.status().value})`);
-        if (printable.isEmpty()) return;
-        const mesh = printable.getMesh();
-        output.push({ ...part, numProp: mesh.numProp,
-          vertProperties: new Float32Array(mesh.vertProperties), triVerts: new Uint32Array(mesh.triVerts),
-          name: level ? `${part.name}::layer-${level}::${regionName}` : part.name,
-          colorRgb: level ? extrudeLayerColor(config, level, regionName, palette) : part.colorRgb,
-          extrudePartName: level ? regionName : part.extrudePartName,
-          extrudeLayer: level ? { level, regionName } : undefined,
-          extrudeRegions: level ? undefined : part.extrudeRegions,
-        });
+        let original: any;
+        let printable: any;
+        try {
+          original = track(volume.asOriginal());
+          const sourceMesh = original.getMesh();
+          printable = track(wasm.Manifold.ofMesh(new wasm.Mesh(sourceMesh)));
+          if (printable.status().value !== 0) throw new Error(`Invalid Extrude layer: ${part.name} (status ${printable.status().value})`);
+          if (printable.isEmpty()) return;
+          const mesh = printable.getMesh();
+          output.push({ ...part, numProp: mesh.numProp,
+            vertProperties: new Float32Array(mesh.vertProperties), triVerts: new Uint32Array(mesh.triVerts),
+            name: level ? `${part.name}::layer-${level}::${regionName}` : part.name,
+            colorRgb: level ? extrudeLayerColor(config, level, regionName, palette) : part.colorRgb,
+            extrudePartName: level ? regionName : part.extrudePartName,
+            extrudeLayer: level ? { level, regionName } : undefined,
+            extrudeRegions: level ? undefined : part.extrudeRegions,
+          });
+        } finally {
+          // Release each temporary solid as soon as its mesh data is copied;
+          // otherwise every extruded band stays in WASM memory until the full
+          // model finishes partitioning.
+          release(printable);
+          release(original);
+        }
       };
       const [raised, lower] = solid.splitByPlane([0, 0, 1], z0).map(track);
-      emit(lower, part.name, 0);
+      try { emit(lower, part.name, 0); } finally { release(lower); }
       let remainder = raised;
       // Keep same-color regions merged unless a regional override actually needs
       // separate geometry. Repeatedly cutting every traced image region is both
@@ -114,19 +131,32 @@ export function applyExtrudeLayerColors(wasm: any, parts: ClickerPart[], config?
       }) : [];
       for (const region of activeRegions) {
         const section = track(new wasm.CrossSection(region.rings.map(ring => ring.map(([x, y]) => [Math.fround(x), Math.fround(y)])), 'NonZero'));
-        const column = track(track(wasm.Manifold.extrude(section, maxZ - z0 + 1)).translate([0, 0, z0]));
-        pieces.push({ solid: track(remainder.intersect(column)), name: region.name });
-        remainder = track(remainder.subtract(column));
+        const extrusion = track(wasm.Manifold.extrude(section, maxZ - z0 + 1));
+        const column = track(extrusion.translate([0, 0, z0]));
+        const previousRemainder = remainder;
+        pieces.push({ solid: track(previousRemainder.intersect(column)), name: region.name });
+        remainder = track(previousRemainder.subtract(column));
+        release(column);
+        release(extrusion);
+        release(section);
+        release(previousRemainder);
       }
-      pieces.push({ solid: remainder, name: part.extrudePartName ?? part.name });
+      const unassignedRegions = (part.extrudeRegions ?? []).filter(region => !activeRegions.some(active => active.name === region.name));
+      const remainderName = unassignedRegions.length === 1
+        ? unassignedRegions[0].name
+        : part.extrudePartName ?? part.name;
+      pieces.push({ solid: remainder, name: remainderName });
       for (const piece of pieces) {
         let remaining = piece.solid;
-        for (let level = 1; level <= Math.ceil((maxZ - z0) / step - 1e-5); level++) {
+        const pieceMaxZ = piece.solid.boundingBox().max[2];
+        for (let level = 1; level <= Math.ceil((pieceMaxZ - z0) / step - 1e-5); level++) {
           const plane = Math.fround(z0 + level * step);
           const [above, band] = remaining.splitByPlane([0, 0, 1], plane).map(track);
-          emit(band, piece.name, level);
+          try { emit(band, piece.name, level); } finally { release(band); release(remaining); }
           remaining = above;
         }
+        release(remaining);
+        release(piece.solid);
       }
       return output;
     } finally { for (let i = owned.length - 1; i >= 0; i--) owned[i].delete(); }

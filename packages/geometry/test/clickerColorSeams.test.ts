@@ -6,6 +6,7 @@ import { traceRegions } from '../../../apps/web/src/clicker/image/trace';
 import { BuildContext } from '../../../apps/web/src/clicker/geometry/buildContext';
 import { buildImageMaskPipeline } from '../../../apps/web/src/clicker/geometry/imageMaskPipeline';
 import { buildThreeMF } from '../../../apps/web/src/clicker/export/threemfExport';
+import { defaultSlicerExport, slicerProfiles } from '../../../apps/web/src/clicker/export/slicerLayout';
 import { buildThreeMFObjects } from '../../../apps/web/src/clicker/features/multiColor/export/threemfExport';
 import { buildHybridClicker } from '../../../apps/web/src/clicker/geometry/buildHybridClicker';
 import { partMatchesPalette, rememberPartColor } from '../../../apps/web/src/clicker/core/partColors';
@@ -152,7 +153,8 @@ describe('Clicker 3MF selected filament colors', () => {
     const slots = [...settings.matchAll(/<part\b[^>]*>([\s\S]*?)<\/part>/g)].map(m => Number(m[1].match(/key="extruder" value="(\d+)"/)![1]));
     expect(slots).toEqual([1, 2, 3, 1]);
     const xml = strFromU8(archive['3D/3dmodel.model']);
-    expect(xml).toContain('<metadata name="Application">BambuStudio-02.00.00.00</metadata>');
+    const profile = slicerProfiles[defaultSlicerExport().target];
+    expect(xml).toContain(`<metadata name="Application">${profile.application}</metadata>`);
     expect(xml).toContain('<metadata name="Generator">FormaForgeDT Clicker Generator</metadata>');
     expect([...xml.matchAll(/<item\b/g)]).toHaveLength(1);
     expect([...xml.matchAll(/<component\b/g)]).toHaveLength(4);

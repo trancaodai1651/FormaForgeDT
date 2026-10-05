@@ -7,7 +7,7 @@ import type { ClickerPart, RGB } from '../../../apps/web/src/clicker/types';
 
 async function fixture(relief = true) {
   const wasm = await Module(); wasm.setup();
-  const part = (name: string, size: number[], at: number[], group: 'top' | 'base', colorRgb: RGB): ClickerPart => {
+  const part = (name: string, size: [number, number, number], at: [number, number, number], group: 'top' | 'base', colorRgb: RGB): ClickerPart => {
     const cube = wasm.Manifold.cube(size).translate(at);
     const mesh = cube.getMesh(); cube.delete();
     return { name, kind: group === 'top' ? 'cap' : 'body', group, colorRgb,
