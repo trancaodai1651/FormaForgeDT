@@ -1,13 +1,12 @@
 import { ArrowUpRight, Chrome, Download, ExternalLink, MonitorDown, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../../lib/i18n';
+import { DESKTOP_INSTALLERS, DESKTOP_RELEASE_ROOT } from './DesktopDownloadButton';
 import './downloads.css';
 
-const RELEASE_ROOT = 'https://github.com/trancaodai1651/FormaForgeDT/releases/latest';
 const ASSETS = {
-  windows: `${RELEASE_ROOT}/download/FormaForgeDT-Windows-x64.exe`,
-  macos: `${RELEASE_ROOT}/download/FormaForgeDT-macOS-universal.dmg`,
-  extension: `${RELEASE_ROOT}/download/FormaForgeDT-Market-Reader.zip`,
+  ...DESKTOP_INSTALLERS,
+  extension: `${DESKTOP_RELEASE_ROOT}/download/FormaForgeDT-Market-Reader.zip`,
 };
 
 export function DownloadsPage() {
@@ -56,7 +55,7 @@ export function DownloadsPage() {
       <DownloadCard icon={<Chrome size={22} />} title={copy.extension} text={copy.extensionText} href={ASSETS.extension} label={copy.download} />
     </div>
     <p className="downloads-note"><Download size={14} /> {copy.note}</p>
-    <a className="downloads-release" href={RELEASE_ROOT} target="_blank" rel="noreferrer"><ExternalLink size={16} /> {copy.release}</a>
+    <a className="downloads-release" href={DESKTOP_RELEASE_ROOT} target="_blank" rel="noreferrer"><ExternalLink size={16} /> {copy.release}</a>
   </section>;
 }
 

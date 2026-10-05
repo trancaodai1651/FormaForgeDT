@@ -1,4 +1,5 @@
 import { ClickerWorkspacePage } from '../../ClickerWorkspacePage';
+import { DesktopDownloadButton } from '../downloads/DesktopDownloadButton';
 import './reference-page.css';
 
 const labels = {
@@ -16,6 +17,7 @@ export function ReferenceClickerPage() {
     <header className="reference-utility-bar">
       <div className="reference-utility-group">
         <a href="https://github.com/vostoklabs" target="_blank" rel="noreferrer">◉&nbsp; View on GitHub</a>
+        <DesktopDownloadButton />
         <a className="reference-license" href="https://makerworld.com/en/@Vostok_Labs#commercial-membership-open" target="_blank" rel="noreferrer">▣&nbsp; Get commercial license</a>
       </div>
       <div className="reference-utility-group">

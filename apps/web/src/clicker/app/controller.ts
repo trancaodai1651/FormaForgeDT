@@ -114,7 +114,13 @@ export function bootstrapApp(referencePresentation = false) {
     history
   );
 
-  if (referencePresentation) configureReferenceClicker(viewer);
+  if (referencePresentation) {
+    // Initialize reference defaults only after the new workspace controls have
+    // mounted. A prior workspace can still have store listeners during route
+    // transitions; updating before the form exists dereferences missing inputs.
+    model.store.set({ view: 'exploded', smoothing: 0.1, multiColorEnabled: false, capWidthMm: 35, imageMargin: 1.2, borderWidth: 2.6 });
+    configureReferenceClicker(viewer);
+  }
 
 }
 

@@ -6,7 +6,6 @@ import { bootstrapImageVectorizer } from './features/imageVectorizer/controller'
 import { bootstrapMultiColor } from './features/multiColor/controller';
 import { getClickerDocument, resetClickerRoot, setClickerRoot } from './runtime';
 import { setClickerLanguage, type ClickerLanguage } from './i18n';
-import { store } from './store/appState';
 
 export type ClickerMode = 'clicker' | 'flex-keychain' | 'flex-organizer' | 'svg-layers' | 'image-vectorizer' | 'multi-color';
 
@@ -33,7 +32,6 @@ export function bootstrapClickerWorkspace(root: HTMLElement, mode: ClickerMode =
   if (mode === 'multi-color') return bootstrapMultiColor();
   if (presentation === 'reference') {
     getClickerDocument().documentElement.dataset.theme = 'light';
-    store.set({ view: 'exploded', smoothing: 0.1, multiColorEnabled: false, capWidthMm: 35, imageMargin: 1.2, borderWidth: 2.6 });
   }
   root.innerHTML = renderClickerShell();
   return bootstrapApp(presentation === 'reference');
