@@ -1,0 +1,11 @@
+.desktop-app-shell { --desktop-nav-height: 38px; padding-top: var(--desktop-nav-height); box-sizing: border-box; }
+.desktop-navigation { position: fixed; inset: 0 0 auto; z-index: 10000; height: var(--desktop-nav-height); display: flex; align-items: center; gap: 18px; padding: 0 14px; box-sizing: border-box; background: #171b20; border-bottom: 1px solid #353b44; color: #d1d6de; font: 13px system-ui, sans-serif; }
+.desktop-navigation > span { margin-left: auto; }
+.desktop-dashboard-link { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: #f4f6fa; padding: 4px 8px; border-radius: 5px; }
+.desktop-dashboard-link:hover, .desktop-dashboard-link:focus-visible { background: #353b44; }
+.desktop-app-shell.app-shell-admin-tool > main { height: calc(100dvh - var(--desktop-nav-height)); min-height: 0; }
+.desktop-app-shell .admin-tool-page, .desktop-app-shell .reference-clicker-page { height: calc(100dvh - var(--desktop-nav-height)); min-height: 0; }
+.desktop-app-shell .public-clicker-page-shell, .desktop-app-shell .admin-native-workspace.public-tool-workspace { top: var(--desktop-nav-height); }
+.desktop-app-shell .public-clicker-page-shell > .admin-native-workspace.public-tool-workspace { top: auto; }
+.desktop-app-shell .admin-native-workspace.public-tool-workspace { height: calc(100dvh - var(--desktop-nav-height)); }
+.desktop-app-shell .public-clicker-page-shell > .admin-native-workspace.public-tool-workspace { height: auto; }

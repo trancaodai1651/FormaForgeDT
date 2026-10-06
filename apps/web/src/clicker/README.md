@@ -16,6 +16,9 @@ Thư viện React/TypeScript/Three.js cho các công cụ tạo vật thể in 3
 
 ## Xuất 3MF cho slicer
 
+- **Merge base & image** chuyển Image/SVG/Icon/Text thành một tấm móc khóa phẳng, bỏ đế clicker, trụ MX và switch. **Flat plate thickness** đặt độ dày toàn tấm; Extrude riêng từng vùng vẫn được giữ.
+- **Keep meshes separate** giữ các vùng màu ảnh trong tấm phẳng để chỉnh màu và xuất 3MF; tắt sẽ gộp hình học ảnh vào vật liệu của base. **Flat keychain** trong Keychain là cùng chế độ với Merge, và hai công tắc luôn đồng bộ.
+
 - Mở **3MF export settings**, chọn **Bambu Studio** hoặc **Flashforge Studio / Orca-Flashforge**. Mở file dưới dạng project để giữ các part, màu filament và cấu hình support.
 - **Automatic** đặt mặt ảnh có Extrude hướng lên và bật support cho phần nhô ra/stem. Mẫu phẳng được đặt úp để mặt ảnh nằm trên bàn in. Có thể chọn hướng và support riêng.
 - Đặt toàn bộ từng cụm top/base xuống Z=0, giữ nguyên vị trí tương đối của các tầng màu; không hạ từng màu riêng xuống bàn in. Preview không bị đổi hướng bởi tùy chọn xuất.

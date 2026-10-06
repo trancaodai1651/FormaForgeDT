@@ -1,4 +1,5 @@
-﻿import { getClickerDocument } from '../../runtime';
+import { downloadBlob } from '../../utils/helpers';
+import { getClickerDocument } from '../../runtime';
 import { zipSync } from 'fflate';
 import { createViewer, type Viewer } from '../../viewer/viewer';
 import { downloadThreeMF } from '../../export';
@@ -17,14 +18,7 @@ function setClass(id: string, active: boolean) {
 
 function downloadBytes(bytes: Uint8Array, name: string, type: string) {
   const blob = new Blob([bytes as unknown as BlobPart], { type });
-  const url = URL.createObjectURL(blob);
-  const link = getClickerDocument().createElement('a');
-  link.href = url;
-  link.download = name;
-  getClickerDocument().body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, name);
 }
 
 function cleanPartName(name: string): string {
@@ -148,7 +142,9 @@ class FlexController implements FlexKeychainController {
     });
     getClickerDocument().getElementById('flexSlots')?.addEventListener('change', (event) => this.updateSlot(event));
     getClickerDocument().getElementById('flexSlots')?.addEventListener('input', (event) => this.updateSlot(event));
-    getClickerDocument().getElementById('flexExport3mf')?.addEventListener('click', () => { if (this.builtParts.length) downloadThreeMF(this.builtParts, `${this.config.name.toLowerCase() || 'keychain'}.3mf`); });
+    getClickerDocument().getElementById('flexExport3mf')?.addEventListener('click', () => {
+      if (this.builtParts.length) void this.saveExport(() => downloadThreeMF(this.builtParts, `${this.config.name.toLowerCase() || 'keychain'}.3mf`));
+    });
     getClickerDocument().getElementById('flexExportStl')?.addEventListener('click', () => this.exportStlZip());
     getClickerDocument().getElementById('flexTheme')?.addEventListener('click', () => { const next = getClickerDocument().documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; getClickerDocument().documentElement.setAttribute('data-theme', next); this.viewer?.setTheme(next); });
   }
@@ -221,7 +217,12 @@ class FlexController implements FlexKeychainController {
     if (!this.builtParts.length) return;
     const files: Record<string, Uint8Array> = {};
     for (const part of this.builtParts) files[`${part.group}/${cleanPartName(part.name)}.stl`] = buildSTL([part]);
-    downloadBytes(zipSync(files, { level: 6 }), `${this.config.name.toLowerCase() || 'keychain'}-stls.zip`, 'application/zip');
+    void this.saveExport(() => downloadBytes(zipSync(files, { level: 6 }), `${this.config.name.toLowerCase() || 'keychain'}-stls.zip`, 'application/zip'));
+  }
+
+  private async saveExport(save: () => Promise<boolean>) {
+    try { this.setStatus(await save() ? 'Export saved.' : 'Export cancelled.'); }
+    catch (error) { this.setStatus(`Could not save export: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   destroy() {

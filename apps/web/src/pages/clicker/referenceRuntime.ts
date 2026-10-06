@@ -1,8 +1,10 @@
+import { getDesktopInvoke } from '../../lib/downloadFile';
 import { getClickerDocument } from '../../clicker/runtime';
 import { appData, store } from '../../clicker/store/appState';
 import type { ClickerPart } from '../../clicker/types';
 import type { Viewer } from '../../clicker/viewer/viewer';
 import { debouncedRebuild } from '../../clicker/core/engine';
+import { isFlatKeychainMode } from '../../clicker/geometry/printMode';
 import { SVG_SAMPLES } from '../../clicker/image/sample';
 import * as THREE from 'three';
 
@@ -230,7 +232,7 @@ export function configureReferenceClicker(viewer: Viewer) {
       else if (button?.id === 'referenceFitTest') buildFitTest();
     });
     const advanced = details('referenceAdvanced', 'Advanced shape controls');
-    for (const id of ['baseHeight', 'margin', 'borderwidth', 'mergeTopFrame']) {
+    for (const id of ['baseHeight', 'margin', 'borderwidth', 'mergeTopFrame', 'keepMeshesSeparate', 'flatKeychainThickness']) {
       const control = element(id);
       const row = control?.closest('.prow-stacked, .switch-row');
       if (row) advanced.querySelector('.collapsible-body')!.appendChild(row);
@@ -303,7 +305,7 @@ export function configureReferenceClicker(viewer: Viewer) {
   const loadLabel = projectSettings?.querySelector('#loadProj span');
   if (saveLabel) saveLabel.textContent = 'Save';
   if (loadLabel) loadLabel.textContent = 'Load';
-  rightFooter?.querySelector('#exportStl')?.setAttribute('hidden', '');
+  rightFooter?.querySelector('#exportStl')?.toggleAttribute('hidden', !getDesktopInvoke());
   rightFooter?.querySelector('#exportModeHint')?.setAttribute('hidden', '');
   const themeButton = element<HTMLButtonElement>('themeToggle');
   const saveLoadRow = projectSettings?.querySelector('.btn-row');
@@ -322,6 +324,17 @@ export function configureReferenceClicker(viewer: Viewer) {
   });
 
   const unsubscribe = store.subscribe((state) => {
+    const flatKeychain = isFlatKeychainMode(state);
+    const bodyTitle = element('referenceBodyFit')?.querySelector('summary');
+    if (bodyTitle) bodyTitle.textContent = flatKeychain ? 'Flat keychain' : 'Body & fit';
+    for (const id of ['referenceRimHeight', 'referenceHollowBase', 'referencePocketValue']) {
+      const row = element(id)?.closest<HTMLElement>('.prow-stacked, .switch-row');
+      if (row) row.style.display = flatKeychain ? 'none' : '';
+    }
+    const fitTest = element('referenceFitTest');
+    if (fitTest) fitTest.style.display = flatKeychain ? 'none' : '';
+    const fitHelp = left.querySelector<HTMLElement>('.reference-fit-help');
+    if (fitHelp) fitHelp.style.display = flatKeychain ? 'none' : '';
     const gapLabel = element('socketTolStepper')?.closest('.prow-stacked')?.querySelector('label');
     if (gapLabel) gapLabel.textContent = 'Top / base gap';
     const stemLabel = element('stemTolStepper')?.closest('.prow-stacked')?.querySelector('label');

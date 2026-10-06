@@ -1,4 +1,5 @@
-﻿import { getClickerDocument } from '../../runtime';
+import { downloadBlob } from '../../utils/helpers';
+import { getClickerDocument } from '../../runtime';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -51,14 +52,7 @@ let active: OrganizerController | null = null;
 
 function downloadBytes(bytes: Uint8Array, name: string, type: string) {
   const blob = new Blob([bytes as unknown as BlobPart], { type });
-  const url = URL.createObjectURL(blob);
-  const link = getClickerDocument().createElement('a');
-  link.href = url;
-  link.download = name;
-  getClickerDocument().body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+  return downloadBlob(blob, name);
 }
 
 function cleanName(value: string): string {
@@ -589,14 +583,19 @@ class FlexOrganizer implements OrganizerController {
 
   private downloadBase() {
     if (!this.latestResult) return;
-    downloadBytes(buildBinaryStl([this.latestResult.mesh]), `${cleanName(ORGANIZER_COPY[this.locale].title)}.stl`, 'model/stl');
+    void this.saveExport(() => downloadBytes(buildBinaryStl([this.latestResult!.mesh]), `${cleanName(ORGANIZER_COPY[this.locale].title)}.stl`, 'model/stl'));
   }
 
   private downloadLabel() {
     const label = this.latestResult?.label;
     if (!label) return;
     const meshes = [{ name: 'label-plate', mesh: label.plate, color: this.label.plateColor.replace('#', '') }, ...(label.text ? [{ name: 'label-text', mesh: label.text, color: this.label.textColor.replace('#', '') }] : [])];
-    downloadBytes(buildThreeMf(meshes), `${cleanName(this.label.text || 'label')}.3mf`, 'model/3mf');
+    void this.saveExport(() => downloadBytes(buildThreeMf(meshes), `${cleanName(this.label.text || 'label')}.3mf`, 'model/3mf'));
+  }
+
+  private async saveExport(save: () => Promise<boolean>) {
+    try { this.renderStatus('idle', await save() ? 'Export saved.' : 'Export cancelled.'); }
+    catch (error) { this.renderStatus('error', `Could not save export: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   destroy() {

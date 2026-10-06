@@ -1,5 +1,5 @@
 import { zipSync } from 'fflate';
-import { getClickerDocument } from '../../../runtime';
+import { downloadBlob } from '../../../utils/helpers';
 import type { ClickerPart } from '../../../types';
 import { sanitizeMesh } from '../../../export/meshUtils';
 
@@ -87,14 +87,7 @@ export function buildSTLObject(rawParts: ClickerPart[], referenceParts = rawPart
 
 function downloadStlArchive(bytes: Uint8Array, fileName: string) {
   const blob = new Blob([bytes as unknown as BlobPart], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const anchor = getClickerDocument().createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  getClickerDocument().body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, fileName);
 }
 
 /** Download Base and each named color layer as independent printable STLs. */
@@ -120,5 +113,5 @@ export function downloadSTLObjectsZip(parts: ClickerPart[], fileName = 'multi-co
   }
 
   const stem = fileName.replace(/\.stl$/i, '') || 'multi-color';
-  downloadStlArchive(zipSync(files, { level: 6 }), `${stem}-objects-stl.zip`);
+  return downloadStlArchive(zipSync(files, { level: 6 }), `${stem}-objects-stl.zip`);
 }

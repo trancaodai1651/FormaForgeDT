@@ -40,7 +40,7 @@ export const renderLeftSettings = () => `
             <label class="toggle"><input id="keychain" type="checkbox" /><span class="slider"></span></label>
           </div>
           <div class="switch-row" id="flatKeychainRow" style="margin-bottom: 12px; padding-left: 12px; border-left: 2px solid var(--border);">
-            <span class="switch-label" style="font-size: 0.9em;">Flat keychain <br/><i style="font-size:0.8em; color:var(--muted);">Create a flat keychain plate without molding the switch stem under it.</i></span>
+            <span class="switch-label" style="font-size: 0.9em;">Flat keychain <br/><i style="font-size:0.8em; color:var(--muted);">Same as Merge base &amp; image: a flat plate without the clicker mechanism.</i></span>
             <label class="toggle"><input id="isFlatKeychain" type="checkbox" /><span class="slider"></span></label>
           </div>
           <div class="prow-stacked" id="flatKeychainThicknessRow" style="display:none; margin: 0 0 12px 12px; padding-left: 12px; border-left: 2px solid var(--accent);">

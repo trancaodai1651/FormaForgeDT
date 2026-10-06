@@ -1,4 +1,4 @@
-﻿import { getClickerDocument } from '../runtime';
+import { getClickerDocument } from '../runtime';
 import { store, appData } from '../store/appState';
 import { downloadBlob } from '../utils/helpers';
 import type { RgbaImage } from '../image/decode';
@@ -32,7 +32,7 @@ export function dataUrlToImage(url: string): Promise<RgbaImage> {
   });
 }
 
-export function saveProject() {
+export async function saveProject() {
   const s = store.get();
   const proj = {
     version: 7,
@@ -56,7 +56,7 @@ export function saveProject() {
       hybridNeckLengthMm: s.hybridNeckLengthMm, hybridNeckEnabled: s.hybridNeckEnabled, hybridNeckSmooth: s.hybridNeckSmooth,
       hybridBaseImageOverlapMm: s.hybridBaseImageOverlapMm, hybridNeckWidthMm: s.hybridNeckWidthMm,
       hybridKeycapSpacingMm: s.hybridKeycapSpacingMm, hybridKeycapClearanceMm: s.hybridKeycapClearanceMm, imageMargin: s.imageMargin,
-      borderWidth: s.borderWidth, baseHeight: s.baseHeight, mergeTopFrame: s.mergeTopFrame, keepMeshesSeparate: s.keepMeshesSeparate, 
+      borderWidth: s.borderWidth, baseHeight: s.baseHeight, mergeTopFrame: s.mergeTopFrame, isFlatKeychain: s.isFlatKeychain, keepMeshesSeparate: s.keepMeshesSeparate,
       tolerance: s.tolerance, stemTolerance: s.stemTolerance, switches: s.switches, keychain: s.keychain, 
       smoothing: s.smoothing, multiColorEnabled: s.multiColorEnabled, stackColorLayers: s.stackColorLayers, colorLayerHeightMm: s.colorLayerHeightMm, colorLayerGapMm: s.colorLayerGapMm,
       photoFlatten: s.photoFlatten, removeBg: s.removeBg, importMode: s.importMode,
@@ -97,8 +97,12 @@ export function saveProject() {
     keycapImageRegionSet: appData.keycapImageRegionSet,
     keycapLogoAssets: appData.keycapLogoAssets,
   };
-  downloadBlob(new Blob([JSON.stringify(proj)], { type: 'application/json' }), 'FormaForgeDT_Project.json');
-  store.set({ status: 'Project saved âœ“' });
+  try {
+    const saved = await downloadBlob(new Blob([JSON.stringify(proj)], { type: 'application/json' }), 'FormaForgeDT_Project.json');
+    store.set({ status: saved ? 'Project saved.' : 'Project save cancelled.' });
+  } catch (error) {
+    store.set({ status: `Could not save project: ${error instanceof Error ? error.message : String(error)}` });
+  }
 }
 
 export async function loadProject(file: File, reprocessFn: () => void, rebuildFn: () => void, uiHandler: any) {
@@ -173,7 +177,7 @@ export async function loadProject(file: File, reprocessFn: () => void, rebuildFn
       hybridKeycapSpacingMm: set.hybridKeycapSpacingMm ?? store.get().hybridKeycapSpacingMm,
       hybridKeycapClearanceMm: set.hybridKeycapClearanceMm ?? store.get().hybridKeycapClearanceMm,
       imageMargin: set.imageMargin ?? store.get().imageMargin, borderWidth: set.borderWidth ?? store.get().borderWidth,
-      mergeTopFrame: set.mergeTopFrame ?? false, keepMeshesSeparate: set.keepMeshesSeparate ?? true,
+      mergeTopFrame: set.mergeTopFrame ?? set.isFlatKeychain ?? false, isFlatKeychain: set.mergeTopFrame ?? set.isFlatKeychain ?? false, keepMeshesSeparate: set.keepMeshesSeparate ?? true,
       tolerance: set.tolerance ?? store.get().tolerance, stemTolerance: set.stemTolerance ?? 0,
       switches: Array.isArray(set.switches) && set.switches.length ? set.switches : [{ x: set.switchOffsetX ?? 0, y: set.switchOffsetY ?? 0, rotation: set.switchRotation ?? 0 }],
       activeSwitchIndex: 0, keychain: set.keychain && typeof set.keychain === 'object'

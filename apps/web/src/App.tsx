@@ -1,6 +1,9 @@
-import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { getDesktopInvoke } from './lib/downloadFile';
+import './desktop-shell.css';
 import { PageTransition } from './components/Shell';
-import { LanguageProvider } from './lib/i18n';
+import { LanguageProvider, useI18n } from './lib/i18n';
 import { AdminToolPage } from './pages/admin';
 import { AdminFlexLampPage } from './pages/flex-lamp';
 import { ModuleLampStudioPage, ModuleSketchPage } from './pages/module-studio';
@@ -25,8 +28,14 @@ function AppFrame() {
   const location = useLocation();
   const isHub = location.pathname === '/' || location.pathname === '/admin' || location.pathname === '/downloads';
   const isWorkspace = !isHub;
+  const isDesktop = !!getDesktopInvoke();
+  const { language } = useI18n();
 
-  return <div className={`app-shell tahoe-ui ${isWorkspace ? 'app-shell-admin-tool tahoe-workspace public-tool-runtime' : 'public-tools-shell'}`}>
+  return <div className={`app-shell tahoe-ui ${isDesktop ? 'desktop-app-shell' : ''} ${isWorkspace ? 'app-shell-admin-tool tahoe-workspace public-tool-runtime' : 'public-tools-shell'}`}>
+    {isDesktop && <nav className="desktop-navigation" aria-label="Dashboard">
+      {location.pathname !== '/' && <Link to="/" className="desktop-dashboard-link"><ArrowLeft size={16} />{language === 'vi' ? 'Về Dashboard' : 'Back to Dashboard'}</Link>}
+      <span>FormaForgeDT</span>
+    </nav>}
     <PageTransition><Routes>
       <Route path="/" element={<PublicToolsPage />} />
       <Route path="/admin" element={<PublicToolsPage />} />

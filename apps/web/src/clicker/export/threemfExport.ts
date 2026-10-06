@@ -1,4 +1,4 @@
-import { getClickerDocument } from '../runtime';
+import { downloadBlob } from '../utils/helpers';
 // src/export/threemfExport.ts
 import { zipSync, strToU8 } from 'fflate';
 import type { ClickerPart, PartGroup, RGB } from '../types';
@@ -228,12 +228,5 @@ export function buildThreeMF(rawParts: ClickerPart[], options: SlicerExportOptio
 export function downloadThreeMF(parts: ClickerPart[], fileName = 'clicker.3mf', options: SlicerExportOptions = defaultSlicerExport()) {
   const bytes = buildThreeMF(parts, options);
   const blob = new Blob([bytes as unknown as BlobPart], { type: 'model/3mf' });
-  const url = URL.createObjectURL(blob);
-  const a = getClickerDocument().createElement('a');
-  a.href = url;
-  a.download = fileName;
-  getClickerDocument().body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, fileName);
 }

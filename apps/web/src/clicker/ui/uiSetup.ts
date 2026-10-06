@@ -9,6 +9,7 @@ import { parseSvg } from '../image/logo';
 import { importFontFile } from '../image/letter';
 import { downloadThreeMF, downloadSTLMaterialsZip, downloadSTLSplit } from '../export';
 import { prepareSlicerLayout, slicerProfiles } from '../export/slicerLayout';
+import { isFlatKeychainMode } from '../geometry/printMode';
 import { hexToRgb, downloadBlob } from '../utils/helpers';
 import { saveProject, loadProject } from '../project/saveLoad';
 import type { ClickerPart } from '../types';
@@ -20,6 +21,11 @@ function defaultSwitchLayout(n: number, capWidthMm: number) {
 }
 
 export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, statusEl: HTMLElement, viewer: any, screens: any, historyShortcuts: any) {
+  const setFlatKeychainMode = (enabled: boolean) => {
+    store.set({ mergeTopFrame: enabled, isFlatKeychain: enabled, ...(enabled ? { view: 'assembled' as const } : {}) });
+    viewer.showSwitch(store.get().showSwitch && !store.get().useImportedBlock && !isFlatKeychainMode(store.get()));
+    debouncedRebuild();
+  };
   
   // ðŸŸ¢ Cáº¥u hÃ¬nh UI cho Tool Clicker Generator
   const openRasterWizard = (img: Awaited<ReturnType<typeof loadFileToImage>>) => {
@@ -61,7 +67,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       }).catch(err => store.set({ building: false, status: 'Could not read image: ' + err }));
     },
     onBackToHome() { if (screens.toolScreen) screens.backToDashboard(screens.toolScreen); },
-    onIsFlatKeychain(isFlat) { store.set({ isFlatKeychain: isFlat }); rebuild(); },
+    onIsFlatKeychain: setFlatKeychainMode,
     
     onUpload: (file) => {
       const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
@@ -126,7 +132,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     onFilament: (i, hex) => { if (store.get().palette[i]) applyModelRecolor({ kind: 'region', index: i, compIndex: 0 }, hexToRgb(hex), -1, viewer); },
     onShape: (kind) => { store.set({ baseShape: kind }); debouncedRebuild(); },
     onBorderWidth: (mm) => { store.set({ borderWidth: mm }); debouncedRebuild(); },
-    onMergeTopFrame: (merge) => { store.set({ mergeTopFrame: merge }); debouncedRebuild(); },
+    onMergeTopFrame: setFlatKeychainMode,
     onKeepMeshesSeparate: (keep) => { store.set({ keepMeshesSeparate: keep }); debouncedRebuild(); },
     onWidth: (mm) => { store.set({ capWidthMm: mm }); debouncedRebuild(); },
     onBaseHeight: (mm) => { store.set({ baseHeight: mm }); debouncedRebuild(); },
@@ -167,30 +173,34 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
     },
     onPhotoFlatten: (on) => { store.set({ photoFlatten: on }); if ((store.get().importMode === 'image' || store.get().importMode === 'hybrid') && appData.originalImage) debouncedReprocess(); },
     onView: (mode) => { store.set({ view: mode }); viewer.setView(mode); },
-    onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on && !store.get().useImportedBlock); },
+    onShowSwitch: (on) => { store.set({ showSwitch: on }); viewer.showSwitch(on && !store.get().useImportedBlock && !isFlatKeychainMode(store.get())); },
     onSection: (axis, pos) => viewer.setSection(axis, pos),
     
     onSlicerExport: (options) => store.set({ slicerExport: { ...store.get().slicerExport, ...options } }),
-    onExport: () => {
+    onExport: async () => {
       if (!appData.latestParts.length) return;
       const options = store.get().slicerExport;
       try {
         const layout = prepareSlicerLayout(appData.latestParts, options);
-        downloadThreeMF(appData.latestParts, `clicker-${options.target}.3mf`, options);
+        const saved = await downloadThreeMF(appData.latestParts, `clicker-${options.target}.3mf`, options);
+        if (!saved) { store.set({ status: '3MF export cancelled.' }); return; }
         store.set({ status: `${slicerProfiles[options.target].label} 3MF exported. Open as a project; select your printer. Supports ${layout.supportEnabled ? 'enabled' : 'disabled'}.` });
       } catch (error) {
         store.set({ status: `Could not export 3MF: ${error instanceof Error ? error.message : String(error)}` });
       }
     },
-    onExportSTL: () => {
+    onExportSTL: async () => {
       if (!appData.latestParts.length) return;
       const mode = store.get().importMode;
-      if (store.get().multiColorEnabled && (mode === 'image' || mode === 'hybrid')) {
-        downloadSTLMaterialsZip(appData.latestParts, mode === 'hybrid' ? 'clicker-image-blocks.stl' : 'clicker-image.stl');
-        store.set({ status: 'Multi-color STL ZIP exported with shared placement for every filament.' });
-        return;
+      try {
+        const multicolor = store.get().multiColorEnabled && (mode === 'image' || mode === 'hybrid');
+        const saved = multicolor
+          ? await downloadSTLMaterialsZip(appData.latestParts, mode === 'hybrid' ? 'clicker-image-blocks.stl' : 'clicker-image.stl')
+          : await downloadSTLSplit(appData.latestParts, 'clicker.stl');
+        store.set({ status: saved ? 'STL ZIP exported.' : 'STL export cancelled.' });
+      } catch (error) {
+        store.set({ status: `Could not export STL: ${error instanceof Error ? error.message : String(error)}` });
       }
-      downloadSTLSplit(appData.latestParts, 'clicker.stl');
     },
     onRenderPng: async () => { const blob = await viewer.renderToPng(); if (blob) downloadBlob(blob, 'clicker-render.png'); },
     onAiPrompt: async () => { await navigator.clipboard.writeText("Create a simple, flat vector-style illustration suitable for a small multi-color 3D print..."); store.set({ status: 'AI prompt copied âœ“' }); },
@@ -207,7 +217,7 @@ export function setupUI(sidebarLeft: HTMLElement, sidebarRight: HTMLElement, sta
       const previewSource = useImportedBlock && !hasImageHead && appData.importedBlockParts.length ? 'imported' : 'generated';
       store.set({ importMode: mode, useImportedBlock, previewSource, selectedParts: [], componentHeights: {}, view: mode === 'blocks' || mode === 'hybrid' ? 'assembled' : s.view, baseShape: mode === 'text' || mode === 'blocks' || mode === 'hybrid' ? 'outline' : s.baseShape, colorMode: mode !== 'image' && mode !== 'hybrid' ? 'normal' : s.colorMode, imageMargin: mode === 'text' || mode === 'blocks' ? 2.5 : 1.2, borderWidth: mode === 'text' || mode === 'blocks' ? 3.5 : 2.6, blockKeycapShape: mode === 'hybrid' ? 'rounded' : s.blockKeycapShape });
       viewer.setPreviewSource(previewSource);
-      viewer.showSwitch(s.showSwitch && !useImportedBlock);
+      viewer.showSwitch(s.showSwitch && !useImportedBlock && !isFlatKeychainMode(store.get()));
       if (useImportedBlock && !appData.importedBlockParts.length) {
         appData.latestParts = [];
         viewer.setParts([], true);

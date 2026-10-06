@@ -19,7 +19,7 @@ export interface ImportedModelInfo {
 
 export interface Viewer {
   setParts(parts: ClickerPart[], preserveCamera?: boolean, fastNormals?: boolean): void;
-  setView(mode: ViewMode): void;
+  setView(mode: ViewMode, preserveCamera?: boolean): void;
   setSection(axis: SectionAxis, pos: number): void;
   setSwitch(mesh: MeshData | null): void;
   showSwitch(on: boolean): void;
@@ -460,11 +460,14 @@ export function createViewer(container: HTMLElement): Viewer {
     if (switchMaterial) switchMaterial.clippingPlanes = section ? [clipPlane] : [];
   }
 
-  function setView(mode: ViewMode) {
+  function setView(mode: ViewMode, preserveCamera = false) {
+    if (viewMode === mode) return;
+    const previousOffset = camera.position.clone().sub(controls.target);
+    const previousPan = controls.target.clone().sub(new THREE.Vector3(0, 0, Math.max(0, cameraFrameHeight / 2)));
     viewMode = mode;
     applyView();
     if (previewSource === 'generated' && partMeshes.length > 0) {
-      frameCenteredSize(generatedFrameSize(), false, camera.position.clone().sub(controls.target));
+      frameCenteredSize(generatedFrameSize(), preserveCamera, previousOffset, previousPan);
     }
   }
 

@@ -5,6 +5,8 @@ import { buildBlocks } from '../../../apps/web/src/clicker/geometry/buildBlocks'
 import { buildClicker } from '../../../apps/web/src/clicker/geometry/buildClicker';
 import { buildHybridClicker } from '../../../apps/web/src/clicker/geometry/buildHybridClicker';
 import { buildThreeMF } from '../../../apps/web/src/clicker/export/threemfExport';
+import { buildSTLPart } from '../../../apps/web/src/clicker/export/stlExport';
+import { isFlatKeychainMode } from '../../../apps/web/src/clicker/geometry/printMode';
 import { extrudeRegionAt } from '../../../apps/web/src/clicker/viewer/extrudeRegionPick';
 import type { BuildParams, BuildRegion, ClickerPart, Ring } from '../../../apps/web/src/clicker/types';
 
@@ -318,5 +320,110 @@ describe('Clicker viewport Extrude', () => {
     expectThreeMfKeepsPartHeight(raisedImage);
     expect(raised.parts.find((part) => part.name === 'imported-block')?.triVerts).toEqual(imported[0].triVerts);
     socket.delete(); source.delete();
+  });
+});
+
+describe('Clicker Merge base & image', () => {
+  it('replaces the clicker mechanism with a flat plate, optionally retaining colour meshes', async () => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalized = (rings: Ring[]) => rings.map(ring => ring.map(([x, y]) => [x / 40, y / 40] as [number, number]));
+    const regions = imageRegions.map(region => ({ ...region, rings: normalized(region.rings) }));
+    const normalizedOutline = normalized(outline);
+    const build = (mergeTopFrame: boolean, keepMeshesSeparate: boolean) => buildClicker(
+      wasm, socket, stem, regions, normalizedOutline,
+      { ...params, imageMargin: 0, rasterImageMode: true, mergeTopFrame, keepMeshesSeparate },
+    );
+
+    const split = build(false, true);
+    const merged = build(true, false);
+    const preserved = build(true, true);
+    const splitBase = split.parts.find(part => part.name === 'top-base')!;
+    const mergedBase = merged.parts.find(part => part.name === 'top-base')!;
+    const preservedBase = preserved.parts.find(part => part.name === 'top-base')!;
+
+    expect(split.parts.some(part => part.name === 'top-color-1-0')).toBe(true);
+    expect(split.parts.some(part => part.name === 'base-body')).toBe(true);
+    expect(split.switchPlacements).toHaveLength(1);
+    for (const result of [merged, preserved]) {
+      expect(result.parts.every(part => part.group === 'top' && part.kind === 'cap')).toBe(true);
+      expect(result.switchPlacements).toEqual([]);
+      expect(Math.min(...result.parts.map(part => zBounds(part).min))).toBeCloseTo(0, 5);
+      expect(Math.max(...result.parts.map(part => zBounds(part).max))).toBeCloseTo(3, 5);
+    }
+    expect(merged.parts.some(part => part.name === 'top-color-1-0')).toBe(false);
+    expect(preserved.parts.some(part => part.name === 'top-color-1-0')).toBe(true);
+    expect(partSectionArea(wasm, mergedBase, 2.9)).toBeGreaterThan(partSectionArea(wasm, splitBase, 5.9));
+    expect(partSectionArea(wasm, preservedBase, 2.9)).toBeCloseTo(partSectionArea(wasm, splitBase, 5.9), 3);
+
+    const splitArchive = unzipSync(buildThreeMF(split.parts));
+    const mergedArchive = unzipSync(buildThreeMF(merged.parts));
+    const splitSettings = strFromU8(splitArchive['Metadata/model_settings.config']);
+    const mergedSettings = strFromU8(mergedArchive['Metadata/model_settings.config']);
+    const mergedPalette = JSON.parse(strFromU8(mergedArchive['Metadata/project_settings.config'])).filament_colour;
+    expect(splitSettings).toContain('top-color-1-0');
+    expect(mergedSettings).not.toContain('top-color-1-0');
+    expect(mergedPalette).not.toContain('#191e23');
+    for (const result of [merged, preserved]) {
+      const archive = unzipSync(buildThreeMF(result.parts));
+      const model = strFromU8(archive['3D/3dmodel.model']);
+      const settings = strFromU8(archive['Metadata/model_settings.config']);
+      const zs = [...model.matchAll(/<vertex\s+[^>]*z="([^"]+)"/g)].map(match => Number(match[1]));
+      expect((model.match(/<item /g) ?? [])).toHaveLength(1);
+      expect(settings).not.toContain('base-body');
+      expect(Math.min(...zs)).toBeCloseTo(0, 5);
+      expect(Math.max(...zs)).toBeCloseTo(3, 5);
+    }
+    const preservedArchive = unzipSync(buildThreeMF(preserved.parts));
+    expect(JSON.parse(strFromU8(preservedArchive['Metadata/project_settings.config'])).filament_colour)
+      .toContain('#191e23');
+
+    socket.delete(); stem.delete();
+  });
+
+  it.each([true, false])('exports a connected flat keyring with a through-hole (separate meshes %s)', async keepMeshesSeparate => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalized = (rings: Ring[]) => rings.map(ring => ring.map(([x, y]) => [x / 40, y / 40] as [number, number]));
+    const regions = imageRegions.map(region => ({ ...region, rings: normalized(region.rings) }));
+    const flatParams: BuildParams = { ...params, mergeTopFrame: true, keepMeshesSeparate,
+      topProfile: 'dome', topProfileHeight: 5, rasterImageMode: true,
+      bottomRegions: [{ ...regions[1], partName: 'bottom-color-1-0' }],
+      keychain: { ...params.keychain, enabled: true } };
+    const baseline = buildClicker(wasm, socket, stem, regions, normalized(outline), {
+      ...flatParams, keychain: { ...flatParams.keychain, enabled: false },
+    });
+    const result = buildClicker(wasm, socket, stem, regions, normalized(outline), flatParams, normalized(outline));
+    expect(result.parts.every(part => part.group === 'top')).toBe(true);
+    expect(result.switchPlacements).toEqual([]);
+    const carrier = result.parts.find(part => part.name === 'top-base')!;
+    expect(zBounds(carrier)).toEqual({ min: 0, max: 3 });
+    const solid = wasm.Manifold.ofMesh(new wasm.Mesh({ numProp: carrier.numProp,
+      vertProperties: carrier.vertProperties, triVerts: carrier.triVerts }));
+    expect(solid.isEmpty()).toBe(false);
+    expect(solid.volume()).toBeGreaterThan(0);
+    const shells = solid.decompose();
+    expect(shells).toHaveLength(1);
+    shells.forEach(shell => shell.delete());
+    const section = solid.slice(1);
+    expect(section.toPolygons()).toHaveLength(2); // Connected perimeter and keyring bore.
+    expect(section.area()).toBeGreaterThan(partSectionArea(wasm, baseline.parts[0], 1));
+    section.delete(); solid.delete();
+
+    const stl = buildSTLPart(result.parts, 'top');
+    const view = new DataView(stl.buffer, stl.byteOffset, stl.byteLength);
+    const zs: number[] = [];
+    for (let offset = 84; offset < stl.length; offset += 50) {
+      for (const vertexOffset of [20, 32, 44]) zs.push(view.getFloat32(offset + vertexOffset, true));
+    }
+    expect(view.getUint32(80, true)).toBeGreaterThan(0);
+    expect(Math.min(...zs)).toBeCloseTo(0, 5);
+    expect(Math.max(...zs)).toBeCloseTo(3, 5);
+    socket.delete(); stem.delete();
+  });
+
+  it('keeps the flat-keychain alias compatible and leaves block tools in their own mode', () => {
+    expect(isFlatKeychainMode({ mergeTopFrame: false, isFlatKeychain: true, importMode: 'image' })).toBe(true);
+    for (const importMode of ['blocks', 'hybrid']) {
+      expect(isFlatKeychainMode({ mergeTopFrame: true, isFlatKeychain: true, importMode })).toBe(false);
+    }
   });
 });

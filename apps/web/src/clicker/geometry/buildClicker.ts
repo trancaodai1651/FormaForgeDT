@@ -6,13 +6,14 @@ import { imageKeyringProfile } from './geometry/imageKeyring';
 import { roundedRect, ribbedProfile, makeHexagon, makeStar, makeHeart, makeEgg } from './geometry/shapeFactory';
 import { resolveSwitches } from './sizing/switchPlacement';
 import { createEdgeBevelBlock, applyEdges } from './modifiers/edgeBuilder';
+import { isFlatKeychainMode } from './printMode';
 
 export function buildClicker(
   wasm: any, socket: any, stem: any, regions: BuildRegion[], outline: Ring[], params: BuildParams, bottomOutline?: Ring[]
 ): { parts: ClickerPart[]; switchPlacements: SwitchPlacement[]; warnings: string[] } {
   const ctx = new BuildContext(wasm);
   const warnings: string[] = [];
-  const isFlatKeychain = (params as any).isFlatKeychain ?? false;
+  const isFlatKeychain = isFlatKeychainMode(params);
 
   const socketBB = socket.boundingBox(); const stemBB = stem.boundingBox();
   const socketDim = Math.max(socketBB.max[0] - socketBB.min[0], socketBB.max[1] - socketBB.min[1]);
@@ -22,7 +23,7 @@ export function buildClicker(
   if (!isFinite(minX)) { minX = -0.5; maxX = 0.5; minY = -0.5; maxY = 0.5; }
 
   const border = Math.max(0, params.imageMargin);
-  const switchClear = socketDim + 3.0, minCap = switchClear + 1.0;
+  const switchClear = socketDim + 3.0, minCap = isFlatKeychain ? 0 : switchClear + 1.0;
 
   const baseImageScale = Math.max(2, params.capWidthMm - 2 * border);
   const designScale = params.baseShape === 'outline' ? 1 : Math.max(0.25, Math.min(1.5, (params.designSizePercent ?? 100) / 100));
@@ -74,10 +75,11 @@ export function buildClicker(
   const imageArea = ctx.shrink(plate, border, plate, sectionIsEmpty);
   const fatImageArea = params.colorBleed > 0.001 ? ctx.grow(imageArea, params.colorBleed) : imageArea;
 
-  const { applied, pinched } = resolveSwitches((params.switches?.length ? params.switches : [{ x: 0, y: 0, rotation: 0 }]).slice(0, 3), plate.bounds(), switchClear, socketDim);
+  const { applied, pinched } = isFlatKeychain ? { applied: [], pinched: false }
+    : resolveSwitches((params.switches?.length ? params.switches : [{ x: 0, y: 0, rotation: 0 }]).slice(0, 3), plate.bounds(), switchClear, socketDim);
 
   let stemSized = stem;
-  if (Math.abs(params.stemTolerance ?? 0) > 0.001) {
+  if (!isFlatKeychain && Math.abs(params.stemTolerance ?? 0) > 0.001) {
     const stemDim = Math.max(stemBB.max[0] - stemBB.min[0], stemBB.max[1] - stemBB.min[1]);
     if (stemDim > 0.1) stemSized = ctx.track(stem.scale([Math.max(0.5, (stemDim + params.stemTolerance) / stemDim), Math.max(0.5, (stemDim + params.stemTolerance) / stemDim), 1]));
   }
@@ -93,7 +95,7 @@ export function buildClicker(
   let customBasePlate: any = null;
   let bottomScaleFactor = 1.0;
 
-  if (bottomOutline && bottomOutline.length > 0) {
+  if (!isFlatKeychain && bottomOutline && bottomOutline.length > 0) {
     const rawBase = removeHoles(ctx, ctx.track(filledOutline(bottomOutline)));
 
     const bRot = params.bottomRotation ?? 0;
@@ -141,13 +143,13 @@ export function buildClicker(
     : ctx.simp(ctx.grow(plate, Math.max(0.4, params.borderWidth)));
   let styledBase = baseSource;
   try {
-    if (baseStyle === 'rounded') {
+    if (!isFlatKeychain && baseStyle === 'rounded') {
       // Round only the lower white body. The imported top plate above remains
       // the original traced silhouette and is never replaced by this profile.
       styledBase = ctx.simp(ctx.track(baseSource
         .offset(baseRadius, 'Round', 2, 32)
         .offset(-baseRadius, 'Round', 2, 32)));
-    } else if (baseStyle === 'vase') {
+    } else if (!isFlatKeychain && baseStyle === 'vase') {
       styledBase = ribbedProfile(
         ctx,
         baseSource,
@@ -165,7 +167,7 @@ export function buildClicker(
   const bodyFootprint = ctx.simp(ctx.track(styledBase.add(wellFootprint)));
 
   // Tính toán Z Bound
-  const cavityFloorZ = socketBB.max[2], slabBottomZ = stemBB.max[2];
+  const cavityFloorZ = socketBB.max[2], slabBottomZ = isFlatKeychain ? 0 : stemBB.max[2];
   const requestedImageDepth = Math.max(0.2, params.imageDepth);
   const flatThickness = Math.max(1, Math.min(12, params.flatKeychainThicknessMm ?? (Math.max(0, params.topThickness) + requestedImageDepth)));
   // Flat keychain mode owns the total plate height. The image remains a top
@@ -173,7 +175,7 @@ export function buildClicker(
   const imageDepth = isFlatKeychain ? Math.min(requestedImageDepth, Math.max(0.2, flatThickness - 0.2)) : requestedImageDepth;
   const backing = isFlatKeychain ? Math.max(0.2, flatThickness - imageDepth) : Math.max(0, params.topThickness);
   
-  const profile = (params as any).topProfile || 'flat';
+  const profile = isFlatKeychain ? 'flat' : params.topProfile || 'flat';
   const pHeight = Math.max(0, (params as any).topProfileHeight ?? 5.0);
   const baseHeight = Math.max(0, (params as any).baseHeight ?? 16);
   
@@ -308,6 +310,11 @@ export function buildClicker(
   const rasterImageMode = params.rasterImageMode === true;
   const monochromeImageRelief = params.monochromeImageRelief === true;
   const stackImageMode = rasterImageMode && params.stackColorLayers === true;
+  // Merging the image into the base creates one printable solid in the base
+  // filament. When mesh preservation is requested, retain the colour parts
+  // and their exact cavities instead.
+  const mergeImageIntoBase = isFlatKeychain && !params.keepMeshesSeparate;
+  const mergedImageSolids: any[] = [];
   const sameAsCarrier = (r: BuildRegion) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) === 0;
   const componentLevel = (r: BuildRegion) =>
     (stackImageMode && sameAsCarrier(r) ? params.componentHeights?.['top-base'] : undefined)
@@ -437,6 +444,8 @@ export function buildClicker(
       monochromeReliefSolid = monochromeReliefSolid
         ? ctx.track(monochromeReliefSolid.add(inlay))
         : inlay;
+    } else if (mergeImageIntoBase) {
+      mergedImageSolids.push(inlay);
     } else {
       parts.push({ ...toPart(inlay, 'cap', 'top', r.filamentRgb, r.partName),
         extrudeOrigin: { bottomZ: capTopZ, stepMm: params.stepHeight } });
@@ -450,11 +459,10 @@ export function buildClicker(
   let base = monochromeReliefSolid
     ? ctx.track(capVolume.add(monochromeReliefSolid))
     : capVolume;
-  // Raster Image always needs the accent cavities even when the user asks to
-  // merge the top frame and artwork. Without the cut, the carrier remains
-  // underneath the accent at the same Z and the renderer/slicer can show it
-  // through the star as a colour leak.
-  if (!(params as any).mergeTopFrame || rasterImageMode) {
+  for (const imageSolid of mergedImageSolids) base = ctx.track(base.add(imageSolid));
+  // Separate image colours occupy matching pockets in the top base. A merged
+  // image is unioned above, so it must not also leave cavities in that solid.
+  if (!mergeImageIntoBase) {
     for (const [level, hole2D] of holesByLevel.entries()) {
       const heightShift = level * params.stepHeight;
       const bottomZ = imageBottomZ + Math.min(0, heightShift);
@@ -480,13 +488,13 @@ export function buildClicker(
       }
     }
   }
-  parts.unshift(toPart(base, 'cap', 'top', params.baseFilamentRgb, 'top-base'));
-
   // --- 5. Khung Đế Hạt Cà Phê (Body) ---
-  let body = applyEdges(ctx, ctx.extrudeAt(bodyFootprint, bodyTopZ - bodyBottomZ, bodyBottomZ, sectionIsEmpty), params.edgeSettings, bodyFootprint, bodyBottomZ, bodyTopZ);
-
-  body = ctx.track(body.subtract(ctx.extrudeAt(wellFootprint, bodyTopZ - wellFloorZ + 1, wellFloorZ, sectionIsEmpty)));
-  if (params.hollowBase) {
+  let body: any = null;
+  if (!isFlatKeychain) {
+    body = applyEdges(ctx, ctx.extrudeAt(bodyFootprint, bodyTopZ - bodyBottomZ, bodyBottomZ, sectionIsEmpty), params.edgeSettings, bodyFootprint, bodyBottomZ, bodyTopZ);
+    body = ctx.track(body.subtract(ctx.extrudeAt(wellFootprint, bodyTopZ - wellFloorZ + 1, wellFloorZ, sectionIsEmpty)));
+  }
+  if (!isFlatKeychain && params.hollowBase) {
     // Open an underside cavity while preserving a perimeter wall and the
     // reinforced columns below every MX pocket. Keep a solid web between the
     // underside cavity and the upper button well.
@@ -506,7 +514,7 @@ export function buildClicker(
   }
 
   // --- 6. Đúc Mảng Màu Hạt Cà Phê ---
-  if (params.bottomRegions && params.bottomRegions.length > 0 && customBasePlate) {
+  if (!isFlatKeychain && params.bottomRegions && params.bottomRegions.length > 0 && customBasePlate) {
     let placedBottomFootprint2D: any = null;
 
     for (const { r } of params.bottomRegions.map(r => ({ r })).sort((a, b) => (a.r.coverage ?? 1) - (b.r.coverage ?? 1))) {
@@ -594,10 +602,13 @@ export function buildClicker(
       const r = Math.min(es.radius, (backing + imageDepth) * 0.4, 2.5);
       if (r > 0.05) {
         const modBlock = createEdgeBevelBlock(ctx, plate, r, es.style, slabTopZ, false);
-        if (modBlock) { base = ctx.track(base.subtract(modBlock)); const idx = parts.findIndex(p => p.name === 'top-base'); if (idx >= 0) parts[idx] = toPart(base, 'cap', 'top', params.baseFilamentRgb, 'top-base'); }
+        if (modBlock) base = ctx.track(base.subtract(modBlock));
       }
     }
   }
+
+  // Serialize only after the ring and edges are complete, including in plate mode.
+  parts.unshift(toPart(base, 'cap', 'top', params.baseFilamentRgb, 'top-base'));
 
   if (rasterImageMode && !stackImageMode) {
     const carrier = parts.find(part => part.name === 'top-base');

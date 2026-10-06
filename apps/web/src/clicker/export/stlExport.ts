@@ -1,4 +1,4 @@
-﻿import { getClickerDocument } from '../runtime';
+import { downloadBlob } from '../utils/helpers';
 // src/export/stlExport.ts
 import { strToU8, zipSync } from 'fflate';
 import type { ClickerPart, RGB } from '../types';
@@ -299,50 +299,30 @@ export function buildSTLMaterialsZip(parts: ClickerPart[]): Uint8Array {
 
 function downloadStlBytes(bytes: Uint8Array, fileName: string) {
   const blob = new Blob([bytes as unknown as BlobPart], { type: 'model/stl' });
-  const url = URL.createObjectURL(blob);
-  const a = getClickerDocument().createElement('a');
-  a.href = url;
-  a.download = fileName;
-  getClickerDocument().body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, fileName);
 }
 
 export function downloadSTL(parts: ClickerPart[], fileName = 'clicker.stl') {
-  downloadStlBytes(buildSTL(parts), fileName);
+  return downloadStlBytes(buildSTL(parts), fileName);
 }
 
 /** Download the base and top as one archive with exactly two printable files. */
 export function downloadSTLSplit(parts: ClickerPart[], fileName = 'clicker.stl') {
   const stem = fileName.replace(/\.stl$/i, '') || 'clicker';
-  const archive = zipSync({
-    'base.stl': buildSTLPart(parts, 'base'),
-    'top.stl': buildSTLPart(parts, 'top'),
-  }, { level: 6 });
+  const files: Record<string, Uint8Array> = {};
+  for (const group of ['base', 'top'] as const) {
+    if (parts.some(part => part.group === group && part.triVerts.length)) files[`${group}.stl`] = buildSTLPart(parts, group);
+  }
+  const archive = zipSync(files, { level: 6 });
   const blob = new Blob([archive as unknown as BlobPart], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const a = getClickerDocument().createElement('a');
-  a.href = url;
-  a.download = `${stem}-stl.zip`;
-  getClickerDocument().body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, `${stem}-stl.zip`);
 }
 
 /** Download one shared-origin STL per unique filament colour. */
 export function downloadSTLMaterialsZip(parts: ClickerPart[], fileName = 'clicker.stl') {
   const stem = fileName.replace(/\.stl$/i, '') || 'clicker';
   const blob = new Blob([buildSTLMaterialsZip(parts) as unknown as BlobPart], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const a = getClickerDocument().createElement('a');
-  a.href = url;
-  a.download = `${stem}-multicolor-stl.zip`;
-  getClickerDocument().body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, `${stem}-multicolor-stl.zip`);
 }
 
 

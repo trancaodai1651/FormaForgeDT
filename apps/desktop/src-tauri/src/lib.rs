@@ -1,5 +1,6 @@
 use serde::Serialize;
 use std::{env, path::PathBuf, process::Command};
+use tauri_plugin_dialog::DialogExt;
 
 const MIN_HUNYUAN_VRAM_MB: u64 = 4 * 1024;
 const SAFE_HUNYUAN_VRAM_MB: u64 = 8 * 1024;
@@ -16,8 +17,34 @@ fn desktop_status() -> DesktopStatus {
     DesktopStatus {
         offline: true,
         platform: std::env::consts::OS.to_string(),
-        version: "0.1.0",
+        version: env!("CARGO_PKG_VERSION"),
     }
+}
+
+#[tauri::command]
+async fn save_export_file(
+    app: tauri::AppHandle,
+    file_name: String,
+    bytes: Vec<u8>,
+) -> Result<Option<String>, String> {
+    // Only write to the path selected by the user in the native save dialog.
+    tauri::async_runtime::spawn_blocking(move || {
+        let name = std::path::Path::new(&file_name)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| "Invalid export filename".to_string())?;
+        let extension = std::path::Path::new(name)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .unwrap_or("bin");
+        let dialog = app.dialog().file().set_file_name(name).add_filter("Export file", &[extension]);
+        let Some(selected) = dialog.blocking_save_file() else { return Ok(None) };
+        let path = selected.into_path().map_err(|error| error.to_string())?;
+        std::fs::write(&path, bytes).map_err(|error| format!("Could not save export: {error}"))?;
+        Ok(Some(path.display().to_string()))
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[derive(Serialize)]
@@ -251,6 +278,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             desktop_status,
+            save_export_file,
             hunyuan3d_status,
             hunyuan3d_launch
         ])

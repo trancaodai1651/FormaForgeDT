@@ -137,11 +137,11 @@ class MultiColorControllerImpl implements MultiColorController {
     }));
     doc.getElementById('multiColorExportStl')?.addEventListener('click', () => {
       const exportParts = this.getExportParts();
-      if (exportParts.length) downloadSTLObjectsZip(exportParts, `${safeName(this.document?.name || '')}.stl`);
+      if (exportParts.length) void this.saveExport(() => downloadSTLObjectsZip(exportParts, `${safeName(this.document?.name || '')}.stl`));
     });
     doc.getElementById('multiColorExport3mf')?.addEventListener('click', () => {
       const exportParts = this.getExportParts();
-      if (exportParts.length) downloadThreeMFObjects(exportParts, `${safeName(this.document?.name || '')}.3mf`);
+      if (exportParts.length) void this.saveExport(() => downloadThreeMFObjects(exportParts, `${safeName(this.document?.name || '')}.3mf`));
     });
     doc.getElementById('multiColorReset')?.addEventListener('click', () => this.reset());
   }
@@ -353,6 +353,11 @@ class MultiColorControllerImpl implements MultiColorController {
   private setStatus(message: string) {
     const status = getClickerDocument().getElementById('multiColorStatus');
     if (status) status.textContent = message;
+  }
+
+  private async saveExport(save: () => Promise<boolean>) {
+    try { this.setStatus(await save() ? 'Export saved.' : 'Export cancelled.'); }
+    catch (error) { this.setStatus(`Could not save export: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   private reset() {

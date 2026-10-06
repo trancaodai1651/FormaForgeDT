@@ -1,5 +1,6 @@
 ﻿import { getClickerDocument } from '../runtime';
 import type { RGB } from '../types';
+import { downloadFile } from '../../lib/downloadFile';
 
 export function debounce(fn: () => void, ms: number) {
   let t = 0;
@@ -29,14 +30,7 @@ export function firstLine(s: string): string {
 }
 
 export function downloadBlob(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob);
-  const a = getClickerDocument().createElement('a');
-  a.href = url;
-  a.download = fileName;
-  getClickerDocument().body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadFile(blob, fileName, getClickerDocument());
 }
 
 

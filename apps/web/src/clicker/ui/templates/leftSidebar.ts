@@ -329,11 +329,11 @@ ${renderExtrudeLayersPanel()}
       <input type="range" id="borderwidth" min="0" max="250" step="0.1" />
     </div>
     <div class="switch-row" style="margin-top: 12px; margin-bottom: 12px;">
-      <span class="switch-label">${tx('Merge base & image', 'Gộp base và hình ảnh')} ${tip(tx('Merge the top base frame and the image into one solid, or keep them separate.', 'Gộp khung base trên và hình ảnh thành một khối hoặc giữ tách rời.'))}</span>
+      <span class="switch-label">${tx('Merge base & image', 'Gộp base và hình ảnh')} ${tip(tx('Create one flat keychain plate without a clicker body, switch or stem. Keep meshes separate retains the image colour parts.', 'Tạo một tấm móc khóa phẳng, bỏ đế clicker, switch và trụ switch. Giữ các mesh tách rời để giữ các vùng màu ảnh.'))}</span>
       <label class="toggle"><input id="mergeTopFrame" type="checkbox" /><span class="slider"></span></label>
     </div>
     <div class="switch-row" id="keepMeshesRow" style="margin-bottom: 12px; padding-left: 24px; border-left: 2px solid var(--border); display: none;">
-      <span class="switch-label" style="font-size: 0.85em; color: var(--muted);">${tx('Keep meshes separate', 'Giữ các mesh tách rời')} <br/><i>${tx('Preserve the original separate 3D mesh structure of the image instead of flattening it into the base.', 'Giữ cấu trúc mesh 3D riêng của hình ảnh thay vì làm phẳng vào base.')}</i></span>
+      <span class="switch-label" style="font-size: 0.85em; color: var(--muted);">${tx('Keep meshes separate', 'Giữ các mesh tách rời')} <br/><i>${tx('Keep each image colour as its own mesh; turn off to fuse the image into the base material.', 'Giữ mỗi màu ảnh thành một mesh riêng; tắt để gộp hình ảnh vào vật liệu của base.')}</i></span>
       <label class="toggle" style="transform: scale(0.8);"><input id="keepMeshesSeparate" type="checkbox" /><span class="slider"></span></label>
     </div>
   </div>

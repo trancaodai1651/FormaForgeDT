@@ -11,6 +11,8 @@ pnpm tauri:build
 
 The Tauri configuration declares Windows and macOS targets. Release signing/notarization still requires the developer's platform certificates.
 
+Clicker STL/3MF/ZIP exports use the native Save dialog on Windows and macOS. Cancellation does not report a successful export, and write failures appear in the export status. The native command only writes to the path selected in the dialog. The app navigation bar returns to Dashboard from every workspace.
+
 ## Hunyuan3D-2.1 bridge
 
 The Hunyuan3D workspace is intentionally desktop-only. The web dashboard shows an installer gate and never loads model weights. Clone the [upstream Hunyuan3D-2.1 repository](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1), install its Python dependencies, then configure the desktop process before launching FormaForge:

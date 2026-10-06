@@ -1,4 +1,4 @@
-import { getClickerDocument } from '../../../runtime';
+import { downloadBlob } from '../../../utils/helpers';
 import type { ClickerPart } from '../../../types';
 import { buildThreeMF } from '../../../export/threemfExport';
 
@@ -14,12 +14,5 @@ export function buildThreeMFObjects(parts: ClickerPart[]): Uint8Array {
 export function downloadThreeMFObjects(parts: ClickerPart[], fileName = 'multi-color.3mf') {
   const bytes = buildThreeMFObjects(parts);
   const blob = new Blob([bytes as unknown as BlobPart], { type: 'model/3mf' });
-  const url = URL.createObjectURL(blob);
-  const anchor = getClickerDocument().createElement('a');
-  anchor.href = url;
-  anchor.download = fileName;
-  getClickerDocument().body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return downloadBlob(blob, fileName);
 }

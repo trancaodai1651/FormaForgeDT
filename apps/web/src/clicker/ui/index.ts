@@ -21,6 +21,7 @@ import { showColorPopoverAt, renderPalette } from './components/colorPicker';
 import { appData } from '../store/appState';
 import { clickerText as tx } from '../i18n';
 import { slicerProfiles } from '../export/slicerLayout';
+import { isFlatKeychainMode } from '../geometry/printMode';
 
 export function createUi(
   sidebarLeft: HTMLElement,
@@ -31,6 +32,8 @@ export function createUi(
   // 1. RENDER GIAO DIá»†N (HTML)
   sidebarLeft.innerHTML = renderLeftSidebar() + renderLeftSettings();
   sidebarRight.innerHTML = renderRightImport() + renderRightExport();
+  const flatThicknessRow = $('flatKeychainThicknessRow');
+  if (flatThicknessRow) $('keepMeshesRow')?.after(flatThicknessRow);
 
   // 2. RENDER CÃC COMPONENT Äá»˜NG VÃ€O VIEWPORT
   const viewport = $('viewport');
@@ -88,6 +91,7 @@ export function createUi(
 
   // 5. HÃ€M UPDATE STATE THáº¦N THÃNH
   function update(state: UiState) {
+    const flatKeychain = isFlatKeychainMode(state);
     updateExtrudeLayers(state);
     $<HTMLSelectElement>('exportSlicer').value = state.slicerExport.target;
     $<HTMLSelectElement>('exportTopOrientation').value = state.slicerExport.topOrientation;
@@ -266,16 +270,15 @@ export function createUi(
     if ($('removebg')) $<HTMLInputElement>('removebg').checked = state.removeBg;
     if ($('removebgSvg')) $<HTMLInputElement>('removebgSvg').checked = state.removeBg;
     if ($('photoFlatten')) $<HTMLInputElement>('photoFlatten').checked = state.photoFlatten;
-    if ($('showswitch')) $<HTMLInputElement>('showswitch').checked = state.showSwitch;
-    if ($('mergeTopFrame')) $<HTMLInputElement>('mergeTopFrame').checked = state.mergeTopFrame;
+    if ($('showswitch')) $<HTMLInputElement>('showswitch').checked = state.showSwitch && !flatKeychain;
+    if ($('mergeTopFrame')) $<HTMLInputElement>('mergeTopFrame').checked = flatKeychain;
     if ($('keepMeshesSeparate')) $<HTMLInputElement>('keepMeshesSeparate').checked = state.keepMeshesSeparate;
-    if ($('isFlatKeychain')) $<HTMLInputElement>('isFlatKeychain').checked = !!state.isFlatKeychain;
+    if ($('isFlatKeychain')) $<HTMLInputElement>('isFlatKeychain').checked = flatKeychain;
     if ($('flatKeychainRow')) $('flatKeychainRow').style.display = state.importMode === 'blocks' || state.importMode === 'hybrid' ? 'none' : '';
-    if ($('flatKeychainThicknessRow')) $('flatKeychainThicknessRow').style.display = state.isFlatKeychain && state.importMode !== 'blocks' && state.importMode !== 'hybrid' ? '' : 'none';
-    if ($('topThicknessRow')) $('topThicknessRow').style.display = state.isFlatKeychain ? 'none' : '';
+    if ($('flatKeychainThicknessRow')) $('flatKeychainThicknessRow').style.display = flatKeychain ? '' : 'none';
+    if ($('topThicknessRow')) $('topThicknessRow').style.display = flatKeychain ? 'none' : '';
     
-    if ($('keepMeshesRow')) $('keepMeshesRow').style.display = state.mergeTopFrame ? 'flex' : 'none';
-    if ($('sectionSwitch')) $('sectionSwitch').style.display = state.isFlatKeychain ? 'none' : 'block';
+    if ($('keepMeshesRow')) $('keepMeshesRow').style.display = flatKeychain ? 'flex' : 'none';
 
     // Cáº­p nháº­t Shape Type Tabs & Select
     const shapeTypeTabs = $('shapeTypeTabs');
@@ -330,7 +333,7 @@ export function createUi(
     if ($('importedNeckSmoothRow')) $('importedNeckSmoothRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
     if ($('importedNeckLengthRow')) $('importedNeckLengthRow')!.style.display = '';
     const switchRow = $('showswitch')?.closest('.switch-row') as HTMLElement | null;
-    if (switchRow) switchRow.style.display = importedBlockMode ? 'none' : '';
+    if (switchRow) switchRow.style.display = importedBlockMode || flatKeychain ? 'none' : '';
     const activeImportTab = importedBlockMode ? 'hybrid-imported' : state.importMode;
     getClickerDocument().querySelectorAll('#importTabs [data-mode]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.mode === activeImportTab));
     if ($('importedBlockModePanel')) $('importedBlockModePanel')!.hidden = !importedBlockMode;
@@ -397,12 +400,17 @@ export function createUi(
     }
     getClickerDocument().body.classList.toggle('clicker-hybrid-mode', isHybridMode);
     if ($('baseStyleSection')) $('baseStyleSection')!.hidden = isBlocksMode || isHybridMode;
-    if ($('sectionSwitch')) $('sectionSwitch')!.style.display = isBlocksMode || isHybridMode || state.isFlatKeychain ? 'none' : 'block';
+    if ($('sectionSwitch')) $('sectionSwitch')!.style.display = isBlocksMode || isHybridMode || flatKeychain ? 'none' : 'block';
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {
       const el = getClickerDocument().getElementById(id);
       const field = el?.closest('.prow-stacked') ?? el?.parentElement;
       const hideInHybrid = isHybridMode && (id === 'topthick' || id === 'imgdepth' || id === 'socketTolStepper');
-      if (field) (field as HTMLElement).style.display = isBlocksMode || hideInHybrid ? 'none' : '';
+      const hideInFlat = flatKeychain && id !== 'imgdepth';
+      if (field) (field as HTMLElement).style.display = isBlocksMode || hideInHybrid || hideInFlat ? 'none' : '';
+    }
+    for (const id of ['baseHeight', 'borderwidth']) {
+      const field = $(id)?.closest<HTMLElement>('.prow-stacked');
+      if (field) field.style.display = flatKeychain ? 'none' : '';
     }
     for (const id of ['keychainRotStepper', 'keychainOffsetStepper']) {
       const el = getClickerDocument().getElementById(id);
@@ -413,10 +421,11 @@ export function createUi(
     getClickerDocument().querySelectorAll('#blockKeycapShape [data-keycap-shape]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapShape === state.blockKeycapShape));
     getClickerDocument().querySelectorAll('#blockKeycapMount [data-keycap-mount]').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.keycapMount === state.blockKeycapMount));
     if ($('hybridBodyControls')) ($('hybridBodyControls') as HTMLElement).hidden = state.importMode !== 'hybrid';
-    if ($('imageBaseControls')) ($('imageBaseControls') as HTMLElement).hidden = state.importMode !== 'image';
+    if ($('imageBaseControls')) ($('imageBaseControls') as HTMLElement).hidden = state.importMode !== 'image' || flatKeychain;
     if ($('blocksLegacyBaseControls')) ($('blocksLegacyBaseControls') as HTMLElement).hidden = state.importMode === 'hybrid';
 
     // Cáº­p nháº­t View Tabs
+    if ($('viewTabs')) $('viewTabs').style.display = flatKeychain ? 'none' : '';
     getClickerDocument().querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.view === state.view));
 
     // Cáº­p nháº­t Custom Äáº¿ Mode
@@ -430,7 +439,7 @@ export function createUi(
     if ($('bottomSolidOnly')) $<HTMLInputElement>('bottomSolidOnly').checked = !!(state as any).bottomSolidOnly;
 
     // ðŸŸ¢ Äá»“ng bá»™ UI Khá»‘i 3D Bá» máº·t (Náº±m ÄÃšNG BÃŠN TRONG hÃ m update)
-    const topProfile = (state as any).topProfile || 'flat';
+    const topProfile = flatKeychain ? 'flat' : (state as any).topProfile || 'flat';
     if ($('topProfileTabs')) {
       $('topProfileTabs').querySelectorAll('button').forEach(b => 
         b.classList.toggle('active', (b as HTMLElement).dataset.profile === topProfile)

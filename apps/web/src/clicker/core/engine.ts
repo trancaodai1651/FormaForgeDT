@@ -8,6 +8,7 @@ import { buildSvg, LUCIDE_ICONS } from '../image/lucideIcons';
 import { setPendingHistoryReset } from '../store/historyManager';
 import { rgbToHex, firstLine, debounce } from '../utils/helpers';
 import { reconcileExtrudeLayerColors, uniqueExtrudePalette } from '../geometry/extrudeLayers';
+import { isFlatKeychainMode } from '../geometry/printMode';
 import type { RgbaImage } from '../image/decode';
 import type { BuildParams, BuildRegion, GeometryResponse, PaletteEntry, RGB, ColorTarget, ClickerPart } from '../types';
 
@@ -51,7 +52,7 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
       case 'initDone':
         appData.assetsReady = true;
         viewer.setSwitch(msg.switchMesh);
-        viewer.showSwitch(store.get().showSwitch);
+        viewer.showSwitch(store.get().showSwitch && !isFlatKeychainMode(store.get()));
         store.set({ status: 'Ready. Import an image, SVG, icon, or text.' });
 
         if (store.get().importMode === 'icon' && !appData.currentIconText) {
@@ -99,9 +100,9 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
           viewer.setPreviewSource('generated');
           store.set({ previewSource: 'generated' });
         }
-        viewer.setView(store.get().view);
+        viewer.setView(isFlatKeychainMode(store.get()) ? 'assembled' : store.get().view, true);
         viewer.setSwitchPlacements(msg.switchPlacements ?? []);
-        viewer.showSwitch(store.get().showSwitch && !store.get().useImportedBlock);
+        viewer.showSwitch(store.get().showSwitch && !store.get().useImportedBlock && !isFlatKeychainMode(store.get()));
         store.set({
           building: false,
           hasParts: msg.parts.length > 0,
