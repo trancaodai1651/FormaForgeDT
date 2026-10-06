@@ -18,7 +18,7 @@ describe('desktop native exports', () => {
     const bytes = extension === '3mf' ? buildThreeMF([part]) : buildSTLPart([part], 'top');
     const invoke = vi.fn(async () => `C:/exports/model.${extension}`);
     vi.stubGlobal('window', { __TAURI_INTERNALS__: { invoke } });
-    expect(await downloadFile(new Blob([bytes]), `model.${extension}`, unusedDocument)).toBe(true);
+    expect(await downloadFile(new Blob([new Uint8Array(bytes).buffer]), `model.${extension}`, unusedDocument)).toBe(true);
     const [command, args] = invoke.mock.calls[0] as unknown as [string, { fileName: string; bytes: number[] }];
     expect(command).toBe('save_export_file');
     expect(args.fileName).toBe(`model.${extension}`);
