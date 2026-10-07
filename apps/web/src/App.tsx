@@ -19,6 +19,7 @@ import { PublicToolsPage } from './pages/public-tools';
 import { DownloadsPage } from './pages/downloads';
 import { PublicClickerPage } from './pages/clicker/PublicClickerPage';
 import { ReferenceClickerPage } from './pages/clicker/ReferenceClickerPage';
+import { BlockCarsPage } from './pages/block-cars';
 
 function PublicAdminTool({ mode }: { mode: Parameters<typeof AdminToolPage>[0]['mode'] }) {
   return <AdminToolPage mode={mode} publicAccess />;
@@ -79,6 +80,7 @@ function AppFrame() {
       <Route path="/admin/cad-studio" element={<ModuleSketchPage />} />
       <Route path="/price-reader" element={<PriceReaderPage />} />
       <Route path="/admin/price-reader" element={<PriceReaderPage />} />
+      <Route path="/block-cars" element={<BlockCarsPage />} />
       <Route path="*" element={<PublicToolsPage />} />
     </Routes></PageTransition>
   </div>;

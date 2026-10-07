@@ -1,4 +1,4 @@
-import { ArrowRight, Box, CircuitBoard, Cuboid, FileBox, Flame, KeyRound, LampCeiling, Layers3, Palette, ScanLine, Shapes, Sparkles, SquareStack, Type, WandSparkles } from 'lucide-react';
+import { ArrowRight, Box, CircuitBoard, Cuboid, FileBox, Flame, KeyRound, LampCeiling, Layers3, Palette, ScanLine, Shapes, Sparkles, SquareStack, Type, Truck, WandSparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../../lib/i18n';
 import './public-tools.css';
@@ -27,6 +27,7 @@ const tools: ToolCard[] = [
   { to: '/hunyuan-3d', label: 'Hunyuan3D', description: 'Generate high-fidelity 3D assets in the desktop app.', mark: '3D', icon: Box },
   { to: '/split-3mf', label: 'Split 3MF', description: 'Separate multi-colour 3MF projects into parts.', mark: '3MF', icon: FileBox },
   { to: '/price-reader', label: 'Price Reader', description: 'Read marketplace prices and compare variants.', mark: '¥', icon: ScanLine },
+  { to: '/block-cars', label: 'Block Cars', description: 'Assemble and scale modular vehicles, then export print kits.', mark: 'BC', icon: Truck },
 ];
 
 export function PublicToolsPage() {
