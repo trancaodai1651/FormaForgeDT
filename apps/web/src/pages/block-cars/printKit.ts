@@ -39,18 +39,19 @@ export function createKitFiles(assembly: CarAssembly, model: CarModel, scale: nu
     geometry.dispose(); material.dispose();
   }
   files['assembly.json'] = strToU8(JSON.stringify({
-    schema: 'formaforge-block-cars-v2', model: model.id, units: 'mm', scale,
+    schema: 'formaforge-block-cars-v3', model: model.id, units: 'mm', scale,
     estimatedDimensions: true, originalCadParityVerified: false,
     source: 'https://makerworld.com/en/crowdfunding/140-creative-buildable-block-car',
     overallSizeMm: assembly.bounds.getSize(new THREE.Vector3()).toArray(),
-    baseDimensionsMm: { chassisPitch: 36, chassisWidth: 34, chassisHeight: 21, wheelDiameter: 20, wheelWidth: 6.8, studDiameter: 5.6, socketDiameter: 6.1 },
+    baseDimensionsMm: { chassisPitch: 36, chassisWidth: assembly.width, chassisHeight: 21, wheelDiameter: 20, wheelWidth: 6.8, studDiameter: 6, socketDiameter: 6 + assembly.clearance * 2, clearance: assembly.clearance },
+    fittings: { chassis: { type: 'bottom-open-T-slide', assemblyDirection: [0, -1, 0], railHeightMm: 10 * scale, clearanceMm: assembly.clearance * scale }, top: { type: 'rectangular-seating-foot-and-blind-round-socket', insertionDepthMm: 1.35 * scale, studDiameterMm: 6 * scale }, frontTool: { type: 'T-slide', sharesChassisConnector: true }, boom: { type: 'twin-cheek-and-integral-pivot-pin', pinDiameterMm: 4 * scale, boreDiameterMm: (4 + assembly.clearance * 2) * scale } },
     modules: records,
   }, null, 2));
   files['README.txt'] = strToU8([
     `FormaForgeDT Block Cars - ${model.en}`, `Scale: ${scale.toFixed(2)}x | ${assembly.parts.length} vehicle modules + printed screwdriver`,
     '', 'This is a parametric reconstruction from PDF and public MakerWorld renders. All dimensions and hidden fittings are estimates; this is not original CAD and 100% detail parity has not been verified.',
-    'Base dimensions: chassis pitch 36 mm, width 34 mm, height 21 mm; tyre diameter 20 mm, width 6.8 mm. All dimensions including fittings scale together.',
-    'Nominal stud diameter 5.6 mm and socket diameter 6.1 mm at 1x. Chassis tongue and pocket are estimated slide joints; wheel screws have press-fit retention ridges.',
+    `Base dimensions: chassis pitch 36 mm, width ${assembly.width} mm, height 21 mm; tyre diameter 20 mm, width 6.8 mm. All dimensions including fittings scale together.`,
+    `Nominal stud diameter 6 mm; socket diameter ${6 + assembly.clearance * 2} mm at 1x. Chassis uses a bottom-open T rail socket, and cab/cargo has an inset seating foot with a blind stud hole. Joint clearance: ${assembly.clearance} mm at 1x.`,
     'Each file is a solid module. STL units are millimetres. Grooves, ribs, tread and cross sockets are included in the mesh. Preview separation does not change these files.',
     'Print the wheel, screw and chassis as a small fit sample first. Printed fit, moving joints and strength have not been tested physically. Supports may be needed for overhangs.',
     'assembly.json includes colors, module dimensions and column-major 4x4 matrices mapping the oriented print STL back into the assembled preview (X length, Y height, Z width).',

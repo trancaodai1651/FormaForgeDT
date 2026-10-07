@@ -20,18 +20,60 @@ try {
   }
   const { initCarGeometry, buildCar } = await import(pathToFileURL(scratch[0]));
   const { models } = await import(pathToFileURL(scratch[1]));
+  const filter = process.argv.find(a => a.startsWith('--models='))?.slice(9).split(',');
+  const validationModels = filter ? models.filter(model => filter.includes(model.id)) : models;
   const { createKitFiles } = await import(pathToFileURL(scratch[2]));
   const m = await Module(); m.setup(); await initCarGeometry();
   const allFiles = {}; let count = 0;
-  for (const model of models) {
+  const worldSolid = part => {
+    part.mesh.updateMatrix();
+    const g = part.mesh.geometry.clone().applyMatrix4(part.mesh.matrix);
+    const mesh = new m.Mesh({ numProp: 3, vertProperties: new Float32Array(g.attributes.position.array), triVerts: new Uint32Array(g.index.array) }); mesh.merge(); g.dispose();
+    return new m.Manifold(mesh);
+  };
+  const checkFit = (a, b, label) => {
+    const sa = worldSolid(a), sb = worldSolid(b), overlap = sa.intersect(sb);
+    const volume = overlap.volume(); const om = overlap.getMesh(); const bnd = new THREE.Box3(); for (let k = 0; k < om.vertProperties.length; k += om.numProp) bnd.expandByPoint(new THREE.Vector3(...om.vertProperties.slice(k, k + 3))); sa.delete(); sb.delete(); overlap.delete();
+    if (volume > 0.05) throw Error(`Joint collision ${label}: ${volume.toFixed(3)} mm3 ${JSON.stringify({ min: bnd.min.toArray(), max: bnd.max.toArray() })}`);
+  };
+  for (const model of validationModels) {
     const assembly = buildCar(model, 1);
+    const frames = assembly.parts.filter(p => p.name.includes('chassis') || p.name.startsWith('Chassis'));
+    for (let i = 1; i < frames.length; i++) checkFit(frames[i - 1], frames[i], `${model.id} chassis T rail`);
+    const cab = assembly.parts.find(p => p.name.startsWith('Cabin'));
+    checkFit(cab, frames[0], `${model.id} cab seating foot`);
+    for (const cargo of assembly.parts.filter(p => p.name.startsWith('Cargo tray'))) checkFit(cargo, frames.find(p => p.mesh.position.x === cargo.mesh.position.x), `${model.id} cargo seating foot`);
+    const front = assembly.parts.find(p => p.name.startsWith('Front loader scoop') || p.name === 'Road roller fork');
+    if (front) checkFit(front, frames[0], `${model.id} front tool T rail`);
+    const dome = assembly.parts.find(p => p.name.startsWith('Dome'));
+    const boom = assembly.parts.find(p => p.name === 'Detailed hinged boom');
+    if (dome && boom) checkFit(dome, boom, `${model.id} boom pivot`);
+    const bucket = assembly.parts.find(p => p.name.startsWith('Upper excavator'));
+    if (bucket && boom) checkFit(bucket, boom, `${model.id} bucket pivot`);
+    for (const tyre of assembly.parts.filter(p => p.name.startsWith('Tyre'))) {
+      const frame = frames.find(p => p.mesh.position.x === tyre.mesh.position.x);
+      checkFit(tyre, frame, `${model.id} wheel arch`);
+      const screw = assembly.parts.find(p => p.name === `Cross socket wheel screw ${tyre.name.split(' ')[1]}`);
+      checkFit(screw, frame, `${model.id} wheel axle`);
+      checkFit(screw, tyre, `${model.id} wheel hub`);
+    }
+    const equipment = assembly.parts.find(p => p.mesh.position.x === 18 && p.mesh.position.y === 21 && !p.name.startsWith('Chassis'));
+    if (equipment) checkFit(equipment, frames[1], `${model.id} equipment foot`);
+    if (dome && equipment) checkFit(dome, equipment, `${model.id} turntable`);
+    const lid = assembly.parts.find(p => p.name.startsWith('Hinged recycling'));
+    if (lid && equipment) checkFit(lid, equipment, `${model.id} rear door hinge`);
+    const drum = assembly.parts.find(p => p.name.startsWith('Tapered mixer'));
+    if (drum && equipment) checkFit(drum, equipment, `${model.id} drum axle`);
+    const ladder = assembly.parts.find(p => p.name === 'Extending fire ladder');
+    const cradle = assembly.parts.find(p => p.name === 'Ladder rotation cradle');
+    if (ladder && cradle) checkFit(ladder, cradle, `${model.id} ladder pivot`);
     if (assembly.parts.length !== model.partCount) throw Error(`${model.id}: parts count mismatch`);
     for (const part of [...assembly.parts, ...assembly.tools]) {
       const g = part.mesh.geometry;
       if (!g.attributes.position.array.every(Number.isFinite)) throw Error(`Nonfinite mesh: ${part.name}`);
       const mesh = new m.Mesh({ numProp: 3, vertProperties: new Float32Array(g.attributes.position.array), triVerts: new Uint32Array(g.index.array) }); mesh.merge();
       const solid = new m.Manifold(mesh); const pieces = solid.decompose();
-      if (pieces.length !== 1 || solid.volume() <= 0) throw Error(`${model.id}: disconnected or empty ${part.name}`);
+      if (pieces.length !== 1 || solid.volume() <= 0) throw Error(`${model.id}: disconnected or empty ${part.name} ${JSON.stringify(pieces.map(p => { const mesh = p.getMesh(); const b = new THREE.Box3(); for (let k = 0; k < mesh.vertProperties.length; k += mesh.numProp) b.expandByPoint(new THREE.Vector3(...mesh.vertProperties.slice(k, k + 3))); return { volume: p.volume(), min: b.min.toArray(), max: b.max.toArray() }; }))}`);
       pieces.forEach(p => p.delete()); solid.delete(); count++;
     }
     const scaled = buildCar(model, 1.4);
@@ -65,9 +107,34 @@ try {
     for (const [file, data] of Object.entries(files)) allFiles[`${model.id}/${file}`] = data;
     console.log(`${model.id}: ${assembly.parts.length} vehicle modules, closed exported STL, scale and assembly transforms passed`);
   }
-  const out = process.argv[2] || path.join(os.tmpdir(), 'formaforge-block-cars-all-kits.zip');
+  if (!filter) for (const options of [
+    { model: models[0], width: 34, cabType: 'car', frontTool: 'bucket', clearance: 0.1 },
+    { model: models[0], width: 60, cabType: 'hood', frontTool: 'roller', clearance: 0.6 },
+    { model: models[8], width: 34, cabType: 'hood', frontTool: 'none', clearance: 0.1 },
+    { model: models[8], width: 60, cabType: 'hood', frontTool: 'bucket', clearance: 0.6 },
+  ]) {
+    const custom = buildCar(options.model, 1, options.clearance, options);
+    const frames = custom.parts.filter(p => p.name.includes('chassis') || p.name.startsWith('Chassis'));
+    checkFit(frames[0], frames[1], 'custom T rail');
+    checkFit(custom.parts.find(p => p.name.startsWith('Cabin')), frames[0], 'custom cab');
+    const front = custom.parts.find(p => p.name.startsWith('Front loader scoop') || p.name === 'Road roller fork');
+    if (front) checkFit(front, frames[0], 'custom front tool');
+    const dome = custom.parts.find(p => p.name.startsWith('Dome'));
+    const boom = custom.parts.find(p => p.name === 'Detailed hinged boom');
+    if (dome && boom) checkFit(dome, boom, 'custom width boom pivot');
+    for (const part of custom.parts) {
+      const solid = worldSolid(part), pieces = solid.decompose();
+      if (pieces.length !== 1 || solid.volume() <= 0) throw Error(`Custom disconnected ${part.name}`);
+      pieces.forEach(p => p.delete()); solid.delete();
+    }
+    const files = createKitFiles(custom, options.model, 1);
+    const manifest = JSON.parse(new TextDecoder().decode(files['assembly.json']));
+    if (manifest.baseDimensionsMm.chassisWidth !== options.width || manifest.baseDimensionsMm.clearance !== options.clearance) throw Error('Custom fitting metadata mismatch');
+    console.log(`Custom modules: width ${options.width}, ${options.cabType} cab, ${options.frontTool}, clearance ${options.clearance}: fittings and export metadata passed`);
+  }
+  const out = process.argv.slice(2).find(a => !a.startsWith('--')) || path.join(os.tmpdir(), 'formaforge-block-cars-all-kits.zip');
   fs.writeFileSync(out, zipSync(allFiles, { level: 6 }));
-  console.log(`PASS: 17 vehicles / ${count} solid modules including tools. Kit: ${out}`);
+  console.log(`PASS: ${validationModels.length} vehicles / ${count} solid modules including tools. Kit: ${out}`);
 } finally {
   for (const file of scratch) fs.rmSync(file, { force: true });
 }

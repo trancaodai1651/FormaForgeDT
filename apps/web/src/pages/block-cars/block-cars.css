@@ -1,5 +1,15 @@
 .block-cars-page { min-height: 100dvh; padding: 0 clamp(16px, 3.3vw, 54px) 24px; color: #24272c; background: #f8f7f4; font-family: Inter, 'Segoe UI', sans-serif; }
 .bc-loading { display: grid; place-items: center; }
+.bc-language { padding: 6px 9px; border: 1px solid #d9d0c3; border-radius: 5px; background: #fff; color: #74634d; font-size: 11px; cursor: pointer; }
+.bc-module-builder { margin: 10px 0; padding: 15px; border: 1px solid #d7c5aa; border-radius: 10px; background: #fffdf8; }
+.bc-module-builder h3 { margin: 0 0 12px; font-size: 15px; }
+.bc-module-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bc-module-settings label { display: grid; gap: 6px; font-size: 11px; color: #74634d; }
+.bc-module-settings select, .bc-module-settings input { width: 100%; padding: 8px; border: 1px solid #d9d0c3; border-radius: 5px; background: #fff; color: #25272b; }
+.bc-joints { padding-top: 13px; font-size: 11px; line-height: 1.6; }
+.bc-joints span { color: #9d7144; font-weight: 700; }.bc-joints p { margin: 5px 0 12px; }
+.bc-module-pieces { display: flex; gap: 6px; flex-wrap: wrap; }.bc-module-pieces button { padding: 7px 10px; border: 1px solid #ded6c9; border-radius: 5px; background: #fff; color: #6c5945; font-size: 10px; cursor: pointer; }.bc-module-pieces button[aria-pressed=true] { background: #ecd7b7; }
+@media(max-width: 560px) { .bc-module-settings { grid-template-columns: 1fr; } }
 .bc-inspect-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 2px; color: #66635d; font-size: 11px; }
 .bc-inspect-controls label { display: inline-flex; gap: 6px; align-items: center; }
 .bc-inspect-controls input[type=number] { width: 68px; }
