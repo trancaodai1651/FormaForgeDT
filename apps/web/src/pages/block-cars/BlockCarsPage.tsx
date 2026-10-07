@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bounds, OrbitControls, useBounds } from '@react-three/drei';
 import { ArrowLeft, Download, Rotate3D, Ruler, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -57,6 +57,17 @@ function FitRequestedView({ request, object }: { request: ViewRequest; object: T
   return null;
 }
 
+function InspectionGround({ isolated }: { isolated: boolean }) {
+  const ground = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  // The grid must not sit in front of a fitting when looking up from below.
+  useFrame(() => { if (ground.current) ground.current.visible = !isolated && camera.position.y > -0.45; });
+  return <group ref={ground}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.45, 0]} receiveShadow><planeGeometry args={[1000, 1000]} /><meshStandardMaterial color="#e8e4dc" roughness={0.95} /></mesh>
+    <gridHelper args={[300, 30, '#b9b4ab', '#d5d0c7']} position={[0, -0.4, 0]} />
+  </group>;
+}
+
 function CarViewport({ assembly, exploded, isolated, view }: { assembly: CarAssembly; exploded: boolean; isolated: string; view: ViewRequest }) {
   const display = useMemo(() => {
     const group = assembly.group.clone();
@@ -91,8 +102,7 @@ function CarViewport({ assembly, exploded, isolated, view }: { assembly: CarAsse
     <color attach="background" args={['#f3f1ec']} /><ambientLight intensity={1.15} />
     <directionalLight castShadow position={[-80, 120, 70]} intensity={2.1} shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
     <hemisphereLight args={['#ffffff', '#b4a995', 0.7]} />
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.45, 0]} receiveShadow><planeGeometry args={[1000, 1000]} /><meshStandardMaterial color="#e8e4dc" roughness={0.95} /></mesh>
-    <gridHelper args={[300, 30, '#b9b4ab', '#d5d0c7']} position={[0, -0.4, 0]} />
+    <InspectionGround isolated={Boolean(isolated)} />
     <Bounds fit clip margin={1.2}><primitive object={display} /><FitRequestedView request={view} object={display} /></Bounds>
     <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={20} maxDistance={1100} target={[0, 24, 0]} />
   </Canvas>;
