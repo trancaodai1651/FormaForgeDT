@@ -28,6 +28,30 @@ function zBounds(part: ClickerPart) {
   return { min: Math.min(...values), max: Math.max(...values) };
 }
 
+function partContainsPointAtZ(wasm: any, part: ClickerPart, z: number, point: [number, number]): boolean {
+  const solid = wasm.Manifold.ofMesh(new wasm.Mesh({
+    numProp: part.numProp,
+    vertProperties: new Float32Array(part.vertProperties),
+    triVerts: new Uint32Array(part.triVerts),
+  }));
+  const section = solid.slice(z);
+  const polygons = section.toPolygons() as [number, number][][];
+  let inside = false;
+  for (const ring of polygons) {
+    let ringInside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]; const [xj, yj] = ring[j];
+      const crosses = (yi > point[1]) !== (yj > point[1])
+        && point[0] < ((xj - xi) * (point[1] - yi)) / (yj - yi) + xi;
+      if (crosses) ringInside = !ringInside;
+    }
+    if (ringInside) inside = !inside;
+  }
+  section.delete();
+  solid.delete();
+  return inside;
+}
+
 async function setup() {
   const wasm = await Module();
   wasm.setup();
@@ -178,6 +202,31 @@ describe('Printable colors by Extrude level', () => {
       rasterImageMode: true, stackColorLayers: false, topThickness: 1, imageDepth: 0.8,
       componentHeights: { accent: 4 } }).parts;
     expectClosed3mf(applyExtrudeLayerColors(wasm, source, config));
+  });
+
+  it('leaves one solid carrier layer below separate flat-keychain color inlays', async () => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalize = (regions: BuildRegion[]) => regions.map(region => ({
+      ...region,
+      rings: region.rings.map(ring => ring.map(([x, y]) => [x / 40, y / 40] as [number, number])),
+    }));
+    const flatParts = buildClicker(wasm, socket, stem, normalize(imageRegions), outline, {
+      ...params,
+      isFlatKeychain: true,
+      keepMeshesSeparate: true,
+      rasterImageMode: true,
+      flatKeychainThicknessMm: 3,
+      imageDepth: 0.8,
+      topThickness: 1,
+    }).parts;
+    const carrier = flatParts.find(part => part.name === 'top-base')!;
+    const color = flatParts.find(part => part.name === 'top-color-1-0')!;
+    const imagePlaneZ = 2.2;
+
+    expect(zBounds(color).min).toBeCloseTo(imagePlaneZ, 4);
+    expect(partContainsPointAtZ(wasm, carrier, imagePlaneZ - 0.25, [0, 0])).toBe(true);
+    expect(partContainsPointAtZ(wasm, carrier, imagePlaneZ - 0.15, [0, 0])).toBe(false);
+    expectClosed3mf(flatParts);
   });
 
   it('rebuilds dense mixed-color layer stacks repeatedly without exhausting the WASM geometry table', async () => {

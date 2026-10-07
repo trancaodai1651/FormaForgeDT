@@ -314,6 +314,11 @@ export function buildClicker(
   // filament. When mesh preservation is requested, retain the colour parts
   // and their exact cavities instead.
   const mergeImageIntoBase = isFlatKeychain && !params.keepMeshesSeparate;
+  // Leave one default slicer layer of solid carrier under separate image
+  // colors. Without this shallow pocket, the colored inlay overlaps the
+  // carrier's top skin and both Bambu and Orca-based slicers can replace that
+  // skin with sparse infill immediately below the first colored layer.
+  const colorBackingLayerMm = !mergeImageIntoBase && backing >= 0.25 ? Math.min(0.2, backing - 0.05) : 0;
   const mergedImageSolids: any[] = [];
   const sameAsCarrier = (r: BuildRegion) => colorDistanceSq(r.filamentRgb, params.baseFilamentRgb) === 0;
   const componentLevel = (r: BuildRegion) =>
@@ -397,8 +402,9 @@ export function buildClicker(
     const heightShift = level * params.stepHeight;
     const imagePlaneZ = imageBottomZ + Math.min(0, heightShift);
     const bottomZ = imagePlaneZ - topMeshOverlap;
+    const inlayBottomZ = colorBackingLayerMm > 0 ? imagePlaneZ : bottomZ;
 
-    const inlayVolume = ctx.extrudeAt(fp, (capTopZ - bottomZ) + Math.max(0, heightShift) + 1.0, bottomZ, sectionIsEmpty);
+    const inlayVolume = ctx.extrudeAt(fp, (capTopZ - inlayBottomZ) + Math.max(0, heightShift) + 1.0, inlayBottomZ, sectionIsEmpty);
     if (inlayVolume.isEmpty()) continue;
 
     let boundingVolume = capSurfaceShell;
@@ -414,17 +420,19 @@ export function buildClicker(
     const levelCapVolume = Math.abs(heightShift) > 0.001
       ? ctx.track(capVolume.translate([0, 0, heightShift]))
       : capVolume;
-    const connectorColumn = ctx.extrudeAt(fp, topMeshOverlap, bottomZ, sectionIsEmpty);
-    const connector = ctx.track(connectorColumn.intersect(levelCapVolume));
-    if (!connector.isEmpty()) {
-      inlay = ctx.track(inlay.add(connector));
+    if (colorBackingLayerMm <= 0) {
+      const connectorColumn = ctx.extrudeAt(fp, topMeshOverlap, bottomZ, sectionIsEmpty);
+      const connector = ctx.track(connectorColumn.intersect(levelCapVolume));
+      if (!connector.isEmpty()) {
+        inlay = ctx.track(inlay.add(connector));
+      }
     }
 
     // Raising a surface shell alone leaves a floating skin once the height
     // exceeds its thickness. Fill from the original inlay plane up to the
     // lifted shell so every Extrude step contains printable material.
     if (heightShift > 0.001) {
-      inlay = ctx.track(inlay.add(ctx.extrudeAt(fp, heightShift + topMeshOverlap, bottomZ, sectionIsEmpty)));
+      inlay = ctx.track(inlay.add(ctx.extrudeAt(fp, heightShift + (colorBackingLayerMm > 0 ? 0 : topMeshOverlap), inlayBottomZ, sectionIsEmpty)));
     }
 
     if (inlay.isEmpty()) continue;
@@ -472,6 +480,14 @@ export function buildClicker(
         : capSurfaceShell;
       const holeVolume = ctx.track(holeColumn.intersect(holeShell));
       base = ctx.track(base.subtract(holeVolume));
+
+      if (colorBackingLayerMm > 0) {
+        const imagePlaneZ = imageBottomZ + Math.min(0, heightShift);
+        const supportBottomZ = imagePlaneZ - colorBackingLayerMm;
+        const supportColumn = ctx.extrudeAt(hole2D, colorBackingLayerMm + 0.01, supportBottomZ - 0.01, sectionIsEmpty);
+        const supportVolume = ctx.track(supportColumn.intersect(capVolume));
+        base = ctx.track(base.subtract(supportVolume));
+      }
     }
   }
 
