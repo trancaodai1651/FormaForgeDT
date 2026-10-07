@@ -117,7 +117,7 @@ function BlockCarsWorkspace() {
   const [scale, setScale] = useState(1);
   const [exploded, setExploded] = useState(false);
   const [isolated, setIsolated] = useState('');
-  const [compare, setCompare] = useState(true);
+  const [compare, setCompare] = useState(false);
   const [view, setView] = useState<ViewRequest>({ version: 0 });
   const requestView = (direction?: ViewRequest['direction']) => setView(v => ({ version: v.version + 1, direction }));
   const [width, setWidth] = useState(42);
@@ -171,7 +171,7 @@ function BlockCarsWorkspace() {
 
   return <main className="block-cars-page">
     <header className="bc-topbar"><Link to="/" className="bc-back"><ArrowLeft size={16} /> {vi ? 'Tất cả công cụ' : 'All tools'}</Link><span className="bc-brand">FORMAFORGE <i>/</i> BLOCK CARS</span><button className="bc-language" onClick={() => setLanguage(vi ? 'en' : 'vi')}>{vi ? 'English' : 'Tiếng Việt'}</button></header>
-    <section className="bc-heading"><div><span className="bc-eyebrow">{vi ? 'BỘ LẮP GHÉP XE MÔ-ĐUN' : 'MODULAR VEHICLE KIT'}</span><h1>{vi ? <>Xe khối.<br /><em>Lắp theo cách của bạn.</em></> : <>Block cars.<br /><em>Build your own fleet.</em></>}</h1></div><p>{vi ? 'Chọn linh kiện: cabin, khung, bánh, ốc và module chức năng. Xem từng phần, lắp thành xe, chỉnh kích thước và tải STL riêng để in.' : 'Choose parts: cabs, frames, wheels, screws and equipment. Inspect each module, assemble a vehicle, resize it and download separate printable STLs.'}</p></section>
+    <section className="bc-heading"><div><span className="bc-eyebrow">{vi ? 'BỘ LẮP GHÉP XE MÔ-ĐUN' : 'MODULAR VEHICLE KIT'}</span><h1>{vi ? 'Linh kiện lắp ghép xe' : 'Vehicle parts'}</h1></div><p>{vi ? 'Chọn module ở cột trái để xem, lắp và tải STL.' : 'Select a part to inspect, assemble and download its STL.'}</p></section>
     <section className="bc-workspace">
       <ModuleLibrary vi={vi} active={pickedModule?.id ?? ''} onPick={pickModule} />
       <div className="bc-main">
