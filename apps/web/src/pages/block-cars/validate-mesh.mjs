@@ -9,19 +9,24 @@ import * as THREE from 'three';
 import { zipSync } from 'fflate';
 
 const folder = path.dirname(fileURLToPath(import.meta.url));
+// Keep generated modules outside Vite's source watcher so validation does not
+// reload the page while its dimensions or camera are being inspected.
+const cacheFolder = path.resolve(folder, '../../../node_modules/.cache');
+fs.mkdirSync(cacheFolder, { recursive: true });
+const scratchFolder = fs.mkdtempSync(path.join(cacheFolder, 'block-cars-validation-'));
 const scratch = [];
 try {
   for (const name of ['carGeometry', 'catalog', 'printKit']) {
     let source = fs.readFileSync(path.join(folder, `${name}.ts`), 'utf8');
     source = source.replace("import wasmUrl from 'manifold-3d/manifold.wasm?url';", `const wasmUrl = ${JSON.stringify(fileURLToPath(import.meta.resolve('manifold-3d/manifold.wasm')))};`);
-    const target = path.join(folder, `.validation-${name}.mjs`);
+    const target = path.join(scratchFolder, `${name}.mjs`);
     fs.writeFileSync(target, ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText);
     scratch.push(target);
   }
   const { initCarGeometry, buildCar } = await import(pathToFileURL(scratch[0]));
   const { models } = await import(pathToFileURL(scratch[1]));
   const filter = process.argv.find(a => a.startsWith('--models='))?.slice(9).split(',');
-  const validationModels = filter ? models.filter(model => filter.includes(model.id)) : models;
+  const validationModels = process.argv.includes('--custom-only') ? [] : filter ? models.filter(model => filter.includes(model.id)) : models;
   const { createKitFiles } = await import(pathToFileURL(scratch[2]));
   const m = await Module(); m.setup(); await initCarGeometry();
   const allFiles = {}; let count = 0;
@@ -36,10 +41,37 @@ try {
     const volume = overlap.volume(); const om = overlap.getMesh(); const bnd = new THREE.Box3(); for (let k = 0; k < om.vertProperties.length; k += om.numProp) bnd.expandByPoint(new THREE.Vector3(...om.vertProperties.slice(k, k + 3))); sa.delete(); sb.delete(); overlap.delete();
     if (volume > 0.05) throw Error(`Joint collision ${label}: ${volume.toFixed(3)} mm3 ${JSON.stringify({ min: bnd.min.toArray(), max: bnd.max.toArray() })}`);
   };
+  const offsetPart = (part, vector, angle = 0) => {
+    const mesh = part.mesh.clone();
+    mesh.position.add(new THREE.Vector3(...vector)); mesh.rotateZ(angle);
+    return { name: part.name, mesh };
+  };
+  const checkSlide = (maleFrame, femaleFrame, label) => {
+    for (const height of [0, 0.5, 3, 8, 14, 18]) checkFit(maleFrame, offsetPart(femaleFrame, [0, height, 0]), `${label} slide travel ${height}`);
+    // Shoulders must resist horizontal pullout while seated.
+    const a = worldSolid(maleFrame), b = worldSolid(offsetPart(femaleFrame, [1, 0, 0])), locked = a.intersect(b);
+    if (locked.volume() < 0.5) throw Error(`Unretained slide: ${label}`);
+    a.delete(); b.delete(); locked.delete();
+  };
+  const checkThread = (screw, housing, label) => {
+    const axis = new THREE.Vector3(0, 0, 1).applyQuaternion(screw.mesh.quaternion);
+    for (const turns of [0, 0.125, 0.25, 0.5, 1]) {
+      const advance = axis.clone().multiplyScalar(turns * 2.2);
+      checkFit(offsetPart(screw, advance.toArray(), turns * Math.PI * 2), housing, `${label} unscrew ${turns} turns`);
+    }
+    // Axial movement without rotation must hit a thread flank: an oversized
+    // cylindrical pilot or disconnected circular rings cannot satisfy both tests.
+    const a = worldSolid(offsetPart(screw, axis.multiplyScalar(0.65).toArray())), b = worldSolid(housing), flank = a.intersect(b);
+    if (flank.volume() < 0.03) throw Error(`No thread engagement: ${label}`);
+    a.delete(); b.delete(); flank.delete();
+  };
   for (const model of validationModels) {
     const assembly = buildCar(model, 1);
     const frames = assembly.parts.filter(p => p.name.includes('chassis') || p.name.startsWith('Chassis'));
-    for (let i = 1; i < frames.length; i++) checkFit(frames[i - 1], frames[i], `${model.id} chassis T rail`);
+    for (let i = 1; i < frames.length; i++) {
+      if (model === validationModels[0]) checkSlide(frames[i - 1], frames[i], `${model.id} chassis T rail`);
+      else checkFit(frames[i - 1], frames[i], `${model.id} chassis T rail`);
+    }
     const cab = assembly.parts.find(p => p.name.startsWith('Cabin'));
     checkFit(cab, frames[0], `${model.id} cab seating foot`);
     for (const cargo of assembly.parts.filter(p => p.name.startsWith('Cargo tray'))) checkFit(cargo, frames.find(p => p.mesh.position.x === cargo.mesh.position.x), `${model.id} cargo seating foot`);
@@ -56,14 +88,30 @@ try {
       const screw = assembly.parts.find(p => p.name === `Cross socket wheel screw ${tyre.name.split(' ')[1]}`);
       checkFit(screw, frame, `${model.id} wheel axle`);
       checkFit(screw, tyre, `${model.id} wheel hub`);
+      if (model === validationModels[0] && frame === frames[0]) checkThread(screw, frame, `${model.id} wheel thread ${tyre.name}`);
     }
     const equipment = assembly.parts.find(p => p.mesh.position.x === 18 && p.mesh.position.y === 21 && !p.name.startsWith('Chassis'));
     if (equipment) checkFit(equipment, frames[1], `${model.id} equipment foot`);
+    if (equipment) checkFit(cab, equipment, `${model.id} cabin/rear module seam`);
+    const trays = assembly.parts.filter(p => p.name.startsWith('Cargo tray'));
+    for (let i = 1; i < trays.length; i++) checkFit(trays[i - 1], trays[i], `${model.id} adjacent upper trays`);
+    const roller = assembly.parts.find(p => p.name === 'Road roller drum');
+    if (roller) for (const screw of assembly.parts.filter(p => p.name.startsWith('Roller screw'))) checkThread(screw, roller, `${model.id} roller thread`);
+    const spare = assembly.parts.find(p => p.name === 'Spare wheel screw');
+    if (spare) {
+      const tyre = assembly.parts.find(p => p.name === 'Rear spare tyre');
+      checkThread(spare, equipment, `${model.id} spare thread`); checkFit(spare, tyre, `${model.id} spare hub`); checkFit(tyre, equipment, `${model.id} spare mounting boss`);
+    }
     if (dome && equipment) checkFit(dome, equipment, `${model.id} turntable`);
     const lid = assembly.parts.find(p => p.name.startsWith('Hinged recycling'));
     if (lid && equipment) checkFit(lid, equipment, `${model.id} rear door hinge`);
     const drum = assembly.parts.find(p => p.name.startsWith('Tapered mixer'));
     if (drum && equipment) checkFit(drum, equipment, `${model.id} drum axle`);
+    if (drum) {
+      const screw = assembly.parts.find(p => p.name === 'Mixer retaining screw');
+      checkThread(screw, drum, `${model.id} mixer retaining thread`);
+      checkFit(screw, equipment, `${model.id} mixer support bearing`);
+    }
     const ladder = assembly.parts.find(p => p.name === 'Extending fire ladder');
     const cradle = assembly.parts.find(p => p.name === 'Ladder rotation cradle');
     if (ladder && cradle) checkFit(ladder, cradle, `${model.id} ladder pivot`);
@@ -82,8 +130,14 @@ try {
     const files = createKitFiles(assembly, model, 1);
     const manifest = JSON.parse(new TextDecoder().decode(files['assembly.json']));
     for (const record of manifest.modules) {
-      const stl = new TextDecoder().decode(files[record.file]);
-      const vertices = [...stl.matchAll(/vertex\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)/g)].map(v => [+v[1], +v[2], +v[3]]);
+      const bytes = files[record.file], stl = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const triangles = stl.getUint32(80, true);
+      if (bytes.length !== 84 + triangles * 50) throw Error(`Invalid binary STL length: ${record.file}`);
+      const vertices = [];
+      for (let face = 0; face < triangles; face++) for (let vertex = 0; vertex < 3; vertex++) {
+        const offset = 84 + face * 50 + 12 + vertex * 12;
+        vertices.push([stl.getFloat32(offset, true), stl.getFloat32(offset + 4, true), stl.getFloat32(offset + 8, true)]);
+      }
       if (!vertices.length || vertices.some(v => !v.every(Number.isFinite) || v[2] < -1e-5)) throw Error(`Invalid exported STL: ${record.file}`);
       const edges = new Map();
       for (let i = 0; i < vertices.length; i += 3) for (let j = 0; j < 3; j++) {
@@ -115,10 +169,11 @@ try {
   ]) {
     const custom = buildCar(options.model, 1, options.clearance, options);
     const frames = custom.parts.filter(p => p.name.includes('chassis') || p.name.startsWith('Chassis'));
-    checkFit(frames[0], frames[1], 'custom T rail');
+    checkSlide(frames[0], frames[1], 'custom T rail');
     checkFit(custom.parts.find(p => p.name.startsWith('Cabin')), frames[0], 'custom cab');
     const front = custom.parts.find(p => p.name.startsWith('Front loader scoop') || p.name === 'Road roller fork');
     if (front) checkFit(front, frames[0], 'custom front tool');
+    for (const screw of custom.parts.filter(p => p.name.includes('wheel screw') && p.mesh.position.x === frames[0].mesh.position.x)) checkThread(screw, frames[0], `custom ${options.width}/${options.clearance} ${screw.name}`);
     const dome = custom.parts.find(p => p.name.startsWith('Dome'));
     const boom = custom.parts.find(p => p.name === 'Detailed hinged boom');
     if (dome && boom) checkFit(dome, boom, 'custom width boom pivot');
@@ -137,4 +192,5 @@ try {
   console.log(`PASS: ${validationModels.length} vehicles / ${count} solid modules including tools. Kit: ${out}`);
 } finally {
   for (const file of scratch) fs.rmSync(file, { force: true });
+  fs.rmdirSync(scratchFolder);
 }

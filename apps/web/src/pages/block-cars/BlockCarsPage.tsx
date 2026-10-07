@@ -22,6 +22,23 @@ export function BlockCarsPage() {
 }
 
 type ViewRequest = { version: number; direction?: [number, number, number] };
+function ModelNumberInput({ label, value, min, max, step = 1, onCommit }: { label: string; value: number; min: number; max: number; step?: number; onCommit: (value: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  const commit = useRef(onCommit); commit.current = onCommit;
+  useEffect(() => setDraft(String(value)), [value]);
+  // Permit clearing/typing a complete number, and let the input event finish
+  // before a costly solid rebuild. Rebuilds still preserve the current orbit.
+  useEffect(() => {
+    const next = Number(draft);
+    if (!draft.trim() || !Number.isFinite(next) || next < min || next > max || next === value) return;
+    const timer = setTimeout(() => commit.current(next), 300);
+    return () => clearTimeout(timer);
+  }, [draft, min, max, value]);
+  return <input aria-label={label} type="number" min={min} max={max} step={step} value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => {
+    const next = Number(draft);
+    if (!draft.trim() || !Number.isFinite(next) || next < min || next > max) setDraft(String(value));
+  }} />;
+}
 function FitRequestedView({ request, object }: { request: ViewRequest; object: THREE.Group }) {
   const { camera, controls } = useThree();
   const version = request.version;
@@ -47,18 +64,27 @@ function CarViewport({ assembly, exploded, isolated, view }: { assembly: CarAsse
       child.visible = !isolated || assembly.parts[index].name === isolated;
       if (exploded) {
         const name = assembly.parts[index].name;
+        // Follow the chassis station for every mounted part. Otherwise adjacent
+        // top modules remain touching while only the frames move apart.
+        const station = name.startsWith('Cabin') ? 0 :
+          name.includes('chassis') || name.startsWith('Chassis') || name.startsWith('Cargo tray') || name.startsWith('Tyre') || name.includes('wheel screw') ? Math.round((child.position.x + 18) / 36) :
+            name.startsWith('Front loader') || name.startsWith('Road roller') || name.startsWith('Roller screw') ? -1 : 1;
+        const stationGap = Math.max(0, station) * Math.max(40, assembly.width * 0.8);
+        child.position.x += stationGap;
         if (name.startsWith('Tyre') || name.includes('wheel screw')) child.position.z += Math.sign(child.position.z) * (name.includes('screw') ? 40 : 22);
-        else if (name.includes('chassis') || name.startsWith('Chassis')) child.position.x += (child.position.x + 18) / 36 * 18;
+        else if (name.includes('chassis') || name.startsWith('Chassis')) { /* Keep the frame at its station. */ }
         else if (name.includes('Front loader') || name.includes('Road roller')) child.position.x -= 28;
         else if (name.startsWith('Dome')) child.position.y += 50;
         else if (name.startsWith('Upper excavator') || name.startsWith('Sliding lift')) { child.position.y += 90; child.position.x -= 24; }
-        else child.position.y += name.includes('boom') || name.includes('ladder') ? 70 : 30;
+        else child.position.y += name.includes('boom') || name.includes('ladder') ? 70 : name.startsWith('Cabin') ? 42 : 30;
       }
     });
     for (const child of [...group.children]) if (!child.visible) group.remove(child);
     const tool = assembly.tools.find(p => p.name === isolated);
     if (tool) group.add(tool.mesh.clone());
-    if (exploded || isolated) { group.updateMatrixWorld(true); const floor = new THREE.Box3().setFromObject(group).min.y; group.position.y = Math.max(0, -floor); }
+    group.updateMatrixWorld(true);
+    const floor = new THREE.Box3().setFromObject(group).min.y;
+    group.position.y = Math.max(0, -floor);
     return group;
   }, [assembly, exploded, isolated]);
   return <Canvas shadows camera={{ position: [-115, 90, 145], fov: 36, near: 0.1, far: 1800 }} dpr={[1, 1.7]}>
@@ -87,6 +113,7 @@ function BlockCarsWorkspace() {
   const [cabType, setCabType] = useState<CarOptions['cabType']>();
   const [frontTool, setFrontTool] = useState<CarOptions['frontTool']>();
   const [downloading, setDownloading] = useState(false);
+  const [exportError, setExportError] = useState('');
   const assembled = useMemo(() => buildCar(selected, scale, clearance, { width, cabType, frontTool }), [selected, scale, clearance, width, cabType, frontTool]);
   useEffect(() => () => { for (const part of [...assembled.parts, ...assembled.tools]) (part.mesh.material as THREE.Material).dispose(); }, [assembled]);
   const modelIndex = models.findIndex(m => m.id === selected.id);
@@ -94,13 +121,18 @@ function BlockCarsWorkspace() {
 
   const exportKit = async () => {
     setDownloading(true);
+    setExportError('');
     try {
-      const zip = createPrintKit(assembled, selected, scale);
+      // Paint the pending state before writing the mesh buffers. Compression
+      // then runs in fflate's workers rather than blocking the controls.
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      const zip = await createPrintKit(assembled, selected, scale);
       const blob = new Blob([zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) as ArrayBuffer], { type: 'application/zip' });
       const href = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = href; a.download = `formaforge-${selected.id}-${scale.toFixed(2)}x-print-kit.zip`; a.click();
       setTimeout(() => URL.revokeObjectURL(href), 10000);
-    } finally { setDownloading(false); }
+    } catch (error) { setExportError(String(error)); }
+    finally { setDownloading(false); }
   };
 
   return <main className="block-cars-page">
@@ -116,6 +148,7 @@ function BlockCarsWorkspace() {
         <div className="bc-inspect-controls">
           <button onClick={() => requestView()}>{vi ? 'Vừa khung nhìn' : 'Fit view'}</button>
           <button onClick={() => requestView([-1.1, 0.8, 1.7])}>{vi ? 'Góc như PDF' : 'PDF angle'}</button>
+          <button onClick={() => requestView([1.1, 0.8, 1.7])}>{vi ? 'Góc khớp nối' : 'Connector angle'}</button>
           <button onClick={() => requestView([-1, 0, 0])}>{vi ? 'Mặt trước' : 'Front'}</button>
           <button onClick={() => requestView([0, 0, 1])}>{vi ? 'Mặt bên' : 'Side'}</button>
           <button onClick={() => requestView([0, 1, 0.001])}>{vi ? 'Mặt trên' : 'Top'}</button>
@@ -123,7 +156,7 @@ function BlockCarsWorkspace() {
           <label><input type="checkbox" checked={exploded} onChange={e => setExploded(e.target.checked)} /> {vi ? 'Tách các module' : 'Exploded assembly'}</label>
           <label><input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} /> {vi ? 'Đối chiếu hình mẫu' : 'Reference comparison'}</label>
           <select aria-label={vi ? 'Module hiển thị' : 'Visible module'} value={isolated} onChange={e => setIsolated(e.target.value)}><option value="">{vi ? 'Toàn bộ xe' : 'Whole vehicle'}</option>{[...assembled.parts, ...assembled.tools].map(p => <option key={p.name} value={p.name}>{p.name}</option>)}</select>
-          <label>{vi ? 'Chiều dài (mm)' : 'Length (mm)'} <input aria-label="Overall length in mm" type="number" min="30" max="600" step="1" value={totalLength} onChange={e => { const value = Number(e.target.value); if (value >= 30 && value <= 600) setScale(value / ((assembled.bounds.max.x - assembled.bounds.min.x) / scale)); }} /></label>
+          <label>{vi ? 'Chiều dài (mm)' : 'Length (mm)'} <ModelNumberInput label="Overall length in mm" min={30} max={600} value={totalLength} onCommit={value => setScale(value / ((assembled.bounds.max.x - assembled.bounds.min.x) / scale))} /></label>
         </div>
         <section className="bc-module-builder" aria-label="Module builder">
           <h3>{vi ? 'Lắp bằng module chung' : 'Assemble shared modules'}</h3>
@@ -131,14 +164,15 @@ function BlockCarsWorkspace() {
             <label>{vi ? 'Module cabin' : 'Cab module'}<select aria-label="Cab module" value={cabType ?? ''} onChange={e => setCabType(e.target.value as CarOptions['cabType'] || undefined)}><option value="">{vi ? 'Theo mẫu PDF' : 'PDF preset'}</option><option value="flat">{vi ? 'Cabin phẳng' : 'Flat cab'}</option><option value="hood">{vi ? 'Cabin có nắp máy' : 'Hood cab'}</option><option value="car">{vi ? 'Cabin xe con' : 'Car cab'}</option></select></label>
             <label>{vi ? 'Module phía sau' : 'Rear equipment'}<select aria-label="Rear equipment" value={selected.id} onChange={e => { setSelected(models.find(m => m.id === e.target.value)!); setIsolated(''); }}>{models.map(m => <option key={m.id} value={m.id}>{vi ? m.vi : m.en}</option>)}</select></label>
             <label>{vi ? 'Module phía trước' : 'Front equipment'}<select aria-label="Front equipment" value={frontTool ?? ''} onChange={e => { setFrontTool(e.target.value as CarOptions['frontTool'] || undefined); setIsolated(''); }}><option value="">{vi ? 'Theo mẫu PDF' : 'PDF preset'}</option><option value="none">{vi ? 'Không gắn' : 'None'}</option><option value="bucket">{vi ? 'Gầu xúc' : 'Loader bucket'}</option><option value="roller">{vi ? 'Con lăn' : 'Road roller'}</option></select></label>
-            <label>{vi ? 'Bề ngang khung (mm ở 1×)' : 'Chassis width (mm at 1×)'}<input aria-label="Chassis width" type="number" min="34" max="60" step="1" value={width} onChange={e => { const w = Number(e.target.value); if (w >= 34 && w <= 60) setWidth(w); }} /></label>
-            <label>{vi ? 'Khe hở khớp (mm ở 1×)' : 'Joint clearance (mm at 1×)'}<input aria-label="Joint clearance" type="number" min="0.1" max="0.6" step="0.05" value={clearance} onChange={e => { const c = Number(e.target.value); if (c >= 0.1 && c <= 0.6) setClearance(c); }} /></label>
+            <label>{vi ? 'Bề ngang khung (mm ở 1×)' : 'Chassis width (mm at 1×)'}<ModelNumberInput label="Chassis width" min={34} max={60} value={width} onCommit={setWidth} /></label>
+            <label>{vi ? 'Khe hở khớp (mm ở 1×)' : 'Joint clearance (mm at 1×)'}<ModelNumberInput label="Joint clearance" min={0.1} max={0.6} step={0.05} value={clearance} onCommit={setClearance} /></label>
           </div>
-          <div className="bc-joints"><span>{vi ? 'KHỚP CHUNG' : 'SHARED FITTINGS'}</span><p>{vi ? 'Khung: rãnh chữ T trượt xuống · Cabin/thùng: chân đế + chốt tròn Ø6 · Bánh: trục vít + lỗ chờ · Tay cần: ngàm hai má + trục xoay. Các khớp được dựng vào STL.' : 'Chassis: downward T slide · Cab/cargo: seating foot + Ø6 round stud · Wheels: axle screw + pilot hole · Boom: twin cheeks + pivot pin. Fittings are modeled into the STL.'}</p></div>
+          <div className="bc-joints"><span>{vi ? 'KHỚP CHUNG' : 'SHARED FITTINGS'}</span><p>{vi ? 'Khung: ray hai vai giữ + rãnh cái cùng biên dạng · Cabin/thùng: chân đế + chốt tròn Ø6 · Bánh: ren xoắn phải Ø5,4, bước 2,2 mm + lỗ ren tương ứng · Tay cần: ngàm hai má + trục xoay. Thông số ở 1×; khe hở ren theo đường kính. Các khớp có trong STL.' : 'Chassis: twin-shoulder rail + matching female section · Cab/cargo: seating foot + Ø6 round stud · Wheels: Ø5.4 right-hand helix, 2.2 mm pitch + matching threaded bore · Boom: twin cheeks + pivot pin. Dimensions at 1×; thread clearance is diametral. Fittings are included in STL.'}</p></div>
           <div className="bc-module-pieces">{assembled.parts.filter(p => !p.name.startsWith('Tyre') && !p.name.includes('screw')).map(p => <button key={p.name} aria-pressed={isolated === p.name} onClick={() => { setIsolated(isolated === p.name ? '' : p.name); requestView([-1.1, 0.8, 1.7]); }}>{p.name}</button>)}<button onClick={() => { setIsolated(''); setExploded(true); requestView([-1.1, 0.8, 1.7]); }}>{vi ? 'Xem toàn bộ khớp khi tháo' : 'Inspect disassembled fittings'}</button></div>
         </section>
         {compare && <div className="bc-reference-compare"><img src={referenceImage(selected.page)} alt={vi ? 'Hình tham chiếu từ tài liệu gốc' : 'Original visual reference'} /><p>{vi ? 'Kích thước tự ước lượng. Rãnh, khớp và chi tiết được dựng thành khối 3D; chưa xác nhận trùng CAD gốc hoặc dung sai sau in.' : 'Estimated dimensions. Grooves, joints and details are modeled in 3D; original CAD parity and printed fit are unverified.'} <a href="https://makerworld.com/en/crowdfunding/140-creative-buildable-block-car" target="_blank" rel="noreferrer">MakerWorld ↗</a></p></div>}
         <div className="bc-controls"><label className="bc-scale-control"><span><Ruler size={15} /> {vi ? 'KÍCH THƯỚC' : 'MODEL SIZE'}</span><input aria-label={vi ? 'Tỷ lệ kích thước' : 'Model scale'} type="range" min="0.2" max="10" step="0.01" value={scale} onChange={e => setScale(Number(e.target.value))} /><b>{scale.toFixed(2)}×</b></label><button className="bc-export" onClick={exportKit} disabled={downloading}><Download size={16} /> {downloading ? (vi ? 'Đang đóng gói…' : 'Preparing…') : (vi ? 'TẢI BỘ FILE STL' : 'DOWNLOAD STL KIT')}</button></div>
+        {exportError && <p role="alert">{vi ? 'Không xuất được bộ STL: ' : 'STL export failed: '}{exportError}</p>}
         <div className="bc-info-grid"><article><span><Wrench size={15} /> {vi ? 'MODULE IN' : 'PRINT MODULES'}</span><strong>{assembled.parts.length} <small>{vi ? 'chi tiết riêng' : 'separate pieces'}</small></strong><p>{vi ? 'STL có rãnh và khớp, kèm tua vít in 3D và dữ liệu lắp ráp.' : 'Solid STL modules with grooves and fittings, plus a printed screwdriver and assembly data.'}</p></article><article><span>{vi ? 'THAM CHIẾU PDF' : 'PDF REFERENCE'}</span><strong>{selected.partCount} <small>{vi ? 'chi tiết' : 'listed parts'}</small></strong><p>{vi ? `Mẫu số ${modelIndex + 1} · trang ${selected.page}` : `Model ${modelIndex + 1} · page ${selected.page}`}</p></article></div>
         <details className="bc-assembly"><summary>{vi ? 'Xem trang mẫu và trình tự lắp' : 'View model page and assembly order'}</summary><div className="bc-assembly-content"><img src={referenceImage(selected.page)} alt={vi ? `Hình mẫu ${selected.vi} và danh sách linh kiện` : `${selected.en} reference and parts list`} /><ol>{(vi ? ['Lắp các module khung xe theo chiều dài mẫu.', 'Đặt bánh vào đúng vị trí rồi vặn vít bánh vào lỗ chờ ở hai bên khung.', 'Ấn cabin và module chức năng lên khung xe.', 'Kiểm tra độ khớp; điều chỉnh dung sai sau khi in thử.'] : ['Connect the chassis modules to match the vehicle length.', 'Place each wheel and fasten its printed screw into the pilot bore on the chassis sides.', 'Seat the cabin and interchangeable equipment on the chassis.', 'Check each fit and tune clearance after a first test print.']).map(x => <li key={x}>{x}</li>)}</ol></div></details>
         <details className="bc-assembly"><summary>{vi ? 'Phương pháp lắp chung trong PDF' : 'Shared assembly methods from the PDF'}</summary><div className="bc-common-pages">{[

@@ -23,6 +23,9 @@ const shared = new Map<string, Mesh>();
 export function buildCar(model: CarModel, scale: number, clearance = 0.25, options: CarOptions = {}): CarAssembly {
   const width = options.width ?? 42;
   const lateral = width / 34;
+  const wheelCenter = 13 + 3.8 / lateral;
+  const wheelScrewCenter = 13 + 7.7 / lateral;
+  const axleHeight = 8;
   let panelWidth = lateral;
   const key = `${model.id}:${clearance.toFixed(2)}:${width}:${options.cabType ?? 'reference'}:${options.frontTool ?? 'reference'}`;
   if (!cache.has(key)) {
@@ -93,21 +96,68 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     // PDF p3: a projecting rectangular foot seats INSIDE the chassis tray.
     // The central hole is blind, so cargo floors remain closed.
     const socket = (solid: Manifold) => cut(union(cut(solid, box(200, 20, 200, [0, -10, 0], 0)), box(31.5 - clearance * 2, 1.6, 29.8 - clearance * 2, [0, -0.55, 0], 0.9)), cyl(3 + clearance, 4.1, [0, 0.5, 0]));
-    const rail = () => union(box(3.3, 10, 12, [18.7, 9.5, 0], 0.35), box(2.6, 10, 15, [20.2, 9.5, 0], 0.35));
-    const railSocket = (s: Manifold) => cut(s,
-      box(3.1 + clearance, 15, 15 + clearance * 2, [-15.8, 7.25, 0], 0.2),
-      box(3.5, 15, 12 + clearance * 2, [-17.5, 7.25, 0], 0.15));
+    // One X/Z section drives BOTH halves. The PDF's tall rail has two
+    // retaining shoulders and a shallow central relief down its outer face.
+    const railSection = () => new api.CrossSection([[
+      [17, -5.8], [19.2, -5.8], [19.2, -7.5], [19.4, -7.7],
+      [21, -7.7], [21.2, -7.5], [21.2, -0.55], [20.8, -0.55],
+      [20.8, 0.55], [21.2, 0.55], [21.2, 7.5], [21, 7.7],
+      [19.4, 7.7], [19.2, 7.5], [19.2, 5.8], [17, 5.8],
+    ].map(([x, z]) => [x, z * panelWidth] as [number, number])]);
+    const slide = (female: boolean) => {
+      const section = railSection();
+      const contour = female ? section.offset(clearance, 'Round', 2, 16) : section;
+      const solid = hold(contour.extrude(female ? 17.25 + clearance : 14, 0, 0, [1, 1], true));
+      const result = hold(solid.rotate([90, 0, 0]).translate([female ? -36 : 0, female ? (16 + clearance - 1.25) / 2 : 9, 0]));
+      if (female) contour.delete(); section.delete();
+      return result;
+    };
+    const rail = () => slide(false);
+    const railSocket = (s: Manifold) => cut(s, slide(true));
+    // Single-start right-hand helix, rather than stacked circular ridges.
+    // The female tool keeps the full section beyond the tapered male runout,
+    // so unscrewing follows the same lead without hitting the end of a groove.
+    const thread = (female = false) => {
+      const segments = 96, rows = female ? 260 : 136;
+      const start = female ? -16 : -13.4, end = female ? -3 : -6.6;
+      const points: number[] = [], triangles: number[] = [];
+      for (let j = 0; j <= rows; j++) {
+        const z = start + (end - start) * j / rows;
+        const runout = female ? 1 : Math.min(1, (z - start) / 0.7, (end - z) / 0.5);
+        for (let i = 0; i < segments; i++) {
+          const angle = i * 2 * Math.PI / segments;
+          const phase = ((z / 2.2 - angle / (2 * Math.PI)) % 1 + 1) % 1;
+          const distance = Math.min(phase, 1 - phase);
+          const crest = Math.max(0, Math.min(1, (0.39 - distance) / 0.28));
+          const radius = 2.2 + (female ? clearance / 2 : 0) + 0.5 * crest * runout;
+          points.push(radius * Math.cos(angle), radius * Math.sin(angle), z);
+        }
+      }
+      for (let j = 0; j < rows; j++) for (let i = 0; i < segments; i++) {
+        const a = j * segments + i, b = j * segments + (i + 1) % segments, c = a + segments, d = b + segments;
+        triangles.push(a, b, d, a, d, c);
+      }
+      const bottom = points.length / 3; points.push(0, 0, start);
+      const top = points.length / 3; points.push(0, 0, end);
+      for (let i = 0; i < segments; i++) {
+        const next = (i + 1) % segments;
+        triangles.push(bottom, next, i, top, rows * segments + i, rows * segments + next);
+      }
+      return hold(new M(new api.Mesh({ numProp: 3, vertProperties: new Float32Array(points), triVerts: new Uint32Array(triangles) })));
+    };
+    const threadedBore = (x: number, y: number, z: number, rotation: [number, number, number] = [0, 0, 0]) =>
+      hold(common('female-wheel-thread', () => thread(true)).rotate(rotation).translate([x, y, z]));
     const chassis = (front: boolean, axle: boolean, tongue: boolean, pocket: boolean) => {
       let s = box(35.7, 21, 34, [0, 10.5, 0], 1.7);
       s = cut(s, box(31.5, 4, 29.8, [0, 21.5, 0], 0.25));
       s = union(s, cyl(2.8, 3.6, [0, 21.1, 0]), cyl(3, 0.8, [0, 22.8, 0], 'y', 2.8));
       if (axle) {
         for (const side of [-1, 1]) {
-          s = cut(s, cyl(11.25, 6, [0, 9.8, side * 16], 'z'), box(22.5, 10, 6, [0, 4.3, side * 16]));
-          const arch = cut(cyl(12, 1.2, [0, 9.8, side * 16.35], 'z'), cyl(11.25, 2, [0, 9.8, side * 16.35], 'z'), box(30, 25, 4, [0, -3, side * 16.35]), box(30, 20, 4, [0, 31, side * 16.35], 0));
+          s = cut(s, cyl(11.25, 6, [0, axleHeight, side * 16], 'z'), box(22.5, 10, 6, [0, axleHeight - 5, side * 16]));
+          const arch = cut(cyl(12, 1.2, [0, axleHeight, side * 16.35], 'z'), cyl(11.25, 2, [0, axleHeight, side * 16.35], 'z'), box(30, 25, 4, [0, axleHeight - 12.5, side * 16.35]), box(30, 20, 4, [0, 31, side * 16.35], 0));
           s = union(s, arch);
-          s = cut(s, cyl(2.2 + clearance, 17, [0, 9.8, side * 8.5], 'z'));
-          for (const depth of [7.3, 9.5, 11.7]) s = cut(s, cyl(2.55 + clearance, 1.5 / lateral, [0, 9.8, side * (20.5 - depth / lateral)], 'z'));
+          s = cut(s, cyl(2.2 + clearance / 2, 17, [0, axleHeight, side * 8.5], 'z'));
+          s = cut(s, threadedBore(0, axleHeight, side * wheelScrewCenter * lateral, [0, side < 0 ? 180 : 0, 0]));
         }
       }
       if (tongue) s = union(s, rail());
@@ -142,12 +192,11 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     };
     const screw = () => {
       let s = union(cyl(4.75, 2.8, [0, 0, 0], 'z', 4.45), cyl(2.2, 12.8, [0, 0, -7], 'z'));
-      for (const z of [-7.3, -9.5, -11.7]) s = union(s, cyl(2.55, 1.1, [0, 0, z], 'z', 2.25));
       const cross: [number, number][] = Array.from({ length: 128 }, (_, i) => {
         const angle = i * Math.PI / 64; const radius = 2.5 + 0.8 * Math.cos(angle * 4);
         return [Math.cos(angle) * radius, Math.sin(angle) * radius];
       });
-      return hold(cut(s, shift(profile(cross, 2.2, 0.1), 0, 0, 1)).scale([1, 1, 1 / lateral]));
+      return union(hold(cut(s, shift(profile(cross, 2.2, 0.1), 0, 0, 1)).scale([1, 1, 1 / lateral])), thread());
     };
     const tray = (height = 8) => {
       let s = box(35.5, height, 33.8, [0, height / 2, 0], 1.2);
@@ -179,6 +228,8 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         for (const side of [-1, 1]) s = union(s, box(2.4, 27, 2.8, [16.5, 14, side * 14.5], 1.1), cyl(2, 2.4, [16.5, 28, side * 14.5], 'x'));
         s = union(s, box(25, 0.8, 28, [3, 27.8, 0], 0.3));
       }
+      // Extrusion bevels extend beyond the outline: leave a real module seam.
+      s = cut(s, box(40, 100, 80, [37.75, 30, 0], 0));
       return socket(s);
     };
     const frontTool = options.frontTool ?? (model.kind === 'loader' ? 'bucket' : model.kind === 'crate' ? 'roller' : 'none');
@@ -192,14 +243,17 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     const tyreSolid = common('tyre', tyre); const screwSolid = common('screw', screw);
     let wheelIndex = 0;
     for (const [i, x] of moduleXs.entries()) if (!(long && i === moduleXs.length - 2 && i > 0)) for (const side of [-1, 1]) {
-      part(`Tyre ${++wheelIndex}`, tyreSolid, black, [x, 9.8, side * 17.2]);
-      part(`Cross socket wheel screw ${wheelIndex}`, screwSolid, beige, [x, 9.8, side * 20.5], [0, side < 0 ? Math.PI : 0, 0]);
+      part(`Tyre ${++wheelIndex}`, tyreSolid, black, [x, axleHeight, side * wheelCenter]);
+      part(`Cross socket wheel screw ${wheelIndex}`, screwSolid, beige, [x, axleHeight, side * wheelScrewCenter], [0, side < 0 ? Math.PI : 0, 0]);
     }
     const addRoller = () => {
       let roller = union(box(7, 13, 34, [14, 9.5, 0], 0.6), box(23, 5, 3, [2, 8.4, -16]), box(23, 5, 3, [2, 8.4, 16]), rail());
       roller = cut(union(roller, cyl(4.5, 3, [-7, 8.4, -16], 'z'), cyl(4.5, 3, [-7, 8.4, 16], 'z')), cyl(2.55 + clearance, 40, [-7, 8.4, 0], 'z'));
-      part('Road roller fork', roller, red, [-54, 0, 0]); part('Road roller drum', cut(cyl(8.4, 28, [0, 0, 0], 'z'), cyl(2.55 + clearance, 32, [0, 0, 0], 'z')), yellow, [-61, 8.4, 0]);
-      for (const side of [-1, 1]) part(`Roller screw ${side}`, screwSolid, beige, [-61, 8.4, side * 18.6], [0, side < 0 ? Math.PI : 0, 0]);
+      const rollerScrewCenter = 17.5 + 1.5 / lateral;
+      let drum = cut(cyl(8.4, 28, [0, 0, 0], 'z'), cyl(2.2 + clearance / 2, 32, [0, 0, 0], 'z'));
+      for (const side of [-1, 1]) drum = cut(drum, threadedBore(0, 0, side * rollerScrewCenter * lateral, [0, side < 0 ? 180 : 0, 0]));
+      part('Road roller fork', roller, red, [-54, 0, 0]); part('Road roller drum', drum, yellow, [-61, 8.4, 0]);
+      for (const side of [-1, 1]) part(`Roller screw ${side}`, screwSolid, beige, [-61, 8.4, side * rollerScrewCenter], [0, side < 0 ? Math.PI : 0, 0]);
     };
     const addFrontBucket = () => {
       const arc = (a: [number, number], b: [number, number], c: [number, number]): [number, number][] => Array.from({ length: 16 }, (_, i) => {
@@ -209,7 +263,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       let bucket = profile([[-17, 0], [9, 0], [9, 16], [5, 16], ...arc([5, 16], [3, 4], [-17, 3])], 33, 0.5);
       bucket = cut(bucket, profile([[-18, 3], [5, 3], [5, 19], [0, 19], ...arc([0, 19], [-1, 6], [-18, 4.5])], 28, 0));
       for (let i = 0; i < 8; i++) bucket = union(bucket, box(4, 1.8, 2.2, [-18, 1, -13 + i * 3.7], 0.35));
-      bucket = union(shift(bucket, 8.3), box(10, 10, 12, [13.5, 9.5, 0], 0.45), rail()); part('Front loader scoop with eight teeth', bucket, red, [-54, 0, 0]);
+      bucket = union(shift(bucket, 8.3), box(8.6, 10, 12, [13.5, 9.5, 0], 0.45), rail()); part('Front loader scoop with eight teeth', bucket, red, [-54, 0, 0]);
     };
     const cabType = options.cabType ?? (['sedan', 'sport', 'pickup'].includes(model.kind) ? 'car' : ['tanker', 'cage', 'recycle', 'crane', 'loader', 'hook', 'mixer'].includes(model.kind) ? 'hood' : 'flat');
     part('Cabin with recessed windows and wipers', common(`cab:${cabType}`, () => cabin(cabType)), model.cab, [-18, 21, 0]);
@@ -269,7 +323,9 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       case 'sedan': {
         let s = profile([[-17.4, 0], [17.4, 0], [17.4, 8], [10, 9], [3.5, 23], [-17.4, 23]], 33.5, 1);
         for (const side of [-1, 1]) s = cut(s, box(15.5, 11, 2, [-6, 15, side * 16.7], 0.7));
-        s = union(s, box(4, 4, 9, [-12, 24, 0], 0.6)); body('City car rear cabin', s); break;
+        s = union(s, box(4, 4, 9, [-12, 24, 0], 0.6));
+        s = cut(s, box(40, 100, 80, [-37.75, 30, 0], 0));
+        body('City car rear cabin', s); break;
       }
       case 'pickup': {
         let s = union(tray(), box(11, 24, 33.5, [-12, 12, 0], 1));
@@ -285,13 +341,17 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         else {
           for (const z of [-9, -3, 3, 9]) s = union(s, box(29, 0.9, 1, [0, 26.4, z], 0.45));
           for (const z of [-13, 13]) { let rail = box(31, 3, 1.8, [0, 28.1, z], 0.8); rail = cut(rail, box(24, 1.2, 3, [0, 28.3, z], 0.2)); s = union(s, rail, box(2, 2.5, 1.8, [-13, 26.5, z], 0.35), box(2, 2.5, 1.8, [13, 26.5, z], 0.35)); }
-          s = union(s, cyl(2.35, 6, [19, 14, 0], 'x'));
+          s = union(s, cyl(4.3, 1.2, [17.95, 14, 0], 'x'));
+          s = cut(s, threadedBore(25.2, 14, 0, [0, 90, 0]), cyl(2.2 + clearance / 2, 20, [16, 14, 0], 'x'));
         }
         body(model.kind === 'sport' ? 'SUV rear body with roof rack' : 'Van body with recessed panels', s);
-        if (model.kind === 'sport') { part('Rear spare tyre', tyreSolid, black, [38.6, 35, 0], [0, Math.PI / 2, 0]); part('Spare wheel screw', screwSolid, beige, [42, 35, 0], [0, Math.PI / 2, 0]); } break;
+        if (model.kind === 'sport') { part('Rear spare tyre', tyreSolid, black, [39.3, 35, 0], [0, Math.PI / 2, 0]); part('Spare wheel screw', screwSolid, beige, [43.2, 35, 0], [0, Math.PI / 2, 0]); } break;
       }
       case 'dump': {
-        let s = profile([[-17, 0], [17, 0], [17, 28], [-17, 28], [-28, 34], [-33, 34], [-25, 23]], 34, 0.8);
+        // Return the canopy to the FRONT WALL before closing the outline.
+        // Closing straight from the canopy tip to the floor filled the cabin
+        // space with a large diagonal wedge.
+        let s = profile([[-17, 0], [17, 0], [17, 28], [-13, 28], [-17, 32], [-28, 35], [-33, 35], [-25, 30], [-17, 30]], 34, 0.8);
         s = cut(s, box(29, 37, 29, [0, 21, 0], 0.65), box(17, 20, 29, [-24, 38, 0], 0.5));
         s = sideRibs(s, 6, 5, 3.5); for (const side of [-1, 1]) s = union(s, shift(turn(box(1.6, 28, 1.1, [0, 0, 0], 0.45), 0, 0, -44), 3, 15, side * 17));
         body('Open ribbed dump hopper and front canopy', s); break;
@@ -343,12 +403,15 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         let support = union(shell(4), box(20, 4, 27, [17.5, 2, 0], 0.3), mixerTilt(box(3, 20, 27, [-17.5, -7, 0], 0.65)), mixerTilt(box(3, 28, 27, [18, -11, 0], 0.65)));
         support = cut(support, mixerTilt(cyl(2.55 + clearance, 9, [18, 0, 0], 'x')));
         support = union(support, mixerTilt(cyl(2.3, 10, [-16, 0, 0], 'x')));
+        support = cut(support, box(40, 100, 80, [-37.75, 30, 0], 0));
         body('Mixer cradle', support, yellow);
         let drum = union(cyl(12.8, 18, [0, 0, 0], 'x'), cyl(9.3, 7, [12, 0, 0], 'x', 12.8), cyl(12.8, 4, [-11, 0, 0], 'x', 10.6));
         drum = cut(drum, cyl(7, 9, [15, 0, 0], 'x'));
         for (let i = 0; i < 6; i++) drum = cut(drum, turn(box(11, 1.4, 3.8, [0, 12.6, 0], 0.6), i * 60, 0, 0));
-        drum = cut(drum, cyl(2.55 + clearance, 40, [0, 0, 0], 'x')); part('Tapered mixer drum with open mouth', drum, red, [18, 41.7, 0], [0, 0, mixerAngle]);
-        part('Mixer retaining screw', screwSolid, beige, [18 + 22 * Math.cos(mixerAngle), 41.7 + 22 * Math.sin(mixerAngle), 0], [0, Math.PI / 2, mixerAngle]); break;
+        drum = cut(drum, cyl(2.2 + clearance / 2, 40, [0, 0, 0], 'x'), cyl(2.55 + clearance, 12, [-14, 0, 0], 'x'), threadedBore(22, 0, 0, [0, 90, 0]));
+        part('Tapered mixer drum with open mouth', drum, red, [18, 41.7, 0], [0, 0, mixerAngle]);
+        const screwEuler = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().makeRotationZ(mixerAngle).multiply(new THREE.Matrix4().makeRotationY(Math.PI / 2)));
+        part('Mixer retaining screw', screwSolid, beige, [18 + 22 * Math.cos(mixerAngle), 41.7 + 22 * Math.sin(mixerAngle), 0], [screwEuler.x, screwEuler.y, screwEuler.z]); break;
       }
     }
     if (frontTool === 'roller') addRoller();
