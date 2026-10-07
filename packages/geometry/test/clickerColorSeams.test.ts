@@ -146,7 +146,7 @@ describe('Clicker 3MF selected filament colors', () => {
     const project = JSON.parse(strFromU8(archive['Metadata/project_settings.config']));
     expect(project.filament_colour).toEqual(['#000000', '#ff8700', '#ffffff']);
     expect(project.name).toBe('project_settings');
-    expect(project.nozzle_diameter).toEqual(['0.4']);
+    expect(project.nozzle_diameter).toEqual(['0.4', '0.4', '0.4', '0.4']);
     expect(project.printer_technology).toBe('FFF');
     expect(project.filament_settings_id).toHaveLength(3);
     const settings = strFromU8(archive['Metadata/model_settings.config']);

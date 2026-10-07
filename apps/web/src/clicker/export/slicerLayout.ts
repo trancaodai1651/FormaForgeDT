@@ -12,10 +12,10 @@ export const defaultSlicerExport = (): SlicerExportOptions => ({ target: 'flashf
 export const slicerProfiles = {
   bambu: { label: 'Bambu Studio', application: 'BambuStudio-02.00.00.00', version: '02.00.00.00',
     model: 'Bambu Lab A1', printer: 'Bambu Lab A1 0.4 nozzle', process: '0.20mm Standard @BBL A1',
-    filament: 'Bambu PLA Basic @BBL A1', bed: 256, flavor: 'marlin', singleExtruderMultiMaterial: true },
+    filament: 'Bambu PLA Basic @BBL A1', bed: 256, flavor: 'marlin', nozzleCount: 1, singleExtruderMultiMaterial: true },
   flashforge: { label: 'Flashforge Studio', application: 'OrcaSlicer-02.01.01.00', version: '2.1.1.0',
     model: 'Flashforge Creator 5 Pro', printer: 'Flashforge Creator 5 Pro 0.4 nozzle', process: '0.20mm Standard @FF C5',
-    filament: 'Flashforge PLA Basic @FF C5', bed: 256, flavor: 'klipper', singleExtruderMultiMaterial: false },
+    filament: 'Flashforge PLA Basic @FF C5P', bed: 256, flavor: 'klipper', nozzleCount: 4, singleExtruderMultiMaterial: false },
 } as const;
 
 /** Keep every material in one logical object. Ground the whole object once,

@@ -3,6 +3,7 @@ import { downloadBlob } from '../utils/helpers';
 import { zipSync, strToU8 } from 'fflate';
 import type { ClickerPart, PartGroup, RGB } from '../types';
 import { splitMeshShells } from './meshUtils';
+import { buildFlushSettings } from './flushSettings';
 import { defaultSlicerExport, prepareSlicerLayout, type SlicerExportOptions } from './slicerLayout';
 
 // Preserve round-trip coordinates: quantization can collapse narrow triangles.
@@ -160,14 +161,15 @@ export function buildThreeMF(rawParts: ClickerPart[], options: SlicerExportOptio
   const projectSettings = JSON.stringify({
     name: 'project_settings',
     version: profile.version,
-    // A complete single-nozzle compatibility preset is required for Bambu
+    // A complete compatibility preset is required for Bambu
     // project import. An incomplete config is ignored, including its palette.
     printer_technology: 'FFF',
     printer_model: profile.model,
     printer_settings_id: profile.printer,
     print_settings_id: profile.process,
     gcode_flavor: profile.flavor,
-    nozzle_diameter: ['0.4'],
+    nozzle_diameter: Array.from({ length: profile.nozzleCount }, () => '0.4'),
+    printer_extruder_id: Array.from({ length: profile.nozzleCount }, (_, i) => String(i + 1)),
     printable_area: ['0x0', `${profile.bed}x0`, `${profile.bed}x${profile.bed}`, `0x${profile.bed}`],
     printable_height: String(profile.bed),
     single_extruder_multi_material: profile.singleExtruderMultiMaterial ? '1' : '0',
@@ -180,6 +182,9 @@ export function buildThreeMF(rawParts: ClickerPart[], options: SlicerExportOptio
     filament_colour: colors.map(color => color.slice(0, 7)),
     filament_type: colors.map(() => 'PLA'),
     filament_diameter: colors.map(() => '1.75'),
+    // Do not inherit a stale default matrix from the user's previous project.
+    // Flashforge validates N² entries per nozzle against the final RGB palette.
+    ...buildFlushSettings(colors.length, profile.nozzleCount),
   });
 
   const contentTypes =

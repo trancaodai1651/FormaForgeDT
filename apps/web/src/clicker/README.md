@@ -23,3 +23,4 @@ Thư viện React/TypeScript/Three.js cho các công cụ tạo vật thể in 3
 - **Automatic** đặt mặt ảnh có Extrude hướng lên và bật support cho phần nhô ra/stem. Mẫu phẳng được đặt úp để mặt ảnh nằm trên bàn in. Có thể chọn hướng và support riêng.
 - Đặt toàn bộ từng cụm top/base xuống Z=0, giữ nguyên vị trí tương đối của các tầng màu; không hạ từng màu riêng xuống bàn in. Preview không bị đổi hướng bởi tùy chọn xuất.
 - Profile mặc định là Flashforge Creator 5 Pro, nozzle 0.4 mm; có thể chọn thêm Bambu A1. Chọn lại đúng máy, nozzle, vật liệu và số slot màu trong slicer trước khi in. File xuất là project 3MF, không phải G-code.
+- Creator 5 Pro khai báo 4 đầu phun; Bambu A1 khai báo 1. Ma trận flush có `số màu² × số đầu phun` phần tử, vector load/unload có `2 × số màu` phần tử, và multiplier riêng cho từng đầu phun. Các giá trị mặc định 140/280 mm³ có thể chỉnh hoặc tính lại trong slicer theo filament thực tế.

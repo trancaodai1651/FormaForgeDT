@@ -4,6 +4,8 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { buildThreeMF } from '../../../apps/web/src/clicker/export/threemfExport';
 import { defaultSlicerExport, prepareSlicerLayout, type SlicerTarget } from '../../../apps/web/src/clicker/export/slicerLayout';
 import type { ClickerPart, RGB } from '../../../apps/web/src/clicker/types';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 async function fixture(relief = true) {
   const wasm = await Module(); wasm.setup();
@@ -35,6 +37,48 @@ const vertices = (xml: string, objectId: number) => {
 };
 
 describe('Slicer-specific 3MF print placement', () => {
+  for (const target of ['bambu', 'flashforge'] as SlicerTarget[]) {
+    for (const colorCount of [1, 2, 3, 4, 5, 6, 8]) {
+      it(`${target}: exports a complete flush matrix for ${colorCount} final RGB slots`, async () => {
+        const seed = (await fixture(false))[1];
+        const shifted = (i: number) => {
+          const vertices = seed.vertProperties.slice();
+          for (let vertex = 0; vertex < vertices.length; vertex += seed.numProp) vertices[vertex] += i * 20;
+          return vertices;
+        };
+        const parts = Array.from({ length: colorCount }, (_, i) => ({ ...seed,
+          name: `region-${i}`, vertProperties: shifted(i), colorRgb: [i * 30, 255 - i * 20, i * 10] as RGB }));
+        // Repeat an RGB with an unrelated imported slot: only final colors count.
+        parts.push({ ...parts[0], name: 'same-color', vertProperties: shifted(colorCount), extruder: 99 });
+        const bytes = buildThreeMF(parts, { ...defaultSlicerExport(), target });
+        const archive = unzipSync(bytes);
+        const config = JSON.parse(strFromU8(archive['Metadata/project_settings.config']));
+        const nozzleCount = target === 'flashforge' ? 4 : 1;
+        expect(config.filament_colour).toHaveLength(colorCount);
+        expect(config.nozzle_diameter).toHaveLength(nozzleCount);
+        expect(config.printer_extruder_id).toEqual(Array.from({ length: nozzleCount }, (_, i) => String(i + 1)));
+        expect(config.flush_multiplier).toEqual(Array(nozzleCount).fill('1'));
+        expect(config.flush_volumes_vector).toEqual(Array(colorCount * 2).fill('140'));
+        // This is the exact invariant checked by GCode::append_full_config.
+        expect(config.flush_volumes_matrix).toHaveLength(colorCount ** 2 * config.flush_multiplier.length);
+        for (let nozzle = 0; nozzle < nozzleCount; nozzle++) {
+          for (let from = 0; from < colorCount; from++) {
+            for (let to = 0; to < colorCount; to++) {
+              expect(config.flush_volumes_matrix[nozzle * colorCount ** 2 + from * colorCount + to])
+                .toBe(from === to ? '0' : '280');
+            }
+          }
+        }
+        expect(config.filament_settings_id).toEqual(Array(colorCount).fill(
+          target === 'flashforge' ? 'Flashforge PLA Basic @FF C5P' : 'Bambu PLA Basic @BBL A1'));
+        if (process.env.CLICKER_SLICER_FIXTURE_DIR && colorCount === 3) {
+          mkdirSync(process.env.CLICKER_SLICER_FIXTURE_DIR, { recursive: true });
+          writeFileSync(join(process.env.CLICKER_SLICER_FIXTURE_DIR, `${target}-flush.3mf`), bytes);
+        }
+      });
+    }
+  }
+
   for (const target of ['bambu', 'flashforge'] as SlicerTarget[]) {
     it(`${target}: grounds each assembly and preserves supported face-up band order and exact RGB slots`, async () => {
       const parts = await fixture();
