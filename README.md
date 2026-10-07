@@ -12,6 +12,7 @@ Public-first 3D creation toolbox for designing, previewing and exporting printab
 - Public price reader for Taobao, Tmall, 1688, Pinduoduo, JD and Xiaohongshu links, with CNY/VND conversion and a configurable licensed data-provider adapter.
 - Tauri 2 desktop shell configured for Windows NSIS and macOS DMG targets.
 - Responsive Module Lamp Studio at `#/module-studio`: draw a profile, generate a live 3D shade, arrange configurable modules, select E27 or Bambu LED Kit 001 hardware, choose printable joints, and export a project or STL.
+- Block Cars workspace at `#/block-cars`: assemble modular vehicles, adjust their scale and export printable kits.
 - GitHub Actions for validation and GitHub Pages deployment.
 
 ## Quick start
@@ -34,7 +35,7 @@ All creation workspaces are available without an account. Optional API-backed pr
 
 ## Routes
 
-`/`, `/downloads`, `/clicker`, `/mekey-studio`, `/multi-color`, `/svg-layers`, `/flex-keychain`, `/flex-organizer`, `/flex-lamp`, `/tulip-creator`, `/home-item`, `/paramacraft`, `/module-studio`, `/hunyuan-3d`, `/split-3mf`, `/price-reader`.
+`/`, `/downloads`, `/clicker`, `/mekey-studio`, `/multi-color`, `/svg-layers`, `/flex-keychain`, `/flex-organizer`, `/flex-lamp`, `/tulip-creator`, `/home-item`, `/paramacraft`, `/module-studio`, `/hunyuan-3d`, `/split-3mf`, `/price-reader`, `/block-cars`.
 
 ## GitHub Pages
 

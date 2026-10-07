@@ -58,9 +58,15 @@ export function prepareSlicerLayout(parts: ClickerPart[], options: SlicerExportO
       flip ? -vertices[i + 1] + bb.minY + bb.maxY : vertices[i + 1],
       flip ? bb.maxZ - vertices[i + 2] : vertices[i + 2] - bb.minZ];
   };
-  // A relief facing down has gaps under its background; facing up can leave
-  // the cap underside overhanging its MX stem. Both need slicer supports.
-  const supportNeeded = parts.some(raised) || (groups.includes('top') && !flipTop);
+  // A standalone, face-up top with extrude-color bands is a stacked relief:
+  // each band starts on the backing material. Do not turn on slicer supports
+  // just because those bands rise above their face; the slicer otherwise adds
+  // support into the first colored layers. Explicit `supports: 'on'` still
+  // lets the user request support for a particular geometry.
+  const layeredTopOnly = groups.length === 1 && groups[0] === 'top' && parts.some(part => part.extrudeLayer);
+  // A relief facing down has gaps under its background; face-up assemblies
+  // can leave the cap underside overhanging its stem. Those still need support.
+  const supportNeeded = !layeredTopOnly && (parts.some(raised) || (groups.includes('top') && !flipTop));
   const supportEnabled = options.supports === 'on' || (options.supports === 'auto' && supportNeeded);
   return { vertex, placements, flipTop, supportEnabled, supportNeeded, profile };
 }

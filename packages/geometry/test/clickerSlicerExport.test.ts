@@ -128,4 +128,30 @@ describe('Slicer-specific 3MF print placement', () => {
     expect(prepareSlicerLayout(flat, { ...defaultSlicerExport(), topOrientation: 'face-up' }).supportEnabled).toBe(true);
     expect(prepareSlicerLayout(relief, { ...defaultSlicerExport(), supports: 'off' }).supportEnabled).toBe(false);
   });
+
+  it('does not auto-generate supports beneath standalone extruded color bands', async () => {
+    const plate = (await fixture(false))[1];
+    const wasm = await Module(); wasm.setup();
+    const cube = wasm.Manifold.cube([4, 4, 0.6]).translate([-2, -2, 14]);
+    const mesh = cube.getMesh(); cube.delete();
+    const band: ClickerPart = {
+      name: 'top-color-layer-1', kind: 'cap', group: 'top', colorRgb: [255, 135, 0],
+      numProp: mesh.numProp, vertProperties: mesh.vertProperties, triVerts: mesh.triVerts,
+      extrudeOrigin: { bottomZ: 14, stepMm: 0.6 },
+      extrudeLayer: { level: 1, regionName: 'artwork' },
+    };
+    const parts = [plate, band];
+    const automatic = prepareSlicerLayout(parts, defaultSlicerExport());
+    expect(automatic.flipTop).toBe(false);
+    expect(automatic.supportNeeded).toBe(false);
+    expect(automatic.supportEnabled).toBe(false);
+    expect(prepareSlicerLayout(parts, { ...defaultSlicerExport(), supports: 'on' }).supportEnabled).toBe(true);
+
+    const archive = unzipSync(buildThreeMF(parts));
+    const xml = strFromU8(archive['3D/3dmodel.model']);
+    expect(Math.min(...vertices(xml, 3).map(vertex => vertex[2]))).toBeCloseTo(2, 5);
+    const config = JSON.parse(strFromU8(archive['Metadata/project_settings.config']));
+    expect(config.enable_support).toBe('0');
+    expect(strFromU8(archive['Metadata/model_settings.config'])).toContain('key="enable_support" value="0"');
+  });
 });
