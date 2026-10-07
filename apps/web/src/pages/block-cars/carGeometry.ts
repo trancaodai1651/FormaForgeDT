@@ -24,7 +24,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
   const width = options.width ?? 42;
   const lateral = width / 34;
   const wheelCenter = 13 + 3.8 / lateral;
-  const wheelScrewCenter = 13 + 7.7 / lateral;
+  const wheelScrewCenter = 13 + 7.6 / lateral;
   const axleHeight = 8;
   let panelWidth = lateral;
   const key = `${model.id}:${clearance.toFixed(2)}:${width}:${options.cabType ?? 'reference'}:${options.frontTool ?? 'reference'}`;
@@ -47,7 +47,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       const r = Math.min(radius, x / 3, y / 3, z / 3);
       // Build normals on a unit cube: the upstream geometry derives its normals
       // from dimensioned positions, which shrinks thin faces unevenly.
-      const g = new RoundedBoxGeometry(1, 1, 1, 2, 0.1);
+      const g = new RoundedBoxGeometry(1, 1, 1, 4, 0.1);
       const p = g.getAttribute('position');
       const normals = g.getAttribute('normal');
       for (let i = 0; i < p.count; i++) p.setXYZ(i,
@@ -61,10 +61,30 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     };
     const cyl = (r: number, h: number, at: number[] = [0, 0, 0], axis: 'x' | 'y' | 'z' = 'y', rTop = r) => shift(turn(hold(M.cylinder(axis === 'z' ? h * panelWidth : h, r, rTop, 64, true)), axis === 'y' ? 90 : 0, axis === 'x' ? 90 : 0), ...at as [number, number, number]);
     const sphere = (r: number, at: number[]) => shift(hold(M.sphere(r, 32)), ...at as [number, number, number]);
-    const profile = (points: [number, number][], width: number, bevel = 0.5) => {
+    const profile = (points: [number, number][], width: number, bevel = 0.5, cornerRadius = 0) => {
       width *= panelWidth;
-      const s = new THREE.Shape(points.map(p => new THREE.Vector2(...p)));
-      const g = new THREE.ExtrudeGeometry(s, { depth: width - bevel * 2, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 3, curveSegments: 20, steps: 1 });
+      let s = new THREE.Shape(points.map(p => new THREE.Vector2(...p)));
+      if (cornerRadius) {
+        // Round the silhouette as well as the extrusion edges. Inset the
+        // outline before beveling so the finished module keeps its envelope.
+        const rounded = new THREE.Shape();
+        points.forEach((p, i) => {
+          const prev = new THREE.Vector2(...points[(i + points.length - 1) % points.length]);
+          const next = new THREE.Vector2(...points[(i + 1) % points.length]);
+          const vertex = new THREE.Vector2(...p);
+          const distance = Math.min(cornerRadius, prev.distanceTo(vertex) * 0.3, next.distanceTo(vertex) * 0.3);
+          const entry = vertex.clone().add(prev.sub(vertex).normalize().multiplyScalar(distance));
+          const exit = vertex.clone().add(next.sub(vertex).normalize().multiplyScalar(distance));
+          if (i === 0) rounded.moveTo(entry.x, entry.y); else rounded.lineTo(entry.x, entry.y);
+          rounded.quadraticCurveTo(vertex.x, vertex.y, exit.x, exit.y);
+        });
+        rounded.closePath();
+        const section = new api.CrossSection([rounded.getPoints(8).map(p => [p.x, p.y] as [number, number])]);
+        const inset = section.offset(-bevel, 'Round', 2, 24);
+        s = new THREE.Shape(inset.toPolygons()[0].map(p => new THREE.Vector2(...p)));
+        inset.delete(); section.delete();
+      }
+      const g = new THREE.ExtrudeGeometry(s, { depth: width - bevel * 2, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 6, curveSegments: 24, steps: 1 });
       g.translate(0, 0, -width / 2 + bevel);
       const p = g.getAttribute('position');
       const mesh = new api.Mesh({ numProp: 3, vertProperties: new Float32Array(p.array), triVerts: new Uint32Array(Array.from({ length: p.count }, (_, i) => i)) }); mesh.merge();
@@ -148,7 +168,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     const threadedBore = (x: number, y: number, z: number, rotation: [number, number, number] = [0, 0, 0]) =>
       hold(common('female-wheel-thread', () => thread(true)).rotate(rotation).translate([x, y, z]));
     const chassis = (front: boolean, axle: boolean, tongue: boolean, pocket: boolean) => {
-      let s = box(35.7, 21, 34, [0, 10.5, 0], 1.7);
+      let s = box(35.7, 21, 34, [0, 10.5, 0], 2.1);
       s = cut(s, box(31.5, 4, 29.8, [0, 21.5, 0], 0.25));
       s = union(s, cyl(2.8, 3.6, [0, 21.1, 0]), cyl(3, 0.8, [0, 22.8, 0], 'y', 2.8));
       if (axle) {
@@ -191,22 +211,24 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       return hold(new M(new api.Mesh({ numProp: 3, vertProperties: new Float32Array(positions), triVerts: new Uint32Array(indices) })));
     };
     const screw = () => {
-      let s = union(cyl(4.75, 2.8, [0, 0, 0], 'z', 4.45), cyl(2.2, 12.8, [0, 0, -7], 'z'));
-      const cross: [number, number][] = Array.from({ length: 128 }, (_, i) => {
-        const angle = i * Math.PI / 64; const radius = 2.5 + 0.8 * Math.cos(angle * 4);
-        return [Math.cos(angle) * radius, Math.sin(angle) * radius];
-      });
-      return union(hold(cut(s, shift(profile(cross, 2.2, 0.1), 0, 0, 1)).scale([1, 1, 1 / lateral])), thread());
+      // Low rounded head seats on the recessed hub, nearly flush with the
+      // tyre sidewall. Keep the bearing shoulder and threaded shaft separate.
+      const headSection = new api.CrossSection([[[0, -1.4], [4.25, -1.4], [4.6, -1.25], [4.75, -0.95], [4.75, -0.5], [4.6, -0.18], [4.25, 0], [0, 0]]]);
+      const head = hold(headSection.revolve(96)); headSection.delete();
+      let s = union(head, hold(cyl(2.2, 12.8, [0, 0, -7], 'z').scale([1, 1, 1 / lateral])));
+      const cross: [number, number][] = [[-0.95, -3.1], [0.95, -3.1], [0.95, -0.95], [3.1, -0.95], [3.1, 0.95], [0.95, 0.95], [0.95, 3.1], [-0.95, 3.1], [-0.95, 0.95], [-3.1, 0.95], [-3.1, -0.95], [-0.95, -0.95]];
+      const recess = hold(shift(profile(cross, 1.6, 0.1, 0.3), 0, 0, -0.1).scale([1, 1, 1 / lateral]));
+      return union(cut(s, recess), thread());
     };
     const tray = (height = 8) => {
-      let s = box(35.5, height, 33.8, [0, height / 2, 0], 1.2);
+      let s = box(35.5, height, 33.8, [0, height / 2, 0], 1.8);
       s = cut(s, box(30.5, height + 1, 28.8, [0, height / 2 + 3.8, 0], 0.9));
       for (const z of [-16.75, 16.75]) s = union(s, box(25, 1.25, 0.9, [0, 3.5, z]));
       return socket(s);
     };
     const cabin = (kind: 'flat' | 'hood' | 'car') => {
       const points: [number, number][] = kind === 'flat' ? [[-17.5, 0], [17.5, 0], [17.5, 27], [-8, 27], [-17.5, 2]] : kind === 'hood' ? [[-17.5, 0], [17.5, 0], [17.5, 27], [-4.5, 27], [-9, 11], [-15.5, 11], [-17.5, 8]] : [[-17.5, 0], [17.5, 0], [17.5, 23], [5, 23], [-8, 10], [-16, 8]];
-      let s = profile(points, 33.5, 1.35);
+      let s = profile(points, 33.5, 1.1, 2.2);
       const roofY = kind === 'car' ? 23 : 27;
       const windowX = kind === 'flat' ? 3 : kind === 'hood' ? 6 : 9;
       const windowWidth = kind === 'car' ? 14 : 17;
@@ -215,18 +237,18 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         s = union(s, box(1.8, 4.5, 1.4, [windowX - windowWidth / 2 - 1.8, 11, side * 17.1], 0.6), shift(sphere(1.1, [0, 0, 0]), 12.7, 5.5, side * 16.7));
       }
       const angle = kind === 'flat' ? -21 : kind === 'hood' ? -15.7 : -45;
-      const windshieldX = kind === 'flat' ? -13.7 : kind === 'hood' ? -7.7 : -2.2;
+      const windshieldX = kind === 'flat' ? -13.7 : kind === 'hood' ? -7.2 : -2.2;
       const windshieldY = kind === 'flat' ? 14.8 : kind === 'hood' ? 19 : 16.5;
-      s = cut(s, shift(turn(box(3.6, kind === 'car' ? 14 : 18, 25, [0, 0, 0], 0.55), 0, 0, angle), windshieldX, windshieldY, 0));
+      s = cut(s, shift(turn(box(3.6, kind === 'car' ? 14 : kind === 'hood' ? 13 : 18, 25, [0, 0, 0], 0.55), 0, 0, angle), windshieldX, windshieldY, 0));
       for (const z of [-7, 7]) {
         s = union(s, shift(turn(box(0.95, 5.5, 0.8, [0, 0, 0], 0.3), 0, 0, angle - 15), windshieldX - 2.1, windshieldY - 5.9, z), cyl(0.95, 1.5, [windshieldX - 3, windshieldY - 8, z + 0.7], 'x'));
       }
       if (kind === 'flat') for (const z of [-8, 0, 8]) {
-        s = cut(s, box(12, 2.1, 0.65, [3, roofY + 1.3, z - 2], 0.25), box(12, 2.1, 0.65, [3, roofY + 1.3, z + 2], 0.25), box(0.65, 2.1, 4.65, [9, roofY + 1.3, z], 0.25));
+        s = cut(s, box(12, 2.1, 0.65, [3, roofY + 0.4, z - 2], 0.25), box(12, 2.1, 0.65, [3, roofY + 0.4, z + 2], 0.25), box(0.65, 2.1, 4.65, [9, roofY + 0.4, z], 0.25));
       }
       if (kind === 'hood') {
         for (const side of [-1, 1]) s = union(s, box(2.4, 27, 2.8, [16.5, 14, side * 14.5], 1.1), cyl(2, 2.4, [16.5, 28, side * 14.5], 'x'));
-        s = union(s, box(25, 0.8, 28, [3, 27.8, 0], 0.3));
+        s = union(s, box(21.2, 0.8, 28, [6.4, 27.2, 0], 0.4));
       }
       // Extrusion bevels extend beyond the outline: leave a real module seam.
       s = cut(s, box(40, 100, 80, [37.75, 30, 0], 0));
@@ -269,7 +291,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     part('Cabin with recessed windows and wipers', common(`cab:${cabType}`, () => cabin(cabType)), model.cab, [-18, 21, 0]);
     const at: [number, number, number] = [18, 21, 0];
     const body = (name: string, s: Manifold, color = model.body) => part(name, socket(s), color, at);
-    const shell = (height = 26) => box(35.5, height, 33.8, [0, height / 2, 0], 1.25);
+    const shell = (height = 26) => box(35.5, height, 33.8, [0, height / 2, 0], 1.8);
     const sideRibs = (s: Manifold, count: number, start = 5, gap = 3.2) => {
       const ribs: Manifold[] = [];
       for (const z of [-17, 17]) for (let i = 0; i < count; i++) ribs.push(box(28, 1.3, 1, [0, start + i * gap, z], 0.4));
@@ -296,7 +318,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         s = union(s, ...bars); body('Open cargo cage', s); break;
       }
       case 'recycle': {
-        let s = profile([[-17, 0], [17, 0], [15, 27], [-12, 27]], 33.5, 1);
+        let s = profile([[-17, 0], [17, 0], [15, 27], [-12, 27]], 33.5, 1, 1.8);
         s = cut(s, box(34, 21, 28, [4, 13, 0], 0.8)); s = sideRibs(s, 4);
         s = cut(s, box(24, 1.5, 0.8, [-1, 27.5, -11]), box(24, 1.5, 0.8, [-1, 27.5, 11]), box(0.8, 1.5, 22, [-13, 27.5, 0]));
         // Raised triangular recycling arrows, fused into both side panels.
@@ -321,7 +343,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         break;
       }
       case 'sedan': {
-        let s = profile([[-17.4, 0], [17.4, 0], [17.4, 8], [10, 9], [3.5, 23], [-17.4, 23]], 33.5, 1);
+        let s = profile([[-17.4, 0], [17.4, 0], [17.4, 8], [10, 9], [3.5, 23], [-17.4, 23]], 33.5, 1, 1.8);
         for (const side of [-1, 1]) s = cut(s, box(15.5, 11, 2, [-6, 15, side * 16.7], 0.7));
         s = union(s, box(4, 4, 9, [-12, 24, 0], 0.6));
         s = cut(s, box(40, 100, 80, [-37.75, 30, 0], 0));
@@ -342,16 +364,16 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
           for (const z of [-9, -3, 3, 9]) s = union(s, box(29, 0.9, 1, [0, 26.4, z], 0.45));
           for (const z of [-13, 13]) { let rail = box(31, 3, 1.8, [0, 28.1, z], 0.8); rail = cut(rail, box(24, 1.2, 3, [0, 28.3, z], 0.2)); s = union(s, rail, box(2, 2.5, 1.8, [-13, 26.5, z], 0.35), box(2, 2.5, 1.8, [13, 26.5, z], 0.35)); }
           s = union(s, cyl(4.3, 1.2, [17.95, 14, 0], 'x'));
-          s = cut(s, threadedBore(25.2, 14, 0, [0, 90, 0]), cyl(2.2 + clearance / 2, 20, [16, 14, 0], 'x'));
+          s = cut(s, threadedBore(25.1, 14, 0, [0, 90, 0]), cyl(2.2 + clearance / 2, 20, [16, 14, 0], 'x'));
         }
         body(model.kind === 'sport' ? 'SUV rear body with roof rack' : 'Van body with recessed panels', s);
-        if (model.kind === 'sport') { part('Rear spare tyre', tyreSolid, black, [39.3, 35, 0], [0, Math.PI / 2, 0]); part('Spare wheel screw', screwSolid, beige, [43.2, 35, 0], [0, Math.PI / 2, 0]); } break;
+        if (model.kind === 'sport') { part('Rear spare tyre', tyreSolid, black, [39.3, 35, 0], [0, Math.PI / 2, 0]); part('Spare wheel screw', screwSolid, beige, [43.1, 35, 0], [0, Math.PI / 2, 0]); } break;
       }
       case 'dump': {
         // Return the canopy to the FRONT WALL before closing the outline.
         // Closing straight from the canopy tip to the floor filled the cabin
         // space with a large diagonal wedge.
-        let s = profile([[-17, 0], [17, 0], [17, 28], [-13, 28], [-17, 32], [-28, 35], [-33, 35], [-25, 30], [-17, 30]], 34, 0.8);
+        let s = profile([[-17, 0], [17, 0], [17, 28], [-13, 28], [-17, 32], [-28, 35], [-33, 35], [-25, 30], [-17, 30]], 34, 0.8, 1.2);
         s = cut(s, box(29, 37, 29, [0, 21, 0], 0.65), box(17, 20, 29, [-24, 38, 0], 0.5));
         s = sideRibs(s, 6, 5, 3.5); for (const side of [-1, 1]) s = union(s, shift(turn(box(1.6, 28, 1.1, [0, 0, 0], 0.45), 0, 0, -44), 3, 15, side * 17));
         body('Open ribbed dump hopper and front canopy', s); break;

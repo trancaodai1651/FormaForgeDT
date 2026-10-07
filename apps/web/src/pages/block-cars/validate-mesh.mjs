@@ -65,6 +65,12 @@ try {
     if (flank.volume() < 0.03) throw Error(`No thread engagement: ${label}`);
     a.delete(); b.delete(); flank.delete();
   };
+  const checkWheelSeat = (screw, tyre, label) => {
+    const axis = new THREE.Vector3(0, 0, 1).applyQuaternion(screw.mesh.quaternion);
+    const gap = screw.mesh.position.dot(axis) - 1.4 - (tyre.mesh.position.dot(axis) + 2.4);
+    const protrusion = screw.mesh.position.dot(axis) - (tyre.mesh.position.dot(axis) + 3.4);
+    if (Math.abs(gap) > 0.001 || protrusion < 0 || protrusion > 0.41) throw Error(`Wheel head is not seated: ${label}, gap ${gap}, protrusion ${protrusion}`);
+  };
   for (const model of validationModels) {
     const assembly = buildCar(model, 1);
     const frames = assembly.parts.filter(p => p.name.includes('chassis') || p.name.startsWith('Chassis'));
@@ -88,6 +94,7 @@ try {
       const screw = assembly.parts.find(p => p.name === `Cross socket wheel screw ${tyre.name.split(' ')[1]}`);
       checkFit(screw, frame, `${model.id} wheel axle`);
       checkFit(screw, tyre, `${model.id} wheel hub`);
+      checkWheelSeat(screw, tyre, `${model.id} ${tyre.name}`);
       if (model === validationModels[0] && frame === frames[0]) checkThread(screw, frame, `${model.id} wheel thread ${tyre.name}`);
     }
     const equipment = assembly.parts.find(p => p.mesh.position.x === 18 && p.mesh.position.y === 21 && !p.name.startsWith('Chassis'));
@@ -100,7 +107,7 @@ try {
     const spare = assembly.parts.find(p => p.name === 'Spare wheel screw');
     if (spare) {
       const tyre = assembly.parts.find(p => p.name === 'Rear spare tyre');
-      checkThread(spare, equipment, `${model.id} spare thread`); checkFit(spare, tyre, `${model.id} spare hub`); checkFit(tyre, equipment, `${model.id} spare mounting boss`);
+      checkThread(spare, equipment, `${model.id} spare thread`); checkFit(spare, tyre, `${model.id} spare hub`); checkFit(tyre, equipment, `${model.id} spare mounting boss`); checkWheelSeat(spare, tyre, `${model.id} spare head`);
     }
     if (dome && equipment) checkFit(dome, equipment, `${model.id} turntable`);
     const lid = assembly.parts.find(p => p.name.startsWith('Hinged recycling'));
@@ -174,6 +181,7 @@ try {
     const front = custom.parts.find(p => p.name.startsWith('Front loader scoop') || p.name === 'Road roller fork');
     if (front) checkFit(front, frames[0], 'custom front tool');
     for (const screw of custom.parts.filter(p => p.name.includes('wheel screw') && p.mesh.position.x === frames[0].mesh.position.x)) checkThread(screw, frames[0], `custom ${options.width}/${options.clearance} ${screw.name}`);
+    for (const tyre of custom.parts.filter(p => p.name.startsWith('Tyre'))) checkWheelSeat(custom.parts.find(p => p.name === `Cross socket wheel screw ${tyre.name.split(' ')[1]}`), tyre, `custom ${options.width} ${tyre.name}`);
     const dome = custom.parts.find(p => p.name.startsWith('Dome'));
     const boom = custom.parts.find(p => p.name === 'Detailed hinged boom');
     if (dome && boom) checkFit(dome, boom, 'custom width boom pivot');

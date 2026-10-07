@@ -40,11 +40,11 @@ export function createKitFiles(assembly: CarAssembly, model: CarModel, scale: nu
     geometry.dispose(); material.dispose();
   }
   files['assembly.json'] = strToU8(JSON.stringify({
-    schema: 'formaforge-block-cars-v4', model: model.id, units: 'mm', stlEncoding: 'binary', scale,
+    schema: 'formaforge-block-cars-v5', model: model.id, units: 'mm', stlEncoding: 'binary', scale,
     estimatedDimensions: true, originalCadParityVerified: false,
     source: 'https://makerworld.com/en/crowdfunding/140-creative-buildable-block-car',
     overallSizeMm: assembly.bounds.getSize(new THREE.Vector3()).toArray(),
-    baseDimensionsMm: { chassisPitch: 36, chassisWidth: assembly.width, chassisHeight: 21, axleHeight: 8, wheelDiameter: 20, wheelWidth: 6.8, studDiameter: 6, socketDiameter: 6 + assembly.clearance * 2, clearance: assembly.clearance },
+    baseDimensionsMm: { chassisPitch: 36, chassisWidth: assembly.width, chassisHeight: 21, chassisEdgeRadius: 2.1, bodyEdgeRadius: 1.8, cabSilhouetteCornerRadius: 2.2, axleHeight: 8, wheelDiameter: 20, wheelWidth: 6.8, wheelHeadHubGap: 0, wheelHeadSidewallProtrusion: 0.4, studDiameter: 6, socketDiameter: 6 + assembly.clearance * 2, clearance: assembly.clearance },
     fittings: { chassis: { type: 'bottom-open-twin-shoulder-slide-with-central-relief', sharedMaleFemaleProfile: true, assemblyDirection: [0, -1, 0], railHeightMm: 14 * scale, clearanceMm: assembly.clearance * scale }, top: { type: 'rectangular-seating-foot-and-blind-round-socket', insertionDepthMm: 1.35 * scale, studDiameterMm: 6 * scale }, frontTool: { type: 'twin-shoulder-slide', sharesChassisConnector: true }, wheel: { type: 'single-start-right-hand-helical-screw-and-threaded-bore', majorDiameterMm: 5.4 * scale, minorDiameterMm: 4.4 * scale, pitchMm: 2.2 * scale, threadedLengthMm: 6.8 * scale, diametralClearanceMm: assembly.clearance * scale }, boom: { type: 'twin-cheek-and-integral-pivot-pin', pinDiameterMm: 4 * scale, boreDiameterMm: (4 + assembly.clearance * 2) * scale } },
     modules: records,
   }, null, 2));
@@ -54,6 +54,7 @@ export function createKitFiles(assembly: CarAssembly, model: CarModel, scale: nu
     `Base dimensions: chassis pitch 36 mm, width ${assembly.width} mm, height 21 mm; tyre diameter 20 mm, width 6.8 mm. All dimensions including fittings scale together.`,
     `Nominal stud diameter 6 mm; socket diameter ${6 + assembly.clearance * 2} mm at 1x. Chassis uses matching twin-shoulder slide profiles with a central relief; cab/cargo has an inset foot with a blind stud hole. Joint clearance: ${assembly.clearance} mm at 1x.`,
     `Wheel screws and bores contain continuous right-hand helical threads: major diameter 5.4 mm, root diameter 4.4 mm, pitch 2.2 mm, threaded length 6.8 mm at 1x. Thread clearance is diametral (${assembly.clearance / 2} mm radially). Wheel/screw offsets preserve thread engagement when changing chassis width.`,
+    'Vehicle wheel heads seat on the recessed tyre hub with zero modeled axial gap and project 0.4 mm beyond the outer sidewall at 1x. Heads have rounded rims and a recessed rounded cross socket. Chassis/body edges and cabin silhouettes have rounded geometry, included in the STL.',
     'Each file is a solid module in binary STL, with units in millimetres. Grooves, ribs, tread and cross sockets are included in the mesh. Preview separation does not change these files.',
     'Print the wheel, screw and chassis as a small fit sample first. Printed fit, moving joints and strength have not been tested physically. Supports may be needed for overhangs.',
     'assembly.json includes colors, module dimensions and column-major 4x4 matrices mapping the oriented print STL back into the assembled preview (X length, Y height, Z width).',

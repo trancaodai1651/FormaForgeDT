@@ -9,7 +9,8 @@ import './block-cars.css';
 
 import { buildCar, initCarGeometry, isCarGeometryReady, type CarAssembly, type CarOptions } from './carGeometry';
 import { models } from './catalog';
-import { createPrintKit } from './printKit';
+import { createKitFiles, createPrintKit } from './printKit';
+import { ModuleLibrary, partLabel, type LibraryModule } from './ModuleLibrary';
 
 const referenceImages = import.meta.glob('./assets/page-*.jpg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const referenceImage = (page: number) => referenceImages[`./assets/page-${String(page).padStart(2, '0')}.jpg`];
@@ -73,6 +74,7 @@ function CarViewport({ assembly, exploded, isolated, view }: { assembly: CarAsse
     const group = assembly.group.clone();
     group.children.forEach((child, index) => {
       child.visible = !isolated || assembly.parts[index].name === isolated;
+      if (isolated && /^(Tyre|Cross socket wheel screw|Rear spare tyre|Spare wheel screw|Roller screw|Mixer retaining screw)/.test(assembly.parts[index].name)) child.rotation.set(0, 0, 0);
       if (exploded) {
         const name = assembly.parts[index].name;
         // Follow the chassis station for every mounted part. Otherwise adjacent
@@ -124,10 +126,32 @@ function BlockCarsWorkspace() {
   const [frontTool, setFrontTool] = useState<CarOptions['frontTool']>();
   const [downloading, setDownloading] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [pickedModule, setPickedModule] = useState<LibraryModule>();
   const assembled = useMemo(() => buildCar(selected, scale, clearance, { width, cabType, frontTool }), [selected, scale, clearance, width, cabType, frontTool]);
   useEffect(() => () => { for (const part of [...assembled.parts, ...assembled.tools]) (part.mesh.material as THREE.Material).dispose(); }, [assembled]);
   const modelIndex = models.findIndex(m => m.id === selected.id);
   const totalLength = Math.round((assembled.bounds.max.x - assembled.bounds.min.x));
+  const visiblePart = [...assembled.parts, ...assembled.tools].find(p => p.name === isolated);
+  const visibleSize = visiblePart ? new THREE.Box3().setFromObject(visiblePart.mesh, true).getSize(new THREE.Vector3()).multiplyScalar(assembled.tools.includes(visiblePart) ? scale : 1) : assembled.bounds.getSize(new THREE.Vector3());
+
+  const pickModule = (entry: LibraryModule) => {
+    setPickedModule(entry); setExploded(false);
+    if (entry.category === 'cab') setCabType(entry.options.cabType);
+    else if (/^Front loader/.test(entry.name)) setFrontTool('bucket');
+    else if (/^Road roller/.test(entry.name)) setFrontTool('roller');
+    else if (entry.category === 'body' || entry.category === 'frame') { setSelected(entry.model); setFrontTool(undefined); }
+    setIsolated(entry.name);
+    requestView([-1.1, 0.8, 1.7]);
+  };
+  const exportModule = () => {
+    const part = [...assembled.parts, ...assembled.tools].find(p => p.name === isolated);
+    if (!part) return;
+    const files = createKitFiles({ ...assembled, parts: assembled.parts.includes(part) ? [part] : [], tools: assembled.tools.includes(part) ? [part] : [] }, selected, scale);
+    const [file, data] = Object.entries(files).find(([name]) => name.endsWith('.stl'))!;
+    const href = URL.createObjectURL(new Blob([data.slice().buffer], { type: 'application/octet-stream' }));
+    const a = document.createElement('a'); a.href = href; a.download = `formaforge-${scale.toFixed(2)}x-${file}`; a.click();
+    setTimeout(() => URL.revokeObjectURL(href), 10000);
+  };
 
   const exportKit = async () => {
     setDownloading(true);
@@ -147,14 +171,13 @@ function BlockCarsWorkspace() {
 
   return <main className="block-cars-page">
     <header className="bc-topbar"><Link to="/" className="bc-back"><ArrowLeft size={16} /> {vi ? 'Tất cả công cụ' : 'All tools'}</Link><span className="bc-brand">FORMAFORGE <i>/</i> BLOCK CARS</span><button className="bc-language" onClick={() => setLanguage(vi ? 'en' : 'vi')}>{vi ? 'English' : 'Tiếng Việt'}</button></header>
-    <section className="bc-heading"><div><span className="bc-eyebrow">{vi ? 'BỘ LẮP GHÉP XE MÔ-ĐUN' : 'MODULAR VEHICLE KIT'}</span><h1>{vi ? <>Xe khối.<br /><em>Lắp theo cách của bạn.</em></> : <>Block cars.<br /><em>Build your own fleet.</em></>}</h1></div><p>{vi ? 'Chọn một trong 17 mẫu, xoay mô hình 3D và chỉnh kích thước. Mỗi bộ tải xuống gồm cabin, khung xe, bánh và các module chức năng dưới dạng STL riêng.' : 'Choose from 17 reference models, orbit the 3D build and change its size. Each print kit contains separate STL modules for the cabin, chassis, wheels and vehicle equipment.'}</p></section>
+    <section className="bc-heading"><div><span className="bc-eyebrow">{vi ? 'BỘ LẮP GHÉP XE MÔ-ĐUN' : 'MODULAR VEHICLE KIT'}</span><h1>{vi ? <>Xe khối.<br /><em>Lắp theo cách của bạn.</em></> : <>Block cars.<br /><em>Build your own fleet.</em></>}</h1></div><p>{vi ? 'Chọn linh kiện: cabin, khung, bánh, ốc và module chức năng. Xem từng phần, lắp thành xe, chỉnh kích thước và tải STL riêng để in.' : 'Choose parts: cabs, frames, wheels, screws and equipment. Inspect each module, assemble a vehicle, resize it and download separate printable STLs.'}</p></section>
     <section className="bc-workspace">
-      <aside className="bc-sidebar"><div className="bc-sidebar-title"><span>{vi ? 'THƯ VIỆN MẪU' : 'MODEL LIBRARY'}</span><b>17</b></div><div className="bc-model-list">{models.map((m, i) => <button key={m.id} className={`bc-model-card ${selected.id === m.id ? 'active' : ''}`} onClick={() => { setSelected(m); setIsolated(''); }} aria-pressed={selected.id === m.id}>
-        <span className="bc-model-index">{String(i + 1).padStart(2, '0')}</span><img src={referenceImage(m.page)} alt="" loading="lazy" /><span className="bc-model-caption"><strong>{vi ? m.vi : m.en}</strong><small>{vi ? m.category === 'Construction' ? 'Công trình' : m.category === 'Cargo' ? 'Chở hàng' : m.category === 'Service' ? 'Dịch vụ' : 'Đường phố' : m.category}</small></span><span className="bc-model-dot" style={{ background: m.body }} />
-      </button>)}</div></aside>
+      <ModuleLibrary vi={vi} active={pickedModule?.id ?? ''} onPick={pickModule} />
       <div className="bc-main">
-        <div className="bc-stage-head"><div><span className="bc-active-index">MODEL {String(modelIndex + 1).padStart(2, '0')} <i>/ 17</i></span><h2>{vi ? selected.vi : selected.en}</h2></div><span className="bc-drag-hint"><Rotate3D size={15} /> {vi ? 'Kéo để xoay · lăn để zoom' : 'Drag to orbit · scroll to zoom'}</span></div>
-        <div className="bc-stage"><CarViewport assembly={assembled} exploded={exploded} isolated={isolated} view={view} /><span className="bc-dimensions"><Ruler size={13} /> {totalLength} × {Math.round((assembled.bounds.max.z - assembled.bounds.min.z))} × {Math.round((assembled.bounds.max.y - assembled.bounds.min.y))} mm</span><span className="bc-stage-mark">FORMA / 3D</span></div>
+        <div className="bc-stage-head"><div><span className="bc-active-index">{isolated ? (vi ? 'MODULE RIÊNG' : 'SINGLE PART') : (vi ? 'XE LẮP RÁP' : 'ASSEMBLY')}</span><h2>{isolated ? pickedModule && pickedModule.name === isolated ? vi ? pickedModule.vi : pickedModule.en : partLabel(isolated, vi) : vi ? selected.vi : selected.en}</h2></div><span className="bc-drag-hint"><Rotate3D size={15} /> {vi ? 'Kéo để xoay · lăn để zoom' : 'Drag to orbit · scroll to zoom'}</span></div>
+        <div className="bc-stage"><CarViewport assembly={assembled} exploded={exploded} isolated={isolated} view={view} /><span className="bc-dimensions"><Ruler size={13} /> {[visibleSize.x, visibleSize.z, visibleSize.y].map(n => Math.round(n)).join(' × ')} mm</span><span className="bc-stage-mark">FORMA / 3D</span></div>
+        {isolated && <div className="bc-part-actions"><span>{vi ? 'Linh kiện đã chọn · có khớp nối trong STL' : 'Selected part · STL includes fittings'}</span><button onClick={() => { setIsolated(''); requestView([-1.1, 0.8, 1.7]); }}>{vi ? 'Xem xe đã lắp' : 'View assembled vehicle'}</button><button onClick={exportModule}><Download size={14} />{vi ? 'Tải STL module này' : 'Download this part STL'}</button></div>}
         <div className="bc-inspect-controls">
           <button onClick={() => requestView()}>{vi ? 'Vừa khung nhìn' : 'Fit view'}</button>
           <button onClick={() => requestView([-1.1, 0.8, 1.7])}>{vi ? 'Góc như PDF' : 'PDF angle'}</button>
@@ -165,20 +188,21 @@ function BlockCarsWorkspace() {
           <button onClick={() => requestView([0, -1, 0.001])}>{vi ? 'Mặt đáy / khớp' : 'Underside / fittings'}</button>
           <label><input type="checkbox" checked={exploded} onChange={e => setExploded(e.target.checked)} /> {vi ? 'Tách các module' : 'Exploded assembly'}</label>
           <label><input type="checkbox" checked={compare} onChange={e => setCompare(e.target.checked)} /> {vi ? 'Đối chiếu hình mẫu' : 'Reference comparison'}</label>
-          <select aria-label={vi ? 'Module hiển thị' : 'Visible module'} value={isolated} onChange={e => setIsolated(e.target.value)}><option value="">{vi ? 'Toàn bộ xe' : 'Whole vehicle'}</option>{[...assembled.parts, ...assembled.tools].map(p => <option key={p.name} value={p.name}>{p.name}</option>)}</select>
+          <select aria-label={vi ? 'Module hiển thị' : 'Visible module'} value={isolated} onChange={e => { setIsolated(e.target.value); requestView([-1.1, 0.8, 1.7]); }}><option value="">{vi ? 'Toàn bộ xe' : 'Whole vehicle'}</option>{[...assembled.parts, ...assembled.tools].map(p => <option key={p.name} value={p.name}>{partLabel(p.name, vi)}</option>)}</select>
           <label>{vi ? 'Chiều dài (mm)' : 'Length (mm)'} <ModelNumberInput label="Overall length in mm" min={30} max={600} value={totalLength} onCommit={value => setScale(value / ((assembled.bounds.max.x - assembled.bounds.min.x) / scale))} /></label>
         </div>
         <section className="bc-module-builder" aria-label="Module builder">
           <h3>{vi ? 'Lắp bằng module chung' : 'Assemble shared modules'}</h3>
           <div className="bc-module-settings">
             <label>{vi ? 'Module cabin' : 'Cab module'}<select aria-label="Cab module" value={cabType ?? ''} onChange={e => setCabType(e.target.value as CarOptions['cabType'] || undefined)}><option value="">{vi ? 'Theo mẫu PDF' : 'PDF preset'}</option><option value="flat">{vi ? 'Cabin phẳng' : 'Flat cab'}</option><option value="hood">{vi ? 'Cabin có nắp máy' : 'Hood cab'}</option><option value="car">{vi ? 'Cabin xe con' : 'Car cab'}</option></select></label>
-            <label>{vi ? 'Module phía sau' : 'Rear equipment'}<select aria-label="Rear equipment" value={selected.id} onChange={e => { setSelected(models.find(m => m.id === e.target.value)!); setIsolated(''); }}>{models.map(m => <option key={m.id} value={m.id}>{vi ? m.vi : m.en}</option>)}</select></label>
+            <label>{vi ? 'Module phía sau' : 'Rear equipment'}<select aria-label="Rear equipment" value={selected.id} onChange={e => { setSelected(models.find(m => m.id === e.target.value)!); setIsolated(''); setPickedModule(undefined); }}>{models.map(m => <option key={m.id} value={m.id}>{vi ? ({ tray: `Thùng mở · ${m.beds ?? 1} khoang`, tanker: 'Bồn nước', cage: 'Lồng hàng', recycle: 'Thùng tái chế', crate: 'Khay + kiện gỗ', sedan: 'Thân xe con', crane: 'Đế xoay + cần + gầu', loader: 'Đế xoay + cần + gầu xúc', hook: 'Đế xoay + thanh móc', fire: 'Thùng cứu hỏa + thang', mixer: 'Giá đỡ + bồn trộn', sport: 'Thân SUV + bánh dự phòng', pickup: 'Thân sau bán tải', dump: 'Thùng ben', van: 'Thùng xe van' })[m.kind] : m.en}</option>)}</select></label>
             <label>{vi ? 'Module phía trước' : 'Front equipment'}<select aria-label="Front equipment" value={frontTool ?? ''} onChange={e => { setFrontTool(e.target.value as CarOptions['frontTool'] || undefined); setIsolated(''); }}><option value="">{vi ? 'Theo mẫu PDF' : 'PDF preset'}</option><option value="none">{vi ? 'Không gắn' : 'None'}</option><option value="bucket">{vi ? 'Gầu xúc' : 'Loader bucket'}</option><option value="roller">{vi ? 'Con lăn' : 'Road roller'}</option></select></label>
             <label>{vi ? 'Bề ngang khung (mm ở 1×)' : 'Chassis width (mm at 1×)'}<ModelNumberInput label="Chassis width" min={34} max={60} value={width} onCommit={setWidth} /></label>
             <label>{vi ? 'Khe hở khớp (mm ở 1×)' : 'Joint clearance (mm at 1×)'}<ModelNumberInput label="Joint clearance" min={0.1} max={0.6} step={0.05} value={clearance} onCommit={setClearance} /></label>
           </div>
           <div className="bc-joints"><span>{vi ? 'KHỚP CHUNG' : 'SHARED FITTINGS'}</span><p>{vi ? 'Khung: ray hai vai giữ + rãnh cái cùng biên dạng · Cabin/thùng: chân đế + chốt tròn Ø6 · Bánh: ren xoắn phải Ø5,4, bước 2,2 mm + lỗ ren tương ứng · Tay cần: ngàm hai má + trục xoay. Thông số ở 1×; khe hở ren theo đường kính. Các khớp có trong STL.' : 'Chassis: twin-shoulder rail + matching female section · Cab/cargo: seating foot + Ø6 round stud · Wheels: Ø5.4 right-hand helix, 2.2 mm pitch + matching threaded bore · Boom: twin cheeks + pivot pin. Dimensions at 1×; thread clearance is diametral. Fittings are included in STL.'}</p></div>
-          <div className="bc-module-pieces">{assembled.parts.filter(p => !p.name.startsWith('Tyre') && !p.name.includes('screw')).map(p => <button key={p.name} aria-pressed={isolated === p.name} onClick={() => { setIsolated(isolated === p.name ? '' : p.name); requestView([-1.1, 0.8, 1.7]); }}>{p.name}</button>)}<button onClick={() => { setIsolated(''); setExploded(true); requestView([-1.1, 0.8, 1.7]); }}>{vi ? 'Xem toàn bộ khớp khi tháo' : 'Inspect disassembled fittings'}</button></div>
+          <div className="bc-module-pieces">{assembled.parts.filter(p => !p.name.startsWith('Tyre') && !p.name.includes('screw')).map(p => <button key={p.name} aria-pressed={isolated === p.name} onClick={() => { setIsolated(isolated === p.name ? '' : p.name); requestView([-1.1, 0.8, 1.7]); }}>{partLabel(p.name, vi)}</button>)}<button onClick={() => { setIsolated(''); setExploded(true); requestView([-1.1, 0.8, 1.7]); }}>{vi ? 'Xem toàn bộ khớp khi tháo' : 'Inspect disassembled fittings'}</button></div>
+          <details className="bc-presets"><summary>{vi ? '17 gợi ý lắp xe từ PDF' : '17 PDF assembly suggestions'}</summary><select aria-label="Assembly preset" value={selected.id} onChange={e => { setSelected(models.find(m => m.id === e.target.value)!); setCabType(undefined); setFrontTool(undefined); setIsolated(''); setPickedModule(undefined); }}>{models.map(m => <option key={m.id} value={m.id}>{vi ? m.vi : m.en}</option>)}</select></details>
         </section>
         {compare && <div className="bc-reference-compare"><img src={referenceImage(selected.page)} alt={vi ? 'Hình tham chiếu từ tài liệu gốc' : 'Original visual reference'} /><p>{vi ? 'Kích thước tự ước lượng. Rãnh, khớp và chi tiết được dựng thành khối 3D; chưa xác nhận trùng CAD gốc hoặc dung sai sau in.' : 'Estimated dimensions. Grooves, joints and details are modeled in 3D; original CAD parity and printed fit are unverified.'} <a href="https://makerworld.com/en/crowdfunding/140-creative-buildable-block-car" target="_blank" rel="noreferrer">MakerWorld ↗</a></p></div>}
         <div className="bc-controls"><label className="bc-scale-control"><span><Ruler size={15} /> {vi ? 'KÍCH THƯỚC' : 'MODEL SIZE'}</span><input aria-label={vi ? 'Tỷ lệ kích thước' : 'Model scale'} type="range" min="0.2" max="10" step="0.01" value={scale} onChange={e => setScale(Number(e.target.value))} /><b>{scale.toFixed(2)}×</b></label><button className="bc-export" onClick={exportKit} disabled={downloading}><Download size={16} /> {downloading ? (vi ? 'Đang đóng gói…' : 'Preparing…') : (vi ? 'TẢI BỘ FILE STL' : 'DOWNLOAD STL KIT')}</button></div>
