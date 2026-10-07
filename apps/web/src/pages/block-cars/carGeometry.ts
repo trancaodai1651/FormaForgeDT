@@ -79,7 +79,11 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
           rounded.quadraticCurveTo(vertex.x, vertex.y, exit.x, exit.y);
         });
         rounded.closePath();
-        const section = new api.CrossSection([rounded.getPoints(8).map(p => [p.x, p.y] as [number, number])]);
+        const outline = rounded.getPoints(8);
+        // ExtrudeGeometry accepts either winding, whereas a Manifold inset
+        // needs a positive outer contour (boom/bucket silhouettes run clockwise).
+        if (THREE.ShapeUtils.area(outline) < 0) outline.reverse();
+        const section = new api.CrossSection([outline.map(p => [p.x, p.y] as [number, number])]);
         const inset = section.offset(-bevel, 'Round', 2, 24);
         s = new THREE.Shape(inset.toPolygons()[0].map(p => new THREE.Vector2(...p)));
         inset.delete(); section.delete();
@@ -113,9 +117,38 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       records.push({ name, geometry: shaded, color, at: [at[0], at[1], at[2] * lateral], rotation });
     };
     const beige = '#dabb92'; const black = '#202125'; const red = '#ea183b'; const yellow = '#f2ce05';
-    // PDF p3: a projecting rectangular foot seats INSIDE the chassis tray.
-    // The central hole is blind, so cargo floors remain closed.
-    const socket = (solid: Manifold) => cut(union(cut(solid, box(200, 20, 200, [0, -10, 0], 0)), box(31.5 - clearance * 2, 1.6, 29.8 - clearance * 2, [0, -0.55, 0], 0.9)), cyl(3 + clearance, 4.1, [0, 0.5, 0]));
+    const revolvedY = (points: [number, number][]) => {
+      const section = new api.CrossSection([points]);
+      const solid = hold(section.revolve(96).rotate([-90, 0, 0]));
+      section.delete(); return solid;
+    };
+    // Photo of the dismantled kit: a spool stud catches three flexible petals.
+    // Running clearance is capped at the throat to preserve its retaining lip.
+    // All cuts stop below the floor; the cargo interior stays closed.
+    const socket = (solid: Manifold) => {
+      const throat = 3.3 + Math.min(clearance, 0.35);
+      let s = union(cut(solid, box(200, 20, 200, [0, -10, 0], 0)), box(31.5 - clearance * 2, 1.6, 29.8 - clearance * 2, [0, -0.55, 0], 0.9));
+      s = cut(s, revolvedY([[0, -2], [4.2 + clearance, -2], [4.2 + clearance, -0.75], [throat, -0.4], [throat, 0.35], [4 + clearance, 0.6], [4 + clearance, 2.35], [0, 2.35]]));
+      for (let petal = 0; petal < 3; petal++) {
+        const start = petal * 120 + 10;
+        const arc: [number, number][] = [];
+        for (let i = 0; i <= 24; i++) { const angle = (start + i * 98 / 24) * Math.PI / 180; arc.push([5.9 * Math.cos(angle), 5.9 * Math.sin(angle)]); }
+        for (let i = 24; i >= 0; i--) { const angle = (start + i * 98 / 24) * Math.PI / 180; arc.push([5.25 * Math.cos(angle), 5.25 * Math.sin(angle)]); }
+        const section = new api.CrossSection([arc]);
+        const slit = hold(section.extrude(4.2).rotate([-90, 0, 0]).translate([0, -1.6, 0]));
+        section.delete();
+        // Join one end of the arc to the throat, leaving the other end as a hinge.
+        const branch = hold(M.cube([3.2, 4.2, 0.65], true).translate([4.4, 0.5, 0]).rotate([0, start, 0]));
+        s = cut(s, slit, branch);
+      }
+      return s;
+    };
+    const snapStud = () => revolvedY([[0, 19.45], [4.2, 19.45], [4.2, 19.65], [3.3, 20.25], [3.3, 21.55], [4, 21.75], [4, 22.55], [3.8, 22.9], [0, 22.9]]);
+    // A plan envelope adds the wide diagonal nose corners visible in the photos.
+    const noseEnvelope = (halfWidth: number) => {
+      const points: [number, number][] = [[-17.5, -halfWidth + 3], [-14.5, -halfWidth], [18, -halfWidth], [18, halfWidth], [-14.5, halfWidth], [-17.5, halfWidth - 3]];
+      return shift(turn(profile(points, 100 / panelWidth, 0.65, 1.2), 90, 0, 0), 0, 30);
+    };
     // One X/Z section drives BOTH halves. The PDF's tall rail has two
     // retaining shoulders and a shallow central relief down its outer face.
     const railSection = () => new api.CrossSection([[
@@ -169,12 +202,19 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       hold(common('female-wheel-thread', () => thread(true)).rotate(rotation).translate([x, y, z]));
     const chassis = (front: boolean, axle: boolean, tongue: boolean, pocket: boolean) => {
       let s = box(35.7, 21, 34, [0, 10.5, 0], 2.1);
+      if (front) {
+        // Lower nose corners sweep upward, rather than ending in a square box.
+        s = cut(s, profile([[-30, -10], [-30, 4], [-17.85, 3], [-14.85, 0], [-14.85, -10]], 100, 0));
+      }
       s = cut(s, box(31.5, 4, 29.8, [0, 21.5, 0], 0.25));
-      s = union(s, cyl(2.8, 3.6, [0, 21.1, 0]), cyl(3, 0.8, [0, 22.8, 0], 'y', 2.8));
+      s = union(s, snapStud());
       if (axle) {
         for (const side of [-1, 1]) {
           s = cut(s, cyl(11.25, 6, [0, axleHeight, side * 16], 'z'), box(22.5, 10, 6, [0, axleHeight - 5, side * 16]));
-          const arch = cut(cyl(12, 1.2, [0, axleHeight, side * 16.35], 'z'), cyl(11.25, 2, [0, axleHeight, side * 16.35], 'z'), box(30, 25, 4, [0, axleHeight - 12.5, side * 16.35]), box(30, 20, 4, [0, 31, side * 16.35], 0));
+          const archSection = new api.CrossSection([[[11.25, -0.85 * panelWidth], [12.2, -0.85 * panelWidth], [12.65, -0.5 * panelWidth], [12.75, 0], [12.65, 0.5 * panelWidth], [12.2, 0.85 * panelWidth], [11.25, 0.85 * panelWidth]]]);
+          const archRing = shift(hold(archSection.revolve(128)), 0, axleHeight, side * 16.25);
+          archSection.delete();
+          const arch = cut(archRing, box(30, 25, 4, [0, axleHeight - 12.5, side * 16.25]), box(30, 20, 4, [0, 31, side * 16.25], 0));
           s = union(s, arch);
           s = cut(s, cyl(2.2 + clearance / 2, 17, [0, axleHeight, side * 8.5], 'z'));
           s = cut(s, threadedBore(0, axleHeight, side * wheelScrewCenter * lateral, [0, side < 0 ? 180 : 0, 0]));
@@ -198,7 +238,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       const segments = 256; const positions: number[] = []; const indices: number[] = [];
       for (const [radius, z] of section) for (let i = 0; i < segments; i++) {
         const angle = i * Math.PI * 2 / segments;
-        const phase = ((i * 32 / segments + Math.sin(z * 1.6) * 0.22) % 1 + 1) % 1;
+        const phase = ((i * 32 / segments + Math.abs(z) * 0.12) % 1 + 1) % 1;
         const notch = phase > 0.18 && phase < 0.48 ? Math.sin((phase - 0.18) / 0.3 * Math.PI) : 0;
         const r = radius - (radius >= 9 ? notch * 0.55 : 0);
         positions.push(Math.cos(angle) * r, Math.sin(angle) * r, z);
@@ -210,14 +250,18 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       }
       return hold(new M(new api.Mesh({ numProp: 3, vertProperties: new Float32Array(positions), triVerts: new Uint32Array(indices) })));
     };
+    const driveOutline: [number, number][] = Array.from({ length: 96 }, (_, i) => {
+      const angle = i * Math.PI * 2 / 96;
+      const radius = 2.45 + 0.7 * Math.cos(angle * 4);
+      return [radius * Math.cos(angle), radius * Math.sin(angle)];
+    });
     const screw = () => {
       // Low rounded head seats on the recessed hub, nearly flush with the
       // tyre sidewall. Keep the bearing shoulder and threaded shaft separate.
       const headSection = new api.CrossSection([[[0, -1.4], [4.25, -1.4], [4.6, -1.25], [4.75, -0.95], [4.75, -0.5], [4.6, -0.18], [4.25, 0], [0, 0]]]);
       const head = hold(headSection.revolve(96)); headSection.delete();
       let s = union(head, hold(cyl(2.2, 12.8, [0, 0, -7], 'z').scale([1, 1, 1 / lateral])));
-      const cross: [number, number][] = [[-0.95, -3.1], [0.95, -3.1], [0.95, -0.95], [3.1, -0.95], [3.1, 0.95], [0.95, 0.95], [0.95, 3.1], [-0.95, 3.1], [-0.95, 0.95], [-3.1, 0.95], [-3.1, -0.95], [-0.95, -0.95]];
-      const recess = hold(shift(profile(cross, 1.6, 0.1, 0.3), 0, 0, -0.1).scale([1, 1, 1 / lateral]));
+      const recess = hold(shift(profile(driveOutline, 1.8, 0.1), 0, 0, -0.1).scale([1, 1, 1 / lateral]));
       return union(cut(s, recess), thread());
     };
     const tray = (height = 8) => {
@@ -227,14 +271,16 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
       return socket(s);
     };
     const cabin = (kind: 'flat' | 'hood' | 'car') => {
-      const points: [number, number][] = kind === 'flat' ? [[-17.5, 0], [17.5, 0], [17.5, 27], [-8, 27], [-17.5, 2]] : kind === 'hood' ? [[-17.5, 0], [17.5, 0], [17.5, 27], [-4.5, 27], [-9, 11], [-15.5, 11], [-17.5, 8]] : [[-17.5, 0], [17.5, 0], [17.5, 23], [5, 23], [-8, 10], [-16, 8]];
+      const points: [number, number][] = kind === 'flat' ? [[-17.5, 0], [17.5, 0], [17.5, 27], [-8, 27], [-17.5, 2]] : kind === 'hood' ? [[-17.5, 0], [17.5, 0], [17.5, 27], [-4.5, 27], [-9, 11], [-12.5, 11], [-17.5, 6.5]] : [[-17.5, 0], [17.5, 0], [17.5, 23], [5, 23], [-8, 10], [-16, 8]];
       let s = profile(points, 33.5, 1.1, 2.2);
+      if (kind === 'hood') s = hold(s.intersect(noseEnvelope(33.5 * panelWidth / 2)));
       const roofY = kind === 'car' ? 23 : 27;
       const windowX = kind === 'flat' ? 3 : kind === 'hood' ? 6 : 9;
       const windowWidth = kind === 'car' ? 14 : 17;
       for (const side of [-1, 1]) {
-        s = cut(s, box(windowWidth, kind === 'car' ? 10 : 14, 2, [windowX, roofY - 10, side * 16.65], 0.65));
-        s = union(s, box(1.8, 4.5, 1.4, [windowX - windowWidth / 2 - 1.8, 11, side * 17.1], 0.6), shift(sphere(1.1, [0, 0, 0]), 12.7, 5.5, side * 16.7));
+        const window = kind === 'hood' ? shift(profile([[-6.3, 11.7], [14, 11.7], [14, 24], [-2.9, 24]], 2, 0.3, 0.65), 0, 0, side * 16.65) : box(windowWidth, kind === 'car' ? 10 : 14, 2, [windowX, roofY - 10, side * 16.65], 0.65);
+        s = cut(s, window);
+        s = union(s, box(1.8, 4.5, 1.4, [kind === 'hood' ? -7.2 : windowX - windowWidth / 2 - 1.8, 11, side * 17.1], 0.6), shift(sphere(1.1, [0, 0, 0]), 12.7, 5.5, side * 16.7));
       }
       const angle = kind === 'flat' ? -21 : kind === 'hood' ? -15.7 : -45;
       const windshieldX = kind === 'flat' ? -13.7 : kind === 'hood' ? -7.2 : -2.2;
@@ -247,7 +293,8 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         s = cut(s, box(12, 2.1, 0.65, [3, roofY + 0.4, z - 2], 0.25), box(12, 2.1, 0.65, [3, roofY + 0.4, z + 2], 0.25), box(0.65, 2.1, 4.65, [9, roofY + 0.4, z], 0.25));
       }
       if (kind === 'hood') {
-        for (const side of [-1, 1]) s = union(s, box(2.4, 27, 2.8, [16.5, 14, side * 14.5], 1.1), cyl(2, 2.4, [16.5, 28, side * 14.5], 'x'));
+        s = union(s, box(4.8, 0.65, 27, [-10.3, 11.15, 0], 0.3));
+        for (const side of [-1, 1]) s = union(s, cyl(1.5, 27, [16.3, 14, side * 16.1]), cyl(0.55, 3, [16.3, 28.2, side * 16.1], 'y', 1.5), sphere(0.55, [16.3, 29.5, side * 16.1]));
         s = union(s, box(21.2, 0.8, 28, [6.4, 27.2, 0], 0.4));
       }
       // Extrusion bevels extend beyond the outline: leave a real module seam.
@@ -387,23 +434,41 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
         // The round turret, pin and clevis share a fixed standard. Changing
         // the chassis width must not erase the cheeks around the round dome.
         panelWidth = 1;
-        let turret = union(cyl(7.7, 16, [0, 8, 0]), sphere(7.7, [0, 15.5, 0]));
-        turret = cut(turret, cyl(2.6 + clearance, 8, [0, 1, 0]), cyl(2 + clearance, 19, [4, 18, 0], 'z'), box(10, 14, (model.kind === 'hook' ? 8 : 6) + clearance * 2, [6, 20, 0]));
+        // The photographed pivot is a shallow cylinder and low hemisphere.
+        let turret = union(cyl(7.7, 6, [0, 3, 0]), sphere(7.7, [0, 6, 0]));
+        turret = cut(turret, box(40, 20, 40, [0, -10, 0], 0), cyl(2.6 + clearance, 8, [0, 1, 0]), cyl(2 + clearance, 19, [4, 10, 0], 'z'), box(10, 14, (model.kind === 'hook' ? 8 : 6) + clearance * 2, [6, 12, 0]));
         part('Dome pivot with boom axle bore', turret, yellow, [18, 37, 0]);
-        let boom = profile([[-36, -1], [-36, 6], [-3, 9], [8, 3], [8, -4], [1, -4], [-3, 7], [-5, 7]], 6, 0.55);
-        for (const side of [-1, 1]) boom = cut(boom, box(22, 3, 1, [-15, 5, side * 3], 0.4));
+        // Keep the elevated underside above the dome behind the main hinge.
+        let boom = profile([[-36, -1], [-36, 6], [-3, 9], [8, 3], [8, -4], [1, -4], [-3, 7], [-5, 7]], 6, 0.55, 0.8);
+        for (const side of [-1, 1]) for (const [left, right] of [[-29, -21], [-19, -12], [-10, -6]]) {
+          const lower = (x: number) => -1 + (x + 36) * 8 / 31 + 0.55;
+          const upper = (x: number) => 6 + (x + 36) / 11 - 0.55;
+          boom = cut(boom, shift(profile([[left, lower(left)], [right, lower(right)], [right, upper(right)], [left, upper(left)]], 1, 0.18, 0.3), 0, 0, side * 3));
+        }
         if (model.kind === 'hook') boom = cut(union(box(32, 7, 8, [-12, 9, 0], 0.7), box(6, 15, 6, [1, 3.5, 0], 0.4), cyl(2.9, 6, [0, 0, 0], 'z')), box(25, 4 + clearance * 2, 4.5 + clearance * 2, [-18, 9, 0], 0.25));
-        boom = union(boom, cyl(2.0, 13, [0, 0, 0], 'z'), ...(model.kind === 'hook' ? [] : [cyl(2, 8, [-36, 2, 0], 'z')]));
-        part('Detailed hinged boom', boom, red, [22, 55, 0]);
+        boom = union(boom, cyl(2.0, 13, [0, 0, 0], 'z'));
+        if (model.kind !== 'hook') {
+          // The real boom owns the female fork; the bucket's narrow tongue
+          // and transverse pivots snap between its rounded retaining cheeks.
+          boom = union(boom, cyl(4.4, 8, [-36, 2, 0], 'z'), box(7, 8, 8, [-32.5, 2, 0], 0.7));
+          boom = cut(boom, box(12, 12, 4 + clearance * 2, [-36, 2, 0], 0), cyl(1.8 + clearance, 10, [-36, 2, 0], 'z'), box(3.2, 5, 10, [-36, -0.5, 0], 0.3));
+          // Small transverse ribs remain on the inner bridge behind the slot.
+          for (const y of [-0.4, 1.6, 3.6]) boom = union(boom, box(0.7, 0.8, 4, [-29.8, y, 0], 0.25));
+        }
+        const boomAngle = model.kind === 'hook' ? 0 : -0.25;
+        const tipX = 22 - 36 * Math.cos(boomAngle) - 2 * Math.sin(boomAngle);
+        const tipY = 47 - 36 * Math.sin(boomAngle) + 2 * Math.cos(boomAngle);
+        part('Detailed hinged boom', boom, red, [22, 47, 0], [0, 0, boomAngle]);
         if (model.kind === 'hook') {
           let hook = union(box(24, 3.7, 4.3, [-1, 0, 0], 0.4), cut(cyl(4.8, 3, [-16, 0, 0], 'z'), cyl(2.7, 5, [-16, 0, 0], 'z'), box(5, 6, 6, [-20, 0, 0])));
           for (let i = 0; i < 5; i++) hook = union(hook, box(0.6, 4, 4.5, [-8 - i, 0, 0], 0.2));
-          part('Sliding lift fork with open hook', hook, red, [-4, 64, 0]);
+          part('Sliding lift fork with open hook', hook, red, [-4, 56, 0]);
         } else {
-          let bucket = profile([[-14, -3], [-8, 9], [3, 9], [9, 5], [9, -1], [-5, -6]], 15, 0.65);
-          bucket = cut(bucket, profile([[-18, -4], [-10, 7], [1, 7], [3, 4], [1, -1], [-5, -4]], 12, 0.3), cyl(2 + clearance, 20, [7, 2, 0], 'z'), box(6, 11, 6 + clearance * 2, [7, 2, 0], 0.2));
+          let bucket = profile([[-14, -3], [-8, 9], [0, 9], [2, 5], [2, -1], [-5, -6]], 15, 0.65, 1.1);
+          bucket = cut(bucket, profile([[-18, -4], [-10, 7], [-1, 7], [0, 4], [0, -1], [-5, -4]], 12, 0.3, 0.7));
+          bucket = union(bucket, profile([[-1, 0], [7, 0], [7, 4], [-1, 8]], 4, 0.35, 0.65), cyl(1.8, 8 - clearance * 2, [7, 2, 0], 'z'));
           for (let i = 0; i < 5; i++) bucket = union(bucket, box(3, 2, 1.5, [-11, -3.5, -6 + i * 3], 0.3));
-          part('Upper excavator scoop with teeth', bucket, red, [-21, 55, 0]);
+          part('Upper excavator scoop with teeth', bucket, red, [tipX - 7, tipY - 2, 0]);
         }
 
         panelWidth = lateral;
@@ -440,7 +505,7 @@ export function buildCar(model: CarModel, scale: number, clearance = 0.25, optio
     if (frontTool === 'bucket') addFrontBucket();
     const driver = common('screwdriver', () => {
       let s = union(cyl(4.2, 23, [0, 0, 13], 'z', 2.8), cyl(2.4, 8, [0, 0, -1.5], 'z'));
-      s = union(s, box(1.3, 4.6, 5, [0, 0, -7]), box(4.6, 1.3, 5, [0, 0, -7]));
+      s = union(s, shift(profile(driveOutline.map(([x, y]) => [x * 0.87, y * 0.87]), 5, 0.1), 0, 0, -7));
       const grooves: Manifold[] = [];
       for (let i = 0; i < 6; i++) grooves.push(turn(box(1.1, 2.1, 16, [0, 4, 13], 0.4), 0, 0, i * 60));
       return hold(cut(s, ...grooves).scale([1, 1, 1 / lateral]));

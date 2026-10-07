@@ -46,6 +46,14 @@ try {
     mesh.position.add(new THREE.Vector3(...vector)); mesh.rotateZ(angle);
     return { name: part.name, mesh };
   };
+  const checkTopRetention = (body, frame, label) => {
+    // The seated fit is checked separately. Lifting the rigid body must bring
+    // its throat into the spool cap, proving a modeled retaining undercut.
+    // This collision cannot predict insertion force or printed flexure fit.
+    const upper = worldSolid(offsetPart(body, [0, 0.75, 0])), lower = worldSolid(frame), retained = upper.intersect(lower);
+    const volume = retained.volume(); upper.delete(); lower.delete(); retained.delete();
+    if (volume <= 0.05) throw Error(`No modeled top-stud retention: ${label}, ${volume.toFixed(3)} mm3 after 0.75 mm lift`);
+  };
   const checkSlide = (maleFrame, femaleFrame, label) => {
     for (const height of [0, 0.5, 3, 8, 14, 18]) checkFit(maleFrame, offsetPart(femaleFrame, [0, height, 0]), `${label} slide travel ${height}`);
     // Shoulders must resist horizontal pullout while seated.
@@ -80,13 +88,20 @@ try {
     }
     const cab = assembly.parts.find(p => p.name.startsWith('Cabin'));
     checkFit(cab, frames[0], `${model.id} cab seating foot`);
-    for (const cargo of assembly.parts.filter(p => p.name.startsWith('Cargo tray'))) checkFit(cargo, frames.find(p => p.mesh.position.x === cargo.mesh.position.x), `${model.id} cargo seating foot`);
+    checkTopRetention(cab, frames[0], `${model.id} cab spool mount`);
+    for (const cargo of assembly.parts.filter(p => p.name.startsWith('Cargo tray'))) {
+      const frame = frames.find(p => p.mesh.position.x === cargo.mesh.position.x);
+      checkFit(cargo, frame, `${model.id} cargo seating foot`);
+      checkTopRetention(cargo, frame, `${model.id} cargo spool mount`);
+    }
     const front = assembly.parts.find(p => p.name.startsWith('Front loader scoop') || p.name === 'Road roller fork');
     if (front) checkFit(front, frames[0], `${model.id} front tool T rail`);
     const dome = assembly.parts.find(p => p.name.startsWith('Dome'));
     const boom = assembly.parts.find(p => p.name === 'Detailed hinged boom');
+    if (boom) checkFit(cab, boom, `${model.id} cabin/boom separation`);
     if (dome && boom) checkFit(dome, boom, `${model.id} boom pivot`);
     const bucket = assembly.parts.find(p => p.name.startsWith('Upper excavator'));
+    if (bucket) checkFit(cab, bucket, `${model.id} cabin/bucket separation`);
     if (bucket && boom) checkFit(bucket, boom, `${model.id} bucket pivot`);
     for (const tyre of assembly.parts.filter(p => p.name.startsWith('Tyre'))) {
       const frame = frames.find(p => p.mesh.position.x === tyre.mesh.position.x);
@@ -99,6 +114,7 @@ try {
     }
     const equipment = assembly.parts.find(p => p.mesh.position.x === 18 && p.mesh.position.y === 21 && !p.name.startsWith('Chassis'));
     if (equipment) checkFit(equipment, frames[1], `${model.id} equipment foot`);
+    if (equipment && !equipment.name.startsWith('Cargo tray')) checkTopRetention(equipment, frames[1], `${model.id} equipment spool mount`);
     if (equipment) checkFit(cab, equipment, `${model.id} cabin/rear module seam`);
     const trays = assembly.parts.filter(p => p.name.startsWith('Cargo tray'));
     for (let i = 1; i < trays.length; i++) checkFit(trays[i - 1], trays[i], `${model.id} adjacent upper trays`);
@@ -177,14 +193,29 @@ try {
     const custom = buildCar(options.model, 1, options.clearance, options);
     const frames = custom.parts.filter(p => p.name.includes('chassis') || p.name.startsWith('Chassis'));
     checkSlide(frames[0], frames[1], 'custom T rail');
-    checkFit(custom.parts.find(p => p.name.startsWith('Cabin')), frames[0], 'custom cab');
+    const cab = custom.parts.find(p => p.name.startsWith('Cabin'));
+    checkFit(cab, frames[0], 'custom cab');
+    checkTopRetention(cab, frames[0], `custom ${options.width}/${options.clearance} cab spool mount`);
+    for (const body of custom.parts.filter(p => p.mesh.position.y === 21 && p !== cab)) {
+      const frame = frames.find(p => p.mesh.position.x === body.mesh.position.x);
+      if (frame) {
+        checkFit(body, frame, `custom ${body.name} seating foot`);
+        checkTopRetention(body, frame, `custom ${options.width}/${options.clearance} ${body.name} spool mount`);
+      }
+    }
     const front = custom.parts.find(p => p.name.startsWith('Front loader scoop') || p.name === 'Road roller fork');
     if (front) checkFit(front, frames[0], 'custom front tool');
     for (const screw of custom.parts.filter(p => p.name.includes('wheel screw') && p.mesh.position.x === frames[0].mesh.position.x)) checkThread(screw, frames[0], `custom ${options.width}/${options.clearance} ${screw.name}`);
     for (const tyre of custom.parts.filter(p => p.name.startsWith('Tyre'))) checkWheelSeat(custom.parts.find(p => p.name === `Cross socket wheel screw ${tyre.name.split(' ')[1]}`), tyre, `custom ${options.width} ${tyre.name}`);
     const dome = custom.parts.find(p => p.name.startsWith('Dome'));
     const boom = custom.parts.find(p => p.name === 'Detailed hinged boom');
+    if (boom) checkFit(cab, boom, 'custom cabin/boom separation');
     if (dome && boom) checkFit(dome, boom, 'custom width boom pivot');
+    const bucket = custom.parts.find(p => p.name.startsWith('Upper excavator'));
+    if (bucket) {
+      checkFit(cab, bucket, 'custom cabin/bucket separation');
+      if (boom) checkFit(bucket, boom, 'custom bucket/boom pivot');
+    }
     for (const part of custom.parts) {
       const solid = worldSolid(part), pieces = solid.decompose();
       if (pieces.length !== 1 || solid.volume() <= 0) throw Error(`Custom disconnected ${part.name}`);
