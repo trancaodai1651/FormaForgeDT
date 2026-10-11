@@ -370,7 +370,7 @@ describe('Clicker viewport Extrude', () => {
     const deeperImage = deeper.parts.find((part) => part.name === 'hybrid-image-base')!;
     expect(largestTopZ(raised.parts, 'hybrid-image-1') - largestTopZ(plain.parts, 'hybrid-image-1')).toBeGreaterThan(0.5);
     expect(zBounds(plainImage).max).toBeCloseTo(zBounds(deeperImage).max, 4);
-    expect(zBounds(plainImage).min - zBounds(deeperImage).min).toBeCloseTo(1.6, 4);
+    expect(zBounds(plainImage).min - zBounds(deeperImage).min).toBeCloseTo(2.4 - params.imageDepth, 4);
     expectThreeMfKeepsPartHeight(raisedImage);
     expectThreeMfKeepsPartHeight(deeperImage);
     expect(raised.parts.find((part) => part.name === 'imported-block')?.triVerts).toEqual(imported[0].triVerts);
