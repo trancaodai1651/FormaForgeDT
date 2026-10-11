@@ -448,6 +448,45 @@ describe('Clicker imported block image attachment', () => {
     cube.delete();
   });
 
+  it('keeps a wide imported block neck within the image attachment width', async () => {
+    const wasm = await Module();
+    wasm.setup();
+    const cube = wasm.Manifold.cube([50, 50, 16], true).translate([0, 0, 8]);
+    const mesh = cube.getMesh();
+    const imported: ClickerPart[] = [{
+      kind: 'body', group: 'base', name: 'wide-block', colorRgb: [240, 185, 103],
+      numProp: mesh.numProp, vertProperties: new Float32Array(mesh.vertProperties), triVerts: new Uint32Array(mesh.triVerts),
+    }];
+    const head = { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } };
+    const params = {
+      hybridImageSizeMm: 40, hybridImageThicknessMm: 17, hybridBaseThicknessMm: 9,
+      hybridImagePaddingMm: 1.2, hybridImportedBlockSpacingMm: 3,
+      keychain: { enabled: false }, bodyColorRgb: [240, 240, 240], componentHeights: {},
+    } as BuildParams;
+    for (const vertical of [true, false]) {
+      // The artwork is wide away from the join but narrows toward the block.
+      const outline: Ring[] = vertical
+        ? [[[-8, -20], [8, -20], [20, 20], [-20, 20]]]
+        : [[[-20, -20], [20, -8], [20, 8], [-20, 20]]];
+      const result = buildHybridClicker(wasm, {} as never, head as never, null, [], outline,
+        params, { vertical, bodyColorRgb: [240, 240, 240] } as never, imported);
+      const neck = result.parts.find((part) => part.name === 'hybrid-continuous-base')!;
+      const across = vertical ? 0 : 1;
+      const coordinates = Array.from({ length: neck.vertProperties.length / neck.numProp }, (_, index) =>
+        neck.vertProperties[index * neck.numProp + across]);
+      expect(Math.max(...coordinates) - Math.min(...coordinates)).toBeLessThan(22);
+      const solid = wasm.Manifold.ofMesh(new wasm.Mesh({
+        numProp: neck.numProp, vertProperties: neck.vertProperties, triVerts: neck.triVerts,
+      }));
+      const components = solid.decompose();
+      expect(components).toHaveLength(1);
+      components.forEach((component: { delete(): void }) => component.delete());
+      solid.delete();
+      expect(buildThreeMF(result.parts).length).toBeGreaterThan(0);
+    }
+    cube.delete();
+  });
+
   it('places Top keyrings at the image face and Bottom keyrings at the backing base, with open holes', async () => {
     const wasm = await Module();
     wasm.setup();

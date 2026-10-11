@@ -449,20 +449,36 @@ export function buildHybridClicker(
     const blockInset = Math.min(1.5, Math.max(0.6, blockExtent * 0.05));
     const imageJoin = vertical ? badgeBounds.min[1] + imageInset : badgeBounds.max[0] - imageInset;
     const blockJoin = vertical ? mb.maxY - blockInset : mb.minX + blockInset;
-    const imageSpan = ringSpanAt(scaledOutline, axis, imageJoin)
+    const badgeRings = badgeSection.toPolygons() as Ring[];
+    const imageJoinSpan: [number, number] = ringSpanAt(badgeRings, axis, imageJoin)
       ?? (vertical ? [badgeBounds.min[0], badgeBounds.max[0]] : [badgeBounds.min[1], badgeBounds.max[1]]);
+    // The join sits well inside the image so the solids overlap, but a
+    // tapered picture can be much narrower where the neck becomes visible.
+    // Size the bridge against both sections instead of letting a wide block
+    // flare out past the image's attachment edge.
+    const exitInset = Math.min(imageInset, Math.max(1.5, imagePadding + 0.5, imageExtent * 0.05));
+    const imageExit = vertical ? badgeBounds.min[1] + exitInset : badgeBounds.max[0] - exitInset;
+    const exitSpan = ringSpanAt(badgeRings, axis, imageExit) ?? imageJoinSpan;
+    const commonLow = Math.max(imageJoinSpan[0], exitSpan[0]);
+    const commonHigh = Math.min(imageJoinSpan[1], exitSpan[1]);
+    const imageSpan: [number, number] = commonHigh - commonLow >= 4
+      ? [commonLow, commonHigh]
+      : imageJoinSpan[1] - imageJoinSpan[0] < exitSpan[1] - exitSpan[0] ? imageJoinSpan : exitSpan;
     const blockSpan = partSpanAt(moved, axis, blockJoin)
       ?? (vertical ? [mb.minX, mb.maxX] : [mb.minY, mb.maxY]);
-    const imageLow = imageSpan[0] - imagePadding * 0.65;
-    const imageHigh = imageSpan[1] + imagePadding * 0.65;
+    const edgeClearance = Math.min(0.6, (imageSpan[1] - imageSpan[0]) * 0.08);
+    const imageLow = imageSpan[0] + edgeClearance;
+    const imageHigh = imageSpan[1] - edgeClearance;
     const blockLow = blockSpan[0];
     const blockHigh = blockSpan[1];
+    const blockCenter = (blockLow + blockHigh) / 2;
+    const blockNeckWidth = Math.min(imageHigh - imageLow, blockHigh - blockLow);
     const neckOutline = smoothNeckOutline(
       axis,
       imageJoin,
       blockJoin,
       [imageLow, imageHigh],
-      [blockLow, blockHigh],
+      [blockCenter - blockNeckWidth / 2, blockCenter + blockNeckWidth / 2],
     );
     if (importedNeckEnabled) {
       let neckFootprint = ctx.track(new wasm.CrossSection([neckOutline], 'NonZero'));
@@ -471,10 +487,15 @@ export function buildHybridClicker(
         // untouched. The Bezier sides soften the taper; this offset rounds the
         // remaining plan-view edge.
         const neckRun = Math.abs(blockJoin - imageJoin);
-        const neckWidth = Math.min(imageHigh - imageLow, blockHigh - blockLow);
+        const neckWidth = blockNeckWidth;
         const radius = Math.min(1.6, neckRun * 0.12, neckWidth * 0.12);
         if (radius >= 0.25) {
-          neckFootprint = ctx.simp(ctx.track(neckFootprint.offset(radius, 'Round', 2, 24)));
+          // Round inside the bridge footprint so smoothing cannot grow the
+          // neck back beyond the image width.
+          const inset = ctx.track(neckFootprint.offset(-radius, 'Round', 2, 24));
+          if (!sectionIsEmpty(inset)) {
+            neckFootprint = ctx.simp(ctx.track(inset.offset(radius, 'Round', 2, 24)));
+          }
         }
       }
       // Fill the image backing depth and overlap the block in XY so the
