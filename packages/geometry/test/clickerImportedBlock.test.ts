@@ -97,12 +97,13 @@ describe('Clicker imported block image attachment', () => {
       { partName: 'top-color-0-0', filamentRgb: [250, 248, 245], coverage: 0.9, rings: outline },
       { partName: 'top-color-1-0', filamentRgb: [25, 30, 35], coverage: 0.1, rings: [accent] },
     ];
+    const imageDepth = 0.8;
     const result = buildHybridClicker(wasm, {} as never,
       { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } } as never,
       null, regions, outline,
       { hybridImageSizeMm: 40, hybridImageThicknessMm: 17, hybridBaseThicknessMm: 9,
         hybridImagePaddingMm: 0, hybridNeckLengthMm: 0, hybridBaseImageOverlapMm: 7,
-        colorBleed: 0, componentHeights: {}, keychain: { enabled: false }, bodyColorRgb: [240, 240, 240] } as BuildParams,
+        imageDepth, colorBleed: 0, componentHeights: {}, keychain: { enabled: false }, bodyColorRgb: [240, 240, 240] } as BuildParams,
       { vertical: true, bodyColorRgb: [240, 240, 240] } as never, imported);
     const topPlaneZ = 17 - 9 + 0.04;
     const carrier = result.parts.find((part) => part.name === 'hybrid-image-base')!;
@@ -120,7 +121,7 @@ describe('Clicker imported block image attachment', () => {
     // at a face, which makes the exported image look uneven in some slicers.
     const backing = result.parts.find((part) => part.name === 'hybrid-image-backing')!;
     const backingSolid = wasm.Manifold.ofMesh(new wasm.Mesh({ numProp: backing.numProp, vertProperties: backing.vertProperties, triVerts: backing.triVerts }));
-    const supportSlice = backingSolid.slice(topPlaneZ - 0.25);
+    const supportSlice = backingSolid.slice(topPlaneZ - imageDepth - 0.25);
     expect(supportSlice.area()).toBeGreaterThan(1500);
 
     const archive = unzipSync(buildThreeMF(result.parts));
@@ -318,7 +319,8 @@ describe('Clicker imported block image attachment', () => {
       { partName: 'top-color-2-0', filamentRgb: [245, 142, 166], coverage: 0.08, rings: [disk(8, 5, 5)] },
       { partName: 'top-color-3-0', filamentRgb: [245, 200, 100], coverage: 0.04, rings: [disk(0, -8, 4)] },
     ];
-    const params = { hybridImageSizeMm: 40, hybridImageThicknessMm: 17, hybridBaseThicknessMm: 9, hybridImagePaddingMm: 1.2, hybridNeckLengthMm: 3, hybridBaseImageOverlapMm: 7, baseFilamentRgb: [245, 142, 166], bodyColorRgb: [240, 240, 240], componentHeights: {}, keychain: { enabled: false } } as BuildParams;
+    const imageDepth = 0.8;
+    const params = { hybridImageSizeMm: 40, hybridImageThicknessMm: 17, hybridBaseThicknessMm: 9, hybridImagePaddingMm: 1.2, hybridNeckLengthMm: 3, hybridBaseImageOverlapMm: 7, imageDepth, baseFilamentRgb: [245, 142, 166], bodyColorRgb: [240, 240, 240], componentHeights: {}, keychain: { enabled: false } } as BuildParams;
     const result = buildHybridClicker(wasm, {} as never, { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } } as never, null, imageRegions, outline, params, { vertical: true, bodyColorRgb: [240, 240, 240] } as never, imported);
     expect(result.parts.some((part) => part.name === 'hybrid-continuous-base')).toBe(true);
     expect(result.parts.some((part) => part.name === 'hybrid-image-base')).toBe(true);
@@ -326,7 +328,7 @@ describe('Clicker imported block image attachment', () => {
     const whiteBacking = result.parts.find((part) => part.name === 'hybrid-image-backing')!;
     expect(whiteBacking.colorRgb).toEqual([240, 240, 240]);
     const skinZ = Array.from({ length: imageSkin.vertProperties.length / imageSkin.numProp }, (_, i) => imageSkin.vertProperties[i * imageSkin.numProp + 2]);
-    expect(Math.max(...skinZ) - Math.min(...skinZ)).toBeLessThan(0.4);
+    expect(Math.max(...skinZ) - Math.min(...skinZ)).toBeCloseTo(imageDepth, 4);
     const neck = result.parts.find((part) => part.name === 'hybrid-continuous-base')!;
     expect(neck.triVerts.length).toBeGreaterThan(0);
     expect(result.parts.some((part) => part.name === 'hybrid-image-1')).toBe(true);
