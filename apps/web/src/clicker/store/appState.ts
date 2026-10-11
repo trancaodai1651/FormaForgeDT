@@ -58,6 +58,8 @@ export const store = createStore<UiState>({
   hybridNeckLengthMm: 3,
   hybridNeckEnabled: true,
   hybridNeckSmooth: true,
+  // Match the complete imported block height unless the user chooses a manual value.
+  hybridImportedNeckHeightMm: 0,
   hybridBaseImageOverlapMm: 7,
   hybridNeckWidthMm: 18,
   hybridKeycapSpacingMm: 3.5,

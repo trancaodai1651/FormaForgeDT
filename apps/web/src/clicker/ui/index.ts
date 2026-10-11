@@ -331,9 +331,14 @@ export function createUi(
     if ($('importedHeadKeychainOffsetRow')) $('importedHeadKeychainOffsetRow')!.style.display = state.keychain.enabled ? '' : 'none';
     if ($('importedNeckEnabled')) $<HTMLInputElement>('importedNeckEnabled').checked = state.hybridNeckEnabled;
     if ($('importedNeckSmooth')) $<HTMLInputElement>('importedNeckSmooth').checked = state.hybridNeckSmooth;
+    if ($('importedNeckHeight')) $<HTMLInputElement>('importedNeckHeight').value = String(state.hybridImportedNeckHeightMm);
+    if ($('importedNeckHeightValue')) $('importedNeckHeightValue')!.textContent = state.hybridImportedNeckHeightMm === 0
+      ? tx('Full block (auto)', 'Bằng block (tự động)')
+      : `${state.hybridImportedNeckHeightMm.toFixed(1)} mm`;
     if ($('importedNeckLength')) $<HTMLInputElement>('importedNeckLength').value = String(state.hybridImportedBlockSpacingMm);
     if ($('importedNeckLengthValue')) $('importedNeckLengthValue')!.textContent = `${state.hybridImportedBlockSpacingMm.toFixed(1)} mm`;
     if ($('importedNeckSmoothRow')) $('importedNeckSmoothRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
+    if ($('importedNeckHeightRow')) $('importedNeckHeightRow')!.style.display = state.hybridNeckEnabled ? '' : 'none';
     if ($('importedNeckLengthRow')) $('importedNeckLengthRow')!.style.display = '';
     const switchRow = $('showswitch')?.closest('.switch-row') as HTMLElement | null;
     if (switchRow) switchRow.style.display = importedBlockMode || flatKeychain ? 'none' : '';

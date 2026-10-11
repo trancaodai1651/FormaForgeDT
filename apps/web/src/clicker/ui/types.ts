@@ -16,7 +16,7 @@ export interface UiState {
   designSizePercent: number; lockBaseSize: boolean; hollowBase: boolean; switchPocketFitPercent: number;
   bottomExpandPercent: number; bottomPaddingMm: number; bottomSolidOnly: boolean;
   bottomOffsetX: number; bottomOffsetY: number; bottomRotation: number;
-  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageLateralOffsetMm: number; hybridBlockLateralOffsetMm: number; hybridImportedBlockSpacingMm: number; hybridImageMatchBlockHeight: boolean; hybridImageThicknessMm: number; hybridImagePaddingMm: number; hybridKeychainHeightMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseStyle: HybridBaseStyle; hybridVaseProfile: HybridVaseProfile; hybridVaseWavinessMm: number; hybridVaseThicknessMm: number; hybridVaseGapMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridNeckEnabled: boolean; hybridNeckSmooth: boolean; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
+  capWidthMm: number; topThickness: number; imageDepth: number; flatKeychainThicknessMm: number; hybridImageSizeMm: number; hybridImageLateralOffsetMm: number; hybridBlockLateralOffsetMm: number; hybridImportedBlockSpacingMm: number; hybridImageMatchBlockHeight: boolean; hybridImageThicknessMm: number; hybridImagePaddingMm: number; hybridKeychainHeightMm: number; hybridImageExtrudeMm: number; hybridTextExtrudeMm: number; hybridBaseWidthMm: number; hybridBaseEndPaddingMm: number; hybridBaseThicknessMm: number; hybridBaseCornerRadiusMm: number; hybridBaseStyle: HybridBaseStyle; hybridVaseProfile: HybridVaseProfile; hybridVaseWavinessMm: number; hybridVaseThicknessMm: number; hybridVaseGapMm: number; hybridBaseWallHeightMm: number; hybridNeckLengthMm: number; hybridNeckEnabled: boolean; hybridNeckSmooth: boolean; hybridImportedNeckHeightMm: number; hybridBaseImageOverlapMm: number; hybridNeckWidthMm: number; hybridKeycapSpacingMm: number; hybridKeycapClearanceMm: number; imageMargin: number; borderWidth: number; baseHeight: number;
   mergeTopFrame: boolean; isFlatKeychain: boolean; keepMeshesSeparate: boolean;
   tolerance: number; stemTolerance: number; switches: SwitchPlacement[]; activeSwitchIndex: number;
   smoothing: number; photoFlatten: boolean; keychain: KeychainParams; removeBg: boolean; view: ViewMode; showSwitch: boolean;
@@ -110,6 +110,7 @@ export interface UiCallbacks {
   onHybridNeckLength(value: number): void;
   onImportedNeckEnabled(enabled: boolean): void;
   onImportedNeckSmooth(smooth: boolean): void;
+  onImportedNeckHeight(value: number): void;
   onHybridBaseImageOverlap(value: number): void;
   onHybridNeckWidth(value: number): void;
   onHybridKeycapSpacing(value: number): void;

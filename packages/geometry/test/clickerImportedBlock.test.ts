@@ -652,4 +652,49 @@ describe('Clicker imported block image attachment', () => {
     expect(axisBounds(hiddenNeck.parts.find((part) => part.name === 'spacing-block')!, 1)[1] - axisBounds(nearBlock, 1)[1]).toBeCloseTo(-9, 4);
     cube.delete();
   });
+
+  it('matches the full imported block Z height by default and supports a manual neck height', async () => {
+    const wasm = await Module();
+    wasm.setup();
+    const cube = wasm.Manifold.cube([27, 27, 20], true);
+    const mesh = cube.getMesh();
+    const imported: ClickerPart[] = [{
+      kind: 'body', group: 'base', name: 'height-block', colorRgb: [240, 185, 103],
+      numProp: mesh.numProp, vertProperties: new Float32Array(mesh.vertProperties), triVerts: new Uint32Array(mesh.triVerts),
+    }];
+    const outline: Ring[] = [[[-20, -20], [20, -20], [20, 20], [-20, 20]]];
+    const head = { meta: { topExtent: [18] }, shell: { positions: new Float32Array([-9, -9, 0, 9, -9, 0, 9, 9, 0, -9, 9, 0]) } };
+    const build = (hybridImportedNeckHeightMm?: number) => buildHybridClicker(
+      wasm, {} as never, head as never, null, [], outline,
+      {
+        hybridImageSizeMm: 40, hybridImageThicknessMm: 17, hybridBaseThicknessMm: 9,
+        hybridImagePaddingMm: 1.2, hybridImportedBlockSpacingMm: 3,
+        hybridNeckEnabled: true, hybridNeckSmooth: false,
+        hybridImportedNeckHeightMm, hybridBaseImageOverlapMm: 7,
+        keychain: { enabled: false }, bodyColorRgb: [240, 240, 240], componentHeights: {},
+      } as BuildParams,
+      { vertical: true, bodyColorRgb: [240, 240, 240] } as never,
+      imported,
+    );
+    const zBounds = (part: ClickerPart) => {
+      const values: number[] = [];
+      for (let index = 0; index < part.vertProperties.length; index += part.numProp) values.push(part.vertProperties[index + 2]);
+      return [Math.min(...values), Math.max(...values)] as const;
+    };
+    const defaultBuild = build();
+    const block = defaultBuild.parts.find((part) => part.name === 'height-block')!;
+    const neck = defaultBuild.parts.find((part) => part.name === 'hybrid-continuous-base')!;
+    const [blockBottom, blockTop] = zBounds(block);
+    const [neckBottom, neckTop] = zBounds(neck);
+    expect(neckBottom).toBeCloseTo(blockBottom, 4);
+    expect(neckTop).toBeCloseTo(blockTop, 4);
+    expect(neckTop - neckBottom).toBeCloseTo(blockTop - blockBottom, 4);
+
+    const customBuild = build(6);
+    const customNeck = customBuild.parts.find((part) => part.name === 'hybrid-continuous-base')!;
+    const [customBottom, customTop] = zBounds(customNeck);
+    expect(customBottom).toBeCloseTo(blockBottom, 4);
+    expect(customTop - customBottom).toBeCloseTo(6, 4);
+    cube.delete();
+  });
 });

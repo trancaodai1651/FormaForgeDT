@@ -81,6 +81,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('importedHeadKeychainPosition')?.addEventListener('change', (e: Event) => cb.onHybridKeychainPosition((e.target as HTMLSelectElement).value as 'top' | 'bottom'));
   $('importedNeckEnabled')?.addEventListener('change', (e: Event) => cb.onImportedNeckEnabled((e.target as HTMLInputElement).checked));
   $('importedNeckSmooth')?.addEventListener('change', (e: Event) => cb.onImportedNeckSmooth((e.target as HTMLInputElement).checked));
+  $('importedNeckHeight')?.addEventListener('input', (e: Event) => cb.onImportedNeckHeight(+(e.target as HTMLInputElement).value));
   $('importedNeckLength')?.addEventListener('input', (e: Event) => cb.onImportedBlockSpacing(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychainSize')?.addEventListener('input', (e: Event) => cb.onKeychainHoleDiameter(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychainOffset')?.addEventListener('input', (e: Event) => cb.onImportedKeychainOffset(+(e.target as HTMLInputElement).value));
