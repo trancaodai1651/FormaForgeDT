@@ -1,4 +1,6 @@
 .public-clicker-page-shell {
+  --accent: #ef4444;
+  --accent-hover: #dc3038;
   position: fixed;
   z-index: 20;
   inset: 0;
@@ -7,6 +9,23 @@
   min-width: 0;
   overflow: hidden;
   background: #0a0c0f;
+}
+.public-clicker-page-shell .admin-native-workspace {
+  --accent: #ef4444;
+  --accent-hover: #dc3038;
+}
+.public-clicker-page-shell .desktop-download-button {
+  border-color: #ef4444;
+  background: linear-gradient(145deg, #f05555, #d92f38);
+  color: #fff;
+}
+.public-clicker-page-shell .desktop-download-button small {
+  border-color: rgba(255, 255, 255, .35);
+}
+.public-clicker-page-shell .clicker-mode-tabs button.active {
+  border-color: rgba(239, 68, 68, .7);
+  background: rgba(239, 68, 68, .18);
+  color: #f87171;
 }
 .public-clicker-download-bar {
   box-sizing: border-box;
@@ -30,4 +49,38 @@
   width: 100%;
   height: auto;
   min-height: 0;
+}
+
+@media (max-width: 520px) {
+  .public-clicker-download-bar {
+    flex-basis: 44px;
+    gap: 6px;
+    padding-inline: 8px;
+    font-size: 9px;
+    letter-spacing: .06em;
+  }
+
+  .public-clicker-download-bar > span {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .public-clicker-download-bar .desktop-download-button {
+    flex: 0 1 auto;
+    max-width: 60%;
+    min-width: 0;
+    gap: 5px;
+    padding-inline: 8px;
+    overflow: hidden;
+    font-size: 11px;
+  }
+
+  .public-clicker-download-bar .desktop-download-button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .public-clicker-download-bar .desktop-download-button small { display: none; }
 }

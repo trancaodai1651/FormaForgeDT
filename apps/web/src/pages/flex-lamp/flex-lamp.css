@@ -1,0 +1,89 @@
+.flex-lamp-app {
+  --lamp-bg: #0b1120;
+  --lamp-surface: #141d2c;
+  --lamp-raised: #1b273b;
+  --lamp-shadow-dark: rgba(0, 0, 0, .35);
+  --lamp-shadow-light: rgba(255, 255, 255, .07);
+  --lamp-accent: #ef4444;
+  --lamp-accent-ink: #fff;
+  --lamp-text: #f7f8fb;
+  --lamp-muted: #b0bac9;
+  background: var(--lamp-bg);
+  color: var(--lamp-text);
+}
+
+.flex-lamp-app .flex-lamp-panel,
+.flex-lamp-app .flex-lamp-toolbar,
+.flex-lamp-app .flex-lamp-section {
+  background: var(--lamp-surface);
+  color: var(--lamp-text);
+}
+
+.flex-lamp-app .flex-lamp-panel-brand { border-color: var(--line); }
+.flex-lamp-app .flex-lamp-panel-brand strong,
+.flex-lamp-app .flex-lamp-panel-mode strong,
+.flex-lamp-app .flex-lamp-section-head strong,
+.flex-lamp-app .flex-lamp-range strong { color: var(--lamp-text); }
+.flex-lamp-app .flex-lamp-panel-brand small,
+.flex-lamp-app .flex-lamp-panel-session,
+.flex-lamp-app .flex-lamp-panel-mode,
+.flex-lamp-app .flex-lamp-section-head span,
+.flex-lamp-app .flex-lamp-select > span,
+.flex-lamp-app .flex-lamp-panel-intro p { color: var(--lamp-muted); }
+.flex-lamp-app .flex-lamp-section { border-color: var(--line); box-shadow: var(--shadow); }
+.flex-lamp-app .flex-lamp-select select,
+.flex-lamp-app .flex-lamp-pattern-grid button,
+.flex-lamp-app .flex-lamp-panel-mode button,
+.flex-lamp-app .flex-lamp-ghost {
+  border-color: var(--line-strong);
+  background: var(--lamp-raised);
+  color: var(--lamp-text);
+}
+.flex-lamp-app .flex-lamp-mode-switch button.active,
+.flex-lamp-app .flex-lamp-view-tabs button.active,
+.flex-lamp-app .flex-lamp-material-row button.active,
+.flex-lamp-app .flex-lamp-pattern-grid button:hover,
+.flex-lamp-app .flex-lamp-pattern-grid button.active,
+.flex-lamp-app .flex-lamp-canvas-tools button:hover,
+.flex-lamp-app .flex-lamp-canvas-tools button.active {
+  border-color: var(--lamp-accent);
+  background: var(--lamp-accent);
+  color: var(--lamp-accent-ink);
+}
+.flex-lamp-app .flex-lamp-confirm,
+.flex-lamp-app .flex-lamp-export button {
+  border-color: var(--lamp-accent);
+  background: var(--lamp-accent);
+  color: #fff;
+}
+.flex-lamp-app .flex-lamp-export button + button {
+  border-color: var(--line-strong);
+  background: var(--lamp-raised);
+  color: var(--lamp-text);
+}
+.flex-lamp-app .flex-lamp-range input { accent-color: var(--lamp-accent); }
+.flex-lamp-app .flex-lamp-viewport { background: #e8edf5; }
+
+.flex-lamp-chooser {
+  width: 100%;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 84% -8%, rgba(239, 68, 68, .12), transparent 36%), var(--bg);
+  color: var(--text);
+}
+.flex-lamp-chooser-content h1 { color: var(--text); }
+.flex-lamp-chooser-content > p { color: var(--muted); }
+.flex-lamp-chooser-cards button:hover { border-color: var(--accent); }
+.flex-lamp-chooser-card { border-color: var(--line); }
+
+@media (max-width: 680px) {
+  .flex-lamp-app { overflow: visible; height: auto; min-height: 100svh; }
+  .flex-lamp-app .flex-lamp-layout { display: block; height: auto; overflow: visible; }
+  .flex-lamp-app .flex-lamp-viewport { width: 100%; height: 48svh; min-height: 320px; }
+  .flex-lamp-app .flex-lamp-panel { width: 100%; height: auto; min-height: 0; overflow: visible; padding: 14px 12px calc(24px + env(safe-area-inset-bottom)); }
+  .flex-lamp-chooser { min-width: 0 !important; width: 100%; }
+  .flex-lamp-chooser-content { width: min(100% - 24px, 560px); }
+  .flex-lamp-chooser-cards { grid-template-columns: 1fr; }
+  .flex-lamp-toolbar { gap: 10px; padding: 10px; }
+  .flex-lamp-toolbar-actions { flex-wrap: wrap; }
+}

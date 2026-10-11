@@ -31,3 +31,144 @@
 @media (max-width: 1180px) { .public-tools-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .public-tools-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .public-tools-intro { align-items: start; flex-direction: column; } .public-tools-intro p { max-width: 470px; } }
 @media (max-width: 620px) { .public-tools-page { padding-inline: 14px; } .public-tools-header { align-items: flex-start; flex-direction: column; gap: 14px; } .public-tools-header-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; } .public-tools-grid { grid-template-columns: 1fr; gap: 10px; } .public-tool-card { min-height: 76px; } .public-tools-footer { align-items: flex-start; flex-direction: column; gap: 7px; } }
+
+/* Creator Hub inspired dashboard: clearer cards, stronger contrast and more breathing room. */
+.public-tools-page {
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 8% -12%, rgba(239, 68, 68, .14), transparent 36%),
+    radial-gradient(ellipse at 92% 4%, rgba(248, 113, 113, .09), transparent 30%),
+    var(--bg);
+}
+
+.public-tools-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  max-width: 1600px;
+  padding: 12px 16px 15px;
+  border: 1px solid var(--line);
+  border-radius: 0 0 20px 20px;
+  background: color-mix(in srgb, var(--surface-strong) 90%, transparent);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .18);
+  backdrop-filter: blur(24px) saturate(130%);
+}
+
+.public-tools-brand { color: var(--text); }
+.public-tools-brand-mark {
+  width: 42px;
+  height: 42px;
+  border-color: color-mix(in srgb, var(--accent) 54%, transparent);
+  border-radius: 14px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+  color: var(--accent-strong);
+  font-size: 21px;
+}
+.public-tools-brand strong { font-size: 17px; }
+.public-tools-brand small { color: var(--muted); font-size: 11px; letter-spacing: .1em; }
+.public-tools-header-actions { gap: 14px; }
+.public-tools-download-link {
+  min-height: 42px;
+  padding: 0 14px;
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--accent-strong);
+  font: 600 14px/1.2 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.public-tools-download-link:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.public-tools-status { color: var(--muted); font-size: 13px; }
+.public-tools-status svg { color: var(--accent-strong); }
+.public-tools-language { min-height: 40px; margin-left: 0; padding: 0 10px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); font-size: 13px; }
+.public-tools-language button { min-width: 28px; min-height: 36px; }
+.public-tools-language button.active,
+.public-tools-language button:hover { color: var(--accent-strong); }
+
+.public-tools-intro {
+  max-width: 1600px;
+  padding: clamp(54px, 7vw, 94px) 0 44px;
+}
+.public-tools-eyebrow { color: var(--muted); font-size: 13px; }
+.public-tools-intro h1 { max-width: 1000px; line-height: .98; letter-spacing: -.065em; }
+.public-tools-intro h1 em { color: var(--accent-strong); }
+.public-tools-intro p { max-width: 430px; color: var(--muted); font-size: 16px; line-height: 1.65; }
+
+.public-tools-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 1600px;
+}
+.public-tool-card {
+  min-height: 124px;
+  gap: 16px;
+  padding: 20px;
+  border-color: var(--line);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .018)), var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .14), inset 0 1px rgba(255, 255, 255, .05);
+  backdrop-filter: blur(20px);
+}
+.public-tool-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 56%, transparent);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface));
+  box-shadow: 0 18px 36px rgba(0, 0, 0, .22), 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.public-tool-card-mark {
+  width: 50px;
+  height: 50px;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 16px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 19%, var(--surface)), var(--surface-strong));
+  color: var(--accent-strong);
+}
+.public-tool-card-mark > span { display: none; }
+.public-tool-card-mark svg { display: block; width: 20px; height: 20px; }
+.public-tool-card-copy { gap: 7px; }
+.public-tool-card-copy strong {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  white-space: normal;
+}
+.public-tool-card-copy small {
+  color: var(--muted);
+  font-size: 14px !important;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+}
+.public-tool-card-arrow { color: var(--muted); }
+.public-tool-card:hover .public-tool-card-arrow { color: var(--accent-strong); }
+.public-tools-footer {
+  max-width: 1600px;
+  margin-top: 34px;
+  padding-top: 18px;
+  border-color: var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .public-tools-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .public-tools-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .public-tools-header { border-radius: 0 0 18px 18px; }
+}
+@media (max-width: 620px) {
+  .public-tools-page { padding-inline: 14px; }
+  .public-tools-header { align-items: stretch; padding-inline: 12px; }
+  .public-tools-header-actions { justify-content: flex-start; gap: 10px; }
+  .public-tools-status { display: none; }
+  .public-tools-intro { gap: 18px; padding-top: 48px; }
+  .public-tools-intro h1 { font-size: clamp(2.8rem, 14vw, 4.6rem); }
+  .public-tools-intro p { font-size: 15px; }
+  .public-tools-grid { grid-template-columns: 1fr; gap: 11px; }
+  .public-tool-card { min-height: 104px; padding: 16px; }
+  .public-tool-card-copy strong { font-size: 16px; }
+  .public-tool-card-copy small { font-size: 13px !important; }
+  .public-tools-footer { margin-top: 26px; font-size: 11px; }
+}

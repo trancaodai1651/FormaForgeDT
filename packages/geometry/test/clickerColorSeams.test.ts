@@ -9,7 +9,7 @@ import { buildThreeMF } from '../../../apps/web/src/clicker/export/threemfExport
 import { defaultSlicerExport, slicerProfiles } from '../../../apps/web/src/clicker/export/slicerLayout';
 import { buildThreeMFObjects } from '../../../apps/web/src/clicker/features/multiColor/export/threemfExport';
 import { buildHybridClicker } from '../../../apps/web/src/clicker/geometry/buildHybridClicker';
-import { partMatchesPalette, rememberPartColor } from '../../../apps/web/src/clicker/core/partColors';
+import { colorTargetForPart, colorTargetForPickedMask, partMatchesPalette, rememberPartColor } from '../../../apps/web/src/clicker/core/partColors';
 import type { BuildParams, BuildRegion, ClickerPart, RGB } from '../../../apps/web/src/clicker/types';
 
 function artwork() {
@@ -124,6 +124,24 @@ describe('Clicker image color boundaries', () => {
 });
 
 describe('Clicker 3MF selected filament colors', () => {
+  it('keeps a picked Image frame independent from its artwork palette', () => {
+    const palette = [{ quantRgb: [255, 135, 0] as RGB, filamentRgb: [255, 135, 0] as RGB, coverage: 0.8 }];
+    expect(colorTargetForPart('top-base', palette)).toEqual({ kind: 'base' });
+    expect(colorTargetForPart('top-color-0-3', palette)).toEqual({ kind: 'region', index: 0, compIndex: 3 });
+  });
+
+  it('resolves a virtual carrier-region pick to its exact source component', () => {
+    const part: ClickerPart = {
+      kind: 'body', group: 'base', name: 'hybrid-image-base', colorRgb: [255, 135, 0],
+      numProp: 3, vertProperties: new Float32Array(), triVerts: new Uint32Array(),
+      extrudeRegions: [{ name: 'hybrid-image-3', sourcePartName: 'top-color-1-4', rings: [], topZ: 1 }],
+    };
+    expect(colorTargetForPickedMask(part, 'hybrid-image-3', [])).toEqual({
+      kind: 'region', index: 1, compIndex: 4, partName: 'top-color-1-4',
+    });
+    expect(colorTargetForPickedMask(part, 'missing-mask', [])).toBeNull();
+  });
+
   it('matches hybrid components to their source palette instead of their flattened component index', () => {
     const component = { name: 'hybrid-image-10', sourcePartName: 'top-color-1-7' } as ClickerPart;
     expect(partMatchesPalette(component, 1)).toBe(true);

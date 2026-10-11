@@ -1,6 +1,6 @@
 ﻿import { getClickerDocument } from '../runtime';
 import { store, appData } from '../store/appState';
-import { partMatchesPalette, rememberPartColor } from './partColors';
+import { colorTargetForPart, colorTargetForPickedMask, partMatchesPalette, rememberPartColor } from './partColors';
 import { processImage } from '../image/pipeline';
 import { parseSvg } from '../image/logo';
 import { parseLetter } from '../image/letter';
@@ -153,9 +153,12 @@ export function setupEngine(viewer: any, initAssetsFn: () => void, loadDefaultCl
       store.set({ selectedParts: [partName] });
       const part = appData.latestParts[index];
       if (!part) return;
-      const target: ColorTarget | null = part.extrudeLayer && s.extrudeLayerColors.enabled
-        ? { kind: 'extrudeLayer', ...part.extrudeLayer }
-        : partColorTarget(part.sourcePartName ?? part.name, s);
+      const pickedMaskTarget = colorTargetForPickedMask(part, extrudeRegionName, s.palette);
+      const target: ColorTarget | null = pickedMaskTarget ?? (
+        part.extrudeLayer && s.extrudeLayerColors.enabled
+          ? { kind: 'extrudeLayer', ...part.extrudeLayer }
+          : colorTargetForPart(part.sourcePartName ?? part.name, s.palette)
+      );
       if (!target) return;
       
       const options = getAvailableColorOptions(s);
@@ -323,6 +326,8 @@ export function rebuild(quiet = false) {
   const isIcon = s.importMode === 'icon';
   const effectiveBaseShape = isIcon && s.baseShape === 'outline' ? 'circle' : s.baseShape;
   const capBaseColor: RGB = s.baseColorOverride ?? deriveFrameColor(s);
+  const carrierPaletteIndex = stackColorLayers ? bottomLayerPaletteIndex(s) : dominantPaletteIndex(s);
+  const imageCarrierColorRgb = s.palette[carrierPaletteIndex]?.filamentRgb ?? capBaseColor;
   const bottomOutline = s.bottomBaseMode === 'custom' && appData.bottomRegionSet
     ? appData.bottomRegionSet.outline
     : undefined;
@@ -388,7 +393,7 @@ export function rebuild(quiet = false) {
     baseHeight: Math.max(0, s.baseHeight),
     keepMeshesSeparate: s.keepMeshesSeparate, isFlatKeychain: s.isFlatKeychain, capProud: 4.0, tolerance: s.tolerance,
     stemTolerance: s.stemTolerance, colorBleed: 0.12, stepHeight: imageMultiColorMode && s.stackColorLayers ? colorLayerStepMm : 0.6, travel: 4.0, floorThickness: 1.6,
-    switches: s.switches, keychain: s.keychain, baseFilamentRgb: capBaseColor, bodyColorRgb: s.bodyColorRgb ?? [120, 124, 130],
+    switches: s.switches, keychain: s.keychain, baseFilamentRgb: capBaseColor, imageCarrierColorRgb, bodyColorRgb: s.bodyColorRgb ?? [120, 124, 130],
     extrudeLayerColors,
     extrudeLayerPalette,
     edgeSettings: s.edgeSettings, extrudeChamfer: s.extrudeChamfer, componentHeights,
@@ -567,6 +572,19 @@ export function applyModelRecolor(target: ColorTarget, rgb: RGB, partIndex: numb
 
     const pickedPart = partIndex >= 0 ? appData.latestParts[partIndex] : null;
     const pickedPaletteCarrier = pickedPart?.name === 'top-base' || pickedPart?.name === 'hybrid-image-base';
+    if (target.partName && partIndex >= 0) {
+      overrides[target.partName] = rgb;
+      if (pickedPart && !pickedPaletteCarrier) {
+        viewer.setPartColor(partIndex, rgb);
+        appData.latestParts[partIndex] = { ...pickedPart, colorRgb: rgb };
+        rememberPartColor(overrides, pickedPart, rgb);
+      }
+      store.set({ partOverrides: overrides });
+      // A region picked inside a continuous carrier needs its own printable
+      // mesh once its color differs from the carrier.
+      if (pickedPaletteCarrier) debouncedQuietRebuild();
+      return;
+    }
     if (partIndex >= 0 && pickedPart && !pickedPaletteCarrier) {
       const part = appData.latestParts[partIndex];
       viewer.setPartColor(partIndex, rgb);
@@ -642,31 +660,6 @@ function syncBaseColor(viewer: any) {
     appData.latestParts[index] = { ...part, colorRgb: baseRgb };
     viewer.setPartColor(index, baseRgb);
   }
-}
-function partColorTarget(name: string, s: ReturnType<typeof store.get>): ColorTarget | null {
-  if (
-    name === 'base-body'
-    || name === 'blocks-base'
-    || name === 'blocks-flat-floor'
-    || /^blocks-side-wall-\d+$/.test(name)
-    || /^block-side-wall-\d+$/.test(name)
-  ) return { kind: 'body' };
-  if (/^block-\d+(?:-wall)?$/.test(name)) return { kind: 'body' };
-  if (name === 'hybrid-continuous-base' || name === 'hybrid-image-deck') return { kind: 'body' };
-  if (name === 'hybrid-image-base') return { kind: 'region', index: dominantPaletteIndex(s), compIndex: 0 };
-  if (/^hybrid-image-(\d+)$/.test(name)) return { kind: 'region', index: Number(name.slice('hybrid-image-'.length)), compIndex: 0 };
-  if (/^block-color-\d+$/.test(name)) return { kind: 'region', index: 0, compIndex: 0 };
-  if (/^cap-\d+$/.test(name)) return { kind: 'region', index: 0, compIndex: 0 };
-  if (name === 'top-base' && s.importMode === 'image') return { kind: 'region', index: dominantPaletteIndex(s), compIndex: 0 };
-  if (name === 'top-base') return { kind: 'base' };
-  const m = /^top-color-(\d+)(?:-(\d+))?$/.exec(name);
-  if (m) return { kind: 'region', index: +m[1], compIndex: m[2] ? +m[2] : 0 };
-  
-  // ðŸŸ¢ NHáº¬N Dáº NG Máº¢NH MÃ€U PHáº¦N Äáº¾
-  const mBot = /^bottom-color-(\d+)(?:-(\d+))?$/.exec(name);
-  if (mBot) return { kind: 'region', index: +mBot[1], compIndex: mBot[2] ? +mBot[2] : 0 };
-  
-  return null;
 }
 function getAvailableColorOptions(s: ReturnType<typeof store.get>): RGB[] {
   const barColors: RGB[] = [];

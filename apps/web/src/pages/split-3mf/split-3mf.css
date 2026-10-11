@@ -221,6 +221,78 @@
 .split3mf-guide li { margin: 4px 0; }
 .split3mf-language-switch { min-height: 34px; margin-top: 14px; padding: 0 12px; border: 1px solid var(--split-accent); border-radius: 7px; background: #fff3ed; color: #9e351b; font-size: 10px; font-weight: 700; cursor: pointer; }
 
+/* The side panels follow the shared FormaForge workspace theme; the 3D bed
+   stays neutral so model colors remain easy to inspect. */
+.split3mf-page {
+  --split-ink: #f7f8fb;
+  --split-muted: #b0bac9;
+  --split-line: rgba(210, 221, 238, .16);
+  --split-paper: #141d2c;
+  --split-card: #1b273b;
+  --split-accent: #ef4444;
+  background: #0b1120;
+  color: var(--split-ink);
+}
+.split3mf-sidebar, .split3mf-topbar { background: var(--split-paper); color: var(--split-ink); }
+.split3mf-brand, .split3mf-sidebar-section, .split3mf-topbar { border-color: var(--split-line); }
+.split3mf-sidebar-section h2,
+.split3mf-field-label,
+.split3mf-section-heading > button,
+.split3mf-trust p,
+.split3mf-help-copy,
+.split3mf-info-grid,
+.split3mf-guide,
+.split3mf-modal-note { color: var(--split-muted); }
+.split3mf-upload-card,
+.split3mf-file-chip,
+.split3mf-wide-button,
+.split3mf-choice-grid label,
+.split3mf-choice-grid.connector-side > button,
+.split3mf-settings-box,
+.split3mf-selected-list > button,
+.split3mf-cap-list,
+.split3mf-split-button:disabled,
+.split3mf-modal,
+.split3mf-cap-preview,
+.split3mf-tolerance-table th,
+.split3mf-language-switch {
+  border-color: var(--split-line);
+  background-color: var(--split-card);
+  color: var(--split-ink);
+}
+.split3mf-choice-grid label.active,
+.split3mf-choice-grid.connector-side > button.active,
+.split3mf-wide-button.open,
+.split3mf-cap-list button.active,
+.split3mf-cap-list button:hover,
+.split3mf-language-switch {
+  border-color: color-mix(in srgb, var(--split-accent) 65%, transparent);
+  background: color-mix(in srgb, var(--split-accent) 14%, var(--split-card));
+  color: var(--split-ink);
+}
+.split3mf-page :is(.split3mf-select-label select, .split3mf-range input[type='number'], .split3mf-number-row input) {
+  border-color: var(--split-line);
+  background: #101a2a;
+  color: var(--split-ink);
+}
+.split3mf-page :is(.split3mf-cap-list button, .split3mf-selected-list > button, .split3mf-history button, .split3mf-remove-model) {
+  color: var(--split-ink);
+}
+.split3mf-page :is(.split3mf-cap-list button.active, .split3mf-cap-list button:hover) {
+  background: color-mix(in srgb, var(--split-accent) 18%, var(--split-card));
+  color: #fff;
+}
+.split3mf-modal-backdrop { background: rgba(4, 8, 14, .72); }
+.split3mf-modal { border-color: var(--split-line); background: #141d2c; box-shadow: var(--shadow); }
+.split3mf-modal > header { border-color: var(--split-line); }
+.split3mf-tolerance-table th, .split3mf-tolerance-table td { border-color: var(--split-line); }
+.split3mf-tolerance-table th { background: #1b273b; }
+.split3mf-empty button.demo { border-color: var(--split-line); background: #141d2c; color: var(--split-ink); }
+.split3mf-error { border-color: rgba(248, 113, 113, .45); background: #321e2a; color: #ffd0d0; }
+.split3mf-support { background: #31274e; }
+.split3mf-top-actions > a { border-color: var(--split-line); background: var(--split-card); color: var(--split-ink); }
+.split3mf-top-actions .split3mf-download { border-color: var(--split-accent); background: var(--split-accent); color: #fff; }
+
 @media (max-width: 980px) {
   .split3mf-page { grid-template-columns: 272px minmax(0, 1fr); }
   .split3mf-brand h1 { font-size: 21px; }
@@ -229,13 +301,21 @@
 }
 
 @media (max-width: 720px) {
-  .split3mf-page { display: grid; grid-template: 54px minmax(52dvh, 1fr) minmax(340px, auto) / 1fr; max-height: none; min-height: 100dvh; overflow: auto; }
-  .split3mf-topbar { grid-column: 1; grid-row: 1; padding-left: 12px; }
-  .split3mf-topbar h2 { font-size: 9px; }
-  .split3mf-workspace { grid-column: 1; grid-row: 2; min-height: 52dvh; }
-  .split3mf-sidebar { grid-column: 1; grid-row: 3; grid-template-rows: 74px auto 48px; max-height: none; border-top: 1px solid var(--split-line); border-right: 0; }
+  .split3mf-page { display: grid; grid-template: 54px 62px minmax(45svh, 1fr) minmax(340px, auto) / minmax(0, 1fr); max-height: none; min-height: 100dvh; overflow: auto; }
+  .split3mf-topbar { grid-column: 1; grid-row: 1; min-width: 0; padding-left: 12px; }
+  .split3mf-topbar h2 { min-width: 0; overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+  .split3mf-workspace { grid-column: 1; grid-row: 3; min-height: 45svh; }
+  .split3mf-sidebar { display: contents; }
+  .split3mf-brand { grid-column: 1; grid-row: 2; min-height: 62px; border-top: 1px solid var(--split-line); border-right: 0; }
+  .split3mf-sidebar-scroll { grid-column: 1; grid-row: 4; min-width: 0; overflow: visible; border-top: 1px solid var(--split-line); background: var(--split-paper); }
+  .split3mf-sidebar-scroll > .split3mf-upload-card { display: none; }
+  .split3mf-sidebar-scroll > .split3mf-file-chip { margin: 10px; }
   .split3mf-sidebar-scroll { overflow: visible; }
   .split3mf-top-actions > a { min-width: 31px; height: 33px; }
-  .split3mf-download { height: 35px; padding: 0 10px; }
-  .split3mf-support { bottom: 62px; max-width: calc(100% - 26px); white-space: nowrap; }
+  .split3mf-download { min-height: 38px; height: 38px; padding: 0 10px; }
+  .split3mf-support { top: 64px; right: 12px; bottom: auto; left: 12px; max-width: none; transform: none; justify-content: space-between; white-space: nowrap; }
+  .split3mf-brand h1 { font-size: 24px; }
+  .split3mf-sidebar-section { padding: 15px 12px; }
+  .split3mf-choice-grid label { min-height: 88px; }
+  .split3mf-workspace::after { inset: 4px; }
 }

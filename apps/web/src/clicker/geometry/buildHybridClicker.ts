@@ -594,7 +594,7 @@ export function buildHybridClicker(
       ? a.regionIndex - b.regionIndex
       : b.region.coverage - a.region.coverage || a.regionIndex - b.regionIndex);
   const carrierRegion = orderedImageRegions[0]?.region;
-  const dominantImageColor = carrierRegion?.filamentRgb ?? params.baseFilamentRgb ?? bodyColor;
+  const dominantImageColor = params.imageCarrierColorRgb ?? carrierRegion?.filamentRgb ?? params.baseFilamentRgb ?? bodyColor;
   // Only merge an image region into the carrier when both resolve to the
   // exact same filament colour. A small RGB-distance threshold can erase a
   // real palette entry (for example an off-white highlight beside a white
@@ -807,8 +807,8 @@ export function buildHybridClicker(
   parts.push({
     ...toPart(wasm, imageCarrier, 'body', 'base', dominantImageColor, 'hybrid-image-base'),
     extrudeOrigin: { bottomZ: imageTop, stepMm: params.stepHeight ?? 0.6 },
-    extrudeRegions: imageMasks.filter(({ region }) => sameAsCarrier(region)).map(({ layerIndex, footprint, level }) => ({
-      name: `hybrid-image-${layerIndex}`, rings: footprint.toPolygons(),
+    extrudeRegions: imageMasks.filter(({ region }) => sameAsCarrier(region)).map(({ region, layerIndex, footprint, level }) => ({
+      name: `hybrid-image-${layerIndex}`, sourcePartName: region.partName, rings: footprint.toPolygons(),
       topZ: imageTop + clamp((params.hybridImageExtrudeMm ?? 0) + level * (params.stepHeight ?? 0.6), 0, 6, 0),
     })),
   });

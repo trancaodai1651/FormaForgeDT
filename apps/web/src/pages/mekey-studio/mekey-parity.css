@@ -230,3 +230,81 @@
 .mekey-bed-outline {
   display: none;
 }
+
+/* Align the standalone editor with the shared FormaForge dark workspace. */
+.mekey-shell:not(.dark) {
+  --accent: #ef4444;
+  --accent-hover: #dc3038;
+  --line: rgba(210, 221, 238, .16);
+  --panel: #141d2c;
+  --panel-soft: #1b273b;
+  --stage: #0b1120;
+  --ink: #f7f8fb;
+  --muted: #b0bac9;
+}
+.mekey-shell.dark {
+  --accent: #ef4444;
+  --accent-hover: #dc3038;
+  --line: rgba(210, 221, 238, .16);
+  --panel: #101a2a;
+  --panel-soft: #182438;
+  --stage: #080e1a;
+  --ink: #f7f8fb;
+  --muted: #b0bac9;
+}
+.mekey-shell .mekey-library .print,
+.mekey-shell .mekey-library-tools .primary,
+.mekey-shell .mekey-download,
+.mekey-shell .mekey-modal .primary,
+.mekey-shell .mekey-tabs button.active,
+.mekey-shell .mekey-font-categories button.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+.mekey-shell .mekey-stage button { color: var(--ink); }
+.mekey-shell .mekey-panel input[type='text'],
+.mekey-shell .mekey-panel input:not([type]),
+.mekey-shell .mekey-panel select,
+.mekey-shell .mekey-print-controls select,
+.mekey-shell .mekey-custom-bed input,
+.mekey-shell .mekey-add-modal textarea {
+  background: var(--panel-soft) !important;
+  color: var(--ink) !important;
+}
+.mekey-shell .mekey-add-modal footer button:not(.primary) {
+  background: var(--panel-soft);
+  color: var(--ink);
+}
+.mekey-shell .mekey-panel { gap: 18px; }
+.mekey-shell .mekey-panel > label:not(.mekey-color),
+.mekey-shell .mekey-layer > label:not(.mekey-check),
+.mekey-shell .mekey-print-controls > label { font-size: 14px; }
+.mekey-shell .mekey-tip,
+.mekey-shell .mekey-print-controls p,
+.mekey-shell .mekey-layer .mekey-check { font-size: 13px; }
+
+@media (max-width: 600px) {
+  .mekey-shell { min-height: 100svh; }
+  .mekey-header { min-height: 52px; height: auto; padding: 7px 10px; }
+  .mekey-header-actions { gap: 4px; }
+  .mekey-header button { min-height: 38px; height: 38px; padding-inline: 8px; }
+  .mekey-main, .mekey-main.print-mode { min-width: 0; }
+  .mekey-library { min-height: 0; }
+  .mekey-library-tools { padding: 8px; gap: 6px; }
+  .mekey-library-tools label { min-width: 0; height: 38px; }
+  .mekey-library-tools .primary { min-height: 38px; height: 38px; padding-inline: 9px; }
+  .mekey-design-list { max-height: 100px; padding: 8px; display: flex; flex-direction: row; }
+  .mekey-design-card { flex: 0 0 min(180px, 56vw); min-height: 64px; padding: 8px; }
+  .mekey-design-card > span { font-size: 18px; }
+  .mekey-library footer { margin-top: 0; padding: 8px; }
+  .mekey-library .print { min-height: 42px; height: 42px; }
+  .mekey-stage { height: 50svh; min-height: 340px; }
+  .mekey-controls { min-height: 0; }
+  .mekey-stage-top { top: 10px; left: 10px; }
+  .mekey-camera { bottom: 58px; left: 10px; }
+  .mekey-download { right: 10px !important; bottom: 10px !important; max-width: calc(100% - 20px); }
+  .mekey-status { bottom: 16px; left: 10px; transform: none; max-width: calc(100% - 200px); }
+  .mekey-panel { padding: 16px 12px; }
+  .mekey-grid-two { grid-template-columns: 1fr; gap: 14px; }
+  .mekey-color { grid-template-columns: minmax(0, 1fr) 36px minmax(78px, 100px); }
+}

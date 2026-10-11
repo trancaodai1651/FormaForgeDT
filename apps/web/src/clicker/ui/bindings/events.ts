@@ -74,6 +74,7 @@ export function bindGlobalEvents(cb: UiCallbacks) {
   $('importedHeadSize')?.addEventListener('input', (e: Event) => cb.onHybridImageSize(+(e.target as HTMLInputElement).value));
   $('importedHeadMatchBlockHeight')?.addEventListener('change', (e: Event) => cb.onHybridImageMatchBlockHeight((e.target as HTMLInputElement).checked));
   $('importedHeadThickness')?.addEventListener('input', (e: Event) => cb.onHybridImageThickness(+(e.target as HTMLInputElement).value));
+  $('importedHeadPadding')?.addEventListener('input', (e: Event) => cb.onHybridImagePadding(+(e.target as HTMLInputElement).value));
   $('importedHeadLateral')?.addEventListener('input', (e: Event) => cb.onHybridImageLateralOffset(+(e.target as HTMLInputElement).value));
   $('importedBlockLateral')?.addEventListener('input', (e: Event) => cb.onHybridBlockLateralOffset(+(e.target as HTMLInputElement).value));
   $('importedHeadKeychain')?.addEventListener('change', (e: Event) => cb.onKeychainToggle((e.target as HTMLInputElement).checked));

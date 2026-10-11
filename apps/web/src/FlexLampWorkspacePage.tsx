@@ -15,6 +15,7 @@ import { signOutAdmin } from './lib/supabase';
 import { buildFlexLampGeometry, loadImagePattern, meshFromBufferGeometry, normalizeMeshData, type FlexLampConfig, type FlexLampPattern, type ImagePattern } from './flexLamp/geometry';
 import { buildReferenceShade, type ReferenceShadeResult } from './flexLamp/referenceWorker';
 import { attachSocketRing } from './flexLamp/socket';
+import './pages/flex-lamp/flex-lamp.css';
 
 type LampMode = 'shade' | 'model';
 type ViewMode = 'solid' | 'matte' | 'xray' | 'light';

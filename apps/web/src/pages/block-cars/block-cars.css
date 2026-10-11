@@ -83,3 +83,126 @@
 .bc-reference-compare p { font-size: 13px; }
 @media (max-width: 900px) { .bc-workspace { grid-template-columns: minmax(0,1fr); }.bc-parts-grid { grid-template-columns: repeat(5,minmax(0,1fr)); }.bc-stage { height: clamp(450px, 60vh, 680px); } }
 @media (max-width: 560px) { .bc-heading { padding: 14px 0; }.bc-heading h1 { font-size: 1.5rem; }.bc-heading p { font-size: 13px; }.bc-parts-grid { grid-template-columns: repeat(3,minmax(0,1fr)); max-height: 380px; }.bc-stage { height: 440px; min-height: 0; }.bc-scale-control { grid-template-columns: 95px minmax(0,1fr) 42px; gap: 9px; } }
+
+/* Match the shared glass workspace while keeping the model viewport neutral. */
+.block-cars-page {
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 10% -8%, rgba(239, 68, 68, .11), transparent 34%),
+    radial-gradient(ellipse at 96% 4%, rgba(125, 151, 194, .1), transparent 31%),
+    var(--bg);
+}
+.bc-topbar { border-color: var(--line); color: var(--muted); font-size: 13px; }
+.bc-back { color: var(--muted); font-size: 14px; }
+.bc-back:hover { color: var(--accent-strong); }
+.bc-brand { color: var(--text); }
+.bc-brand i { color: var(--accent-strong); }
+.bc-version { color: var(--muted); }
+.bc-heading { padding-block: 24px 20px; }
+.bc-eyebrow { color: var(--accent-strong); font-size: 12px; }
+.bc-heading h1 { font-size: clamp(1.8rem, 2.7vw, 2.6rem); }
+.bc-heading p { max-width: 520px; color: var(--muted); font-size: 15px; line-height: 1.6; }
+.bc-workspace { gap: 20px; }
+.bc-sidebar,
+.bc-controls,
+.bc-info-grid article,
+.bc-assembly,
+.bc-module-builder,
+.bc-parts-panel {
+  border-color: var(--line);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .012)), var(--surface);
+  color: var(--text);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .18), inset 0 1px rgba(255, 255, 255, .04);
+}
+.bc-sidebar-title { border-color: var(--line); color: var(--muted); font-size: 13px; }
+.bc-sidebar-title b {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-strong));
+  color: var(--accent-strong);
+}
+.bc-model-list { scrollbar-color: rgba(176, 186, 201, .44) transparent; }
+.bc-model-card { min-height: 72px; border-radius: 13px; }
+.bc-model-card:hover { background: rgba(255, 255, 255, .055); }
+.bc-model-card.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-strong));
+  box-shadow: inset 3px 0 var(--accent);
+}
+.bc-model-index { color: var(--muted); font-size: 12px; }
+.bc-model-card img { border-radius: 9px; background: #e7ebf0; }
+.bc-model-caption strong { color: var(--text); font-size: 15px; }
+.bc-model-caption small { color: var(--muted); font-size: 12px; }
+.bc-model-dot { box-shadow: 0 0 0 2px var(--surface-strong), 0 0 0 3px var(--line-strong); }
+.bc-stage-head { padding-bottom: 16px; }
+.bc-active-index { color: var(--accent-strong); font-size: 13px; }
+.bc-stage-head h2 { font-size: 27px; }
+.bc-drag-hint { color: var(--muted); font-size: 13px; }
+.bc-stage {
+  border-color: var(--line-strong);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #e9edf3, #dce3ed);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .18);
+}
+.bc-dimensions {
+  border-color: rgba(35, 46, 62, .16);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .92);
+  color: #344054;
+  font-size: 12px;
+}
+.bc-stage-mark { color: #596579; font-size: 12px; }
+.bc-controls { gap: 24px; padding: 17px 18px; }
+.bc-scale-control span { color: var(--muted); font-size: 13px; }
+.bc-scale-control b { color: var(--accent-strong); font-size: 14px; }
+.bc-scale-control input { accent-color: var(--accent); }
+.bc-export {
+  min-height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #f05555, #d92f38);
+  font: 650 14px/1.2 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, .2), inset 0 1px rgba(255, 255, 255, .2);
+}
+.bc-export:hover:not(:disabled) { background: #c82933; }
+.bc-info-grid { gap: 13px; }
+.bc-info-grid article { padding: 17px 18px; }
+.bc-info-grid article > span { color: var(--muted); font-size: 12px; }
+.bc-info-grid article strong { color: var(--text); font-size: 23px; }
+.bc-info-grid article strong small { color: var(--muted); font-size: 12px; }
+.bc-info-grid article p { color: var(--muted); font-size: 14px; line-height: 1.55; }
+.bc-assembly summary { padding: 16px 18px; color: var(--text); font-size: 15px; }
+.bc-assembly-content { color: var(--muted); }
+.bc-assembly-content img { border-color: var(--line); border-radius: 10px; }
+.bc-assembly-content ol { color: var(--muted); font-size: 14px; line-height: 1.65; }
+.bc-common-pages figure { border-color: var(--line); border-radius: 12px; background: var(--surface-strong); }
+.bc-common-pages figcaption { color: var(--muted); font-size: 13px; }
+.bc-common-pages figcaption b { color: var(--accent-strong); font-size: 11px; }
+.bc-topbar,
+.bc-heading,
+.bc-workspace,
+.bc-footer { max-width: 1840px; }
+.bc-footer { border-color: var(--line); color: var(--muted); font-size: 12px; }
+.bc-inspect-controls { color: var(--muted); font-size: 14px; }
+.bc-inspect-controls button,
+.bc-inspect-controls select,
+.bc-inspect-controls input[type=number],
+.bc-module-settings select,
+.bc-module-settings input,
+.bc-part-actions button,
+.bc-module-pieces button { font-size: 14px; }
+.bc-module-settings label,
+.bc-part-actions span,
+.bc-joints { color: var(--muted); font-size: 14px; }
+.bc-module-builder h3 { color: var(--text); font-size: 20px; }
+.bc-module-builder { border: 1px solid var(--line); }
+
+@media (max-width: 900px) {
+  .bc-heading p { font-size: 15px; }
+  .bc-model-card { min-height: 68px; }
+}
+@media (max-width: 560px) {
+  .bc-heading h1 { font-size: 1.65rem; }
+  .bc-heading p { font-size: 14px; }
+  .bc-stage-head h2 { font-size: 23px; }
+  .bc-controls { padding: 15px; }
+  .bc-info-grid article p { font-size: 14px; }
+}

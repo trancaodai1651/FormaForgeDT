@@ -1,0 +1,295 @@
+/* Shared FormaForge UI language, adapted from the Creator Hub reference. */
+:root {
+  color-scheme: dark;
+  --bg: #0b1120;
+  --surface: rgba(20, 29, 44, .78);
+  --surface-strong: #182338;
+  --line: rgba(210, 221, 238, .15);
+  --line-strong: rgba(210, 221, 238, .28);
+  --text: #f7f8fb;
+  --muted: #b0bac9;
+  --accent: #ef4444;
+  --accent-strong: #f87171;
+  --danger: #ff7777;
+  --shadow: 0 24px 64px rgba(0, 0, 0, .32);
+  --tahoe-blue: #ef4444;
+  --tahoe-blue-strong: #dc3038;
+  --tahoe-purple: #f87171;
+  --tahoe-cyan: #fca5a5;
+  --tahoe-glass: rgba(20, 29, 44, .78);
+  --tahoe-glass-heavy: rgba(18, 26, 40, .94);
+  --tahoe-border: rgba(210, 221, 238, .16);
+  --tahoe-border-soft: rgba(210, 221, 238, .1);
+  --tahoe-shadow: 0 24px 64px rgba(0, 0, 0, .32), 0 2px 12px rgba(0, 0, 0, .18);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #e3e8ef;
+  --surface: rgba(249, 251, 253, .88);
+  --surface-strong: #fff;
+  --line: rgba(35, 46, 62, .13);
+  --line-strong: rgba(35, 46, 62, .23);
+  --text: #20252d;
+  --muted: #5c6674;
+  --accent: #c62932;
+  --accent-strong: #aa1f28;
+  --danger: #b4232c;
+  --shadow: 0 20px 54px rgba(34, 41, 51, .14);
+  --tahoe-glass: rgba(249, 251, 253, .88);
+  --tahoe-glass-heavy: rgba(255, 255, 255, .96);
+  --tahoe-border: rgba(35, 46, 62, .13);
+  --tahoe-border-soft: rgba(35, 46, 62, .09);
+  --tahoe-shadow: 0 20px 54px rgba(34, 41, 51, .14);
+}
+
+html { font-size: 16px; }
+
+html, body, #root { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
+body { overflow-x: clip; }
+
+.tahoe-ui {
+  --accent: #ef4444;
+  --accent-strong: #f87171;
+  --danger: #ff7777;
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tahoe-ui::before {
+  background:
+    radial-gradient(ellipse at 12% -8%, rgba(239, 68, 68, .14), transparent 35%),
+    radial-gradient(ellipse at 94% 8%, rgba(248, 113, 113, .1), transparent 32%),
+    radial-gradient(ellipse at 56% 108%, rgba(130, 160, 204, .08), transparent 34%);
+}
+
+.tahoe-ui::after {
+  opacity: .14;
+  background-image: linear-gradient(rgba(220, 230, 244, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(220, 230, 244, .045) 1px, transparent 1px);
+}
+
+.tahoe-ui .site-header {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--surface-strong) 84%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.tahoe-ui .nav-links a.active::after {
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+
+.tahoe-ui .icon-button:hover,
+.tahoe-ui .cart-link:hover {
+  border-color: color-mix(in srgb, var(--accent) 56%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.tahoe-ui .glass-button {
+  min-height: 46px;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #f05555, #d92f38);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(239, 68, 68, .2), inset 0 1px rgba(255, 255, 255, .24);
+}
+
+.tahoe-ui .glass-button.primary {
+  border-color: transparent;
+  background: linear-gradient(145deg, #f05555, #d92f38);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(239, 68, 68, .2), inset 0 1px rgba(255, 255, 255, .24);
+}
+
+.tahoe-ui .glass-button.ghost,
+.tahoe-ui .glass-button.quiet {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--surface-strong) 74%, transparent);
+  color: var(--text);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .06);
+}
+
+.tahoe-ui .glass-button:hover {
+  box-shadow: 0 12px 26px rgba(239, 68, 68, .24), inset 0 1px rgba(255, 255, 255, .24);
+}
+
+.tahoe-ui .product-card-art,
+.tahoe-ui .story-art,
+.tahoe-ui .lamp-viewer,
+.tahoe-ui .account-card,
+.tahoe-ui .account-auth-form,
+.tahoe-ui .account-address-form,
+.tahoe-ui .admin-table,
+.tahoe-ui .admin-metric,
+.tahoe-ui .admin-settings-form,
+.tahoe-ui .empty-state {
+  border-color: var(--line);
+  background: linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .015)), var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(125%);
+  -webkit-backdrop-filter: blur(24px) saturate(125%);
+}
+
+.tahoe-ui .product-card-art:hover,
+.tahoe-ui .account-card:hover,
+.tahoe-ui .admin-metric:hover {
+  border-color: color-mix(in srgb, var(--accent) 56%, transparent);
+}
+
+.tahoe-ui input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='color']),
+.tahoe-ui textarea,
+.tahoe-ui select {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--surface-strong) 84%, transparent);
+  color: var(--text);
+}
+
+.tahoe-ui input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='color']):focus,
+.tahoe-ui textarea:focus,
+.tahoe-ui select:focus {
+  border-color: color-mix(in srgb, var(--accent) 76%, white 8%);
+  outline: 3px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.tahoe-ui input[type='range'] { accent-color: var(--accent); }
+
+.tahoe-ui .filter.active,
+.tahoe-ui .filter:hover,
+.tahoe-ui .admin-tool-switcher a.active {
+  border-color: color-mix(in srgb, var(--accent) 58%, transparent);
+  background: color-mix(in srgb, var(--accent) 13%, var(--surface));
+}
+
+.tahoe-ui .admin-tool-page,
+.tahoe-ui .admin-native-workspace,
+.tahoe-workspace {
+  --accent: #ef4444;
+  --accent-strong: #f87171;
+  --danger: #ff7777;
+  background: radial-gradient(ellipse at 88% -12%, rgba(239, 68, 68, .1), transparent 35%), var(--bg);
+}
+
+.tahoe-ui .admin-tool-switcher {
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--surface-strong) 78%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px);
+}
+
+.tahoe-ui .admin-tool-switcher a {
+  min-height: 42px;
+  padding-inline: 12px;
+  border-radius: 13px;
+}
+
+.tahoe-ui .admin-tool-switcher a.active {
+  color: var(--text);
+}
+
+.tahoe-ui .admin-tool-switcher a.active span {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tahoe-ui .admin-tool-stage {
+  border-color: var(--line);
+  border-radius: 22px;
+  background: #111a2a;
+  box-shadow: var(--shadow);
+}
+
+.tahoe-ui :where(.admin-tool-directory-card, .admin-metric, .admin-settings-form, .validation-box) {
+  border-color: var(--line);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .015)), var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.tahoe-ui :where(.admin-tool-directory-card, .public-tool-card, .module-library-grid button):focus-visible,
+.tahoe-ui :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 72%, white 8%);
+  outline-offset: 3px;
+}
+
+.tahoe-ui :where(p) {
+  font-size: max(14px, 1em) !important;
+  line-height: 1.6;
+}
+
+.tahoe-ui :where(small) {
+  font-size: clamp(12px, .75em, 14px) !important;
+  line-height: 1.45;
+}
+
+.tahoe-ui :where(label, .eyebrow, [class*='kicker'], [class*='hint'], [class*='status'], [class*='meta']) {
+  font-size: clamp(13px, .88em, 15px) !important;
+}
+
+.tahoe-ui :where(button, [role='button']) {
+  font-size: clamp(13px, .9em, 15px);
+}
+
+.tahoe-ui :where(input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='color']), select, textarea) {
+  min-height: 42px;
+  font-size: 15px !important;
+}
+
+.tahoe-ui :where(.wordmark, .cart-link, .admin-tool-directory-copy strong,
+  .admin-tool-page-meta strong, .admin-studio-title strong, .module-section-title strong,
+  .module-library-open strong, .module-hardware-options strong) {
+  font-size: max(14px, 1em) !important;
+}
+
+.tahoe-ui :where(.admin-tool-page-meta .eyebrow, .admin-tool-page-meta small,
+  .admin-tool-directory-copy small, .admin-studio-kicker, .admin-studio-session,
+  .admin-tool-session, .admin-tool-status, .admin-studio-back, .admin-tool-back,
+  .module-section-title > div > span, .module-live, .module-hardware-note,
+  .module-drag-hint, .module-text-field > span, .module-two-fields span,
+  .module-range > span, .module-validation p, .flex-lamp-panel-brand small,
+  .flex-lamp-select > span, .flex-lamp-chooser-session, .flex-lamp-upload small,
+  .flex-lamp-image-card small, .flex-lamp-imported-state, .flex-lamp-result-hint) {
+  font-size: 12px !important;
+}
+
+@media (max-width: 720px) {
+  .tahoe-ui { font-size: 16px; }
+  .tahoe-ui .site-header { width: calc(100% - 20px); }
+  .tahoe-ui :where(button, [role='button'], .glass-button) { min-height: 42px; }
+  .tahoe-ui :where(.admin-tool-container, .public-tools-content, .downloads-page) {
+    width: calc(100% - 28px);
+    max-width: 100%;
+  }
+  .tahoe-ui :where(.admin-tool-page, .admin-native-workspace, .public-tool-workspace) {
+    max-width: 100vw;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .tahoe-ui :where(.site-header, .admin-tool-switcher, .admin-workspace-nav) {
+    border-radius: 14px;
+  }
+  .tahoe-ui :where(.public-tools-grid, .admin-tool-directory-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .tahoe-ui .site-header,
+  .tahoe-ui .product-card-art,
+  .tahoe-ui .lamp-viewer,
+  .tahoe-ui .admin-tool-switcher,
+  .tahoe-ui .admin-tool-directory-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--surface-strong);
+  }
+}

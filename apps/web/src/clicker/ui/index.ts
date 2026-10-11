@@ -303,6 +303,7 @@ export function createUi(
     const importedControls: Array<[string, string]> = [
       ['importedHeadSize', `${state.hybridImageSizeMm.toFixed(0)} mm`],
       ['importedHeadThickness', state.hybridImageMatchBlockHeight ? tx('Matches block height', 'Bằng chiều cao block') : `${state.hybridImageThicknessMm.toFixed(1)} mm`],
+      ['importedHeadPadding', `${state.hybridImagePaddingMm.toFixed(1)} mm`],
       ['importedHeadLateral', `${state.hybridImageLateralOffsetMm.toFixed(1)} mm`],
       ['importedBlockLateral', `${state.hybridBlockLateralOffsetMm.toFixed(1)} mm`],
       ['importedHeadKeychainSize', `${state.keychain.holeDiameterMm.toFixed(1)} mm`],
@@ -313,12 +314,14 @@ export function createUi(
       if (input && getClickerDocument().activeElement !== input) {
         input.value = String(id === 'importedHeadSize' ? state.hybridImageSizeMm
             : id === 'importedHeadThickness' ? state.hybridImageThicknessMm
+            : id === 'importedHeadPadding' ? state.hybridImagePaddingMm
             : id === 'importedHeadLateral' ? state.hybridImageLateralOffsetMm
               : id === 'importedBlockLateral' ? state.hybridBlockLateralOffsetMm
               : id === 'importedHeadKeychainOffset' ? state.keychain.offsetMm ?? 0 : state.keychain.holeDiameterMm);
       }
       if ($(`${id}Value`)) $(`${id}Value`)!.textContent = label;
     }
+    if ($('hybridImagePaddingRow')) ($('hybridImagePaddingRow') as HTMLElement).style.display = importedBlockMode ? 'none' : '';
     if ($('importedHeadMatchBlockHeight')) $<HTMLInputElement>('importedHeadMatchBlockHeight').checked = state.hybridImageMatchBlockHeight;
     if ($('importedHeadThickness')) $<HTMLInputElement>('importedHeadThickness').disabled = state.hybridImageMatchBlockHeight;
     if ($('importedHeadKeychain')) $<HTMLInputElement>('importedHeadKeychain').checked = state.keychain.enabled;

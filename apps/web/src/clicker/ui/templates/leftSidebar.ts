@@ -147,7 +147,7 @@ ${renderExtrudeLayersPanel()}
         <div class="prow-header"><label for="hybridImageThickness">${tx('Image thickness', 'Độ dày hình ảnh')}</label><input type="text" class="val" id="hybridImageThicknessVal" /></div>
         <input type="range" id="hybridImageThickness" min="4" max="24" step="0.5" />
       </div>
-      <div class="prow-stacked">
+      <div class="prow-stacked" id="hybridImagePaddingRow">
         <div class="prow-header"><label for="hybridImagePadding">${tx('Image padding', 'Khoảng đệm hình ảnh')}</label><input type="text" class="val" id="hybridImagePaddingVal" /></div>
         <input type="range" id="hybridImagePadding" min="0" max="20" step="0.1" />
       </div>

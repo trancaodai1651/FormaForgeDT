@@ -34,3 +34,103 @@
 @media(max-width:1100px){.cad-topbar{grid-template-columns:auto 1fr auto}.cad-command-hint{display:none}.cad-left-toolbar{width:60px}.cad-left-toolbar button{grid-template-columns:1fr;place-items:center}.cad-left-toolbar button span,.cad-left-toolbar kbd{display:none}.cad-side-panel{left:70px}.cad-mode-dock button{min-width:44px;width:44px}.cad-mode-dock button{font-size:0}.cad-mode-dock button svg{margin:auto}.cad-preview-panel{right:60px}.cad-right-toolbar{width:50px}.cad-right-toolbar button{grid-template-columns:1fr;place-items:center}.cad-right-toolbar button span,.cad-right-toolbar kbd{display:none}.cad-right-toolbar button:first-child{width:50px}.cad-display-dock button{min-width:44px;width:44px;grid-template-columns:1fr;place-items:center}.cad-display-dock button span{display:none}.cad-view-cube{right:62px}.cad-view-controls{right:62px}.cad-measure-card{right:62px}}
 @media(max-width:720px){.cad-workspace{overflow:auto}.cad-topbar{position:sticky;top:0;height:58px;padding:6px 8px}.cad-brand span{display:none}.cad-brand strong{font-size:10px}.cad-top-actions button span{display:none}.cad-stage{height:calc(100svh - 58px);min-height:620px}.cad-mode-dock{top:7px;left:7px;display:flex}.cad-left-toolbar{top:auto;right:8px;bottom:8px;left:8px;display:flex;flex-direction:row;width:auto;padding:5px;overflow-x:auto;overflow-y:hidden;border:1px solid var(--cad-line);border-radius:12px;background:rgba(255,255,255,.94);box-shadow:0 12px 35px rgba(40,50,60,.15)}.cad-left-toolbar button{flex:0 0 42px;min-height:42px;padding:4px}.cad-left-toolbar i{flex:0 0 1px;width:1px;height:32px;margin:5px 3px}.cad-bottom-dock{bottom:62px}.cad-right-toolbar{right:7px;bottom:62px}.cad-display-dock{top:58px}.cad-preview-panel{top:105px;right:58px;width:min(300px,calc(100% - 70px))}.cad-preview-canvas{height:200px}.cad-view-cube{display:none}.cad-coordinate{bottom:62px}.cad-view-controls{right:7px;bottom:260px}.cad-side-panel{top:104px;left:7px;width:min(320px,calc(100% - 65px))}.cad-command-palette{top:64px}.cad-measure-card{right:58px;bottom:112px}}
 @media(max-width:720px){.cad-workspace-admin .cad-mode-dock{top:50px}}
+
+/* CAD controls follow the shared theme; the drafting sheet stays neutral. */
+.cad-workspace {
+  --cad-bg: var(--bg);
+  --cad-panel: var(--surface-strong);
+  --cad-line: var(--line);
+  --cad-line-2: var(--line-strong);
+  --cad-text: var(--text);
+  --cad-muted: var(--muted);
+  --cad-blue: var(--accent);
+  --cad-gold: var(--accent-strong);
+  background: var(--cad-bg);
+}
+.cad-topbar,
+.cad-left-toolbar,
+.cad-right-toolbar,
+.cad-bottom-dock,
+.cad-view-controls,
+.cad-view-cube,
+.cad-mode-dock button,
+.cad-display-dock button,
+.cad-command-hint,
+.cad-coordinate,
+.cad-transform-popover {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .18);
+}
+.cad-topbar { background: color-mix(in srgb, var(--surface-strong) 94%, transparent); }
+.cad-mode-dock button.active,
+.cad-left-toolbar button.active,
+.cad-left-toolbar button:hover,
+.cad-right-toolbar button.active,
+.cad-right-toolbar button:hover,
+.cad-bottom-dock button.active,
+.cad-display-dock button.active,
+.cad-side-panel.items article.active,
+.cad-side-panel.history > div > button.active,
+.cad-selection-properties > button.active {
+  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-strong));
+  color: var(--text);
+}
+.cad-preview-panel,
+.cad-side-panel,
+.cad-command-palette,
+.cad-selection-properties,
+.cad-model-operation-card {
+  border-color: var(--line);
+  background: #17243a;
+  color: var(--text);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, .3);
+}
+.cad-preview-panel header,
+.cad-side-panel header,
+.cad-command-palette > div { border-color: var(--line); }
+.cad-preview-panel header button,
+.cad-side-panel header button,
+.cad-preview-panel .cad-preview-actions button,
+.cad-selection-properties > button {
+  border-color: var(--line);
+  background: #202d42;
+  color: var(--text);
+}
+.cad-preview-panel header strong,
+.cad-preview-panel header span,
+.cad-selection-properties > strong,
+.cad-model-operation-card strong { color: var(--text); }
+.cad-preview-panel header span,
+.cad-selection-properties label,
+.cad-model-operation-card p,
+.cad-model-operation-card label span { color: var(--muted); }
+.cad-side-panel.items article { border-color: var(--line); }
+.cad-command-palette section button:hover { background: color-mix(in srgb, var(--accent) 13%, var(--surface-strong)); color: var(--text); }
+.cad-transform-popover button,
+.cad-preview-panel .cad-preview-actions button { background: color-mix(in srgb, var(--accent) 14%, var(--surface-strong)) !important; color: var(--accent-strong) !important; }
+.cad-selection-properties input { border-color: var(--line-strong); background: #0f192b; color: var(--text); }
+.cad-workspace input,
+.cad-workspace select { accent-color: var(--accent); }
+.cad-brand span,
+.cad-command-hint span,
+.cad-right-toolbar button,
+.cad-coordinate { color: var(--muted); }
+.cad-brand strong { color: var(--text); }
+.cad-top-actions button,
+.cad-left-toolbar button,
+.cad-right-toolbar button,
+.cad-bottom-dock button,
+.cad-display-dock button { font-size: 13px; }
+.cad-top-actions button.primary,
+.cad-model-create { border-color: var(--accent); background: var(--accent); color: #fff; }
+.cad-selection-properties label,
+.cad-parameters label span,
+.cad-model-operation-card label span { font-size: 13px; }
+.cad-selection-properties input { min-height: 40px; font-size: 14px; }
+
+@media(max-width:720px) {
+  .cad-left-toolbar { background: color-mix(in srgb, var(--surface-strong) 94%, transparent); }
+}

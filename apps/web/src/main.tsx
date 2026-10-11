@@ -4,6 +4,7 @@ import './styles.css';
 import './admin.css';
 import './tahoe.css';
 import './readability.css';
+import './creator-hub-ui.css';
 
 createRoot(document.getElementById('root')!).render(<App />);
 

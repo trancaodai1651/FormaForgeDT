@@ -636,7 +636,7 @@ export function buildClicker(
         stack: false, solidSilhouette: false, componentLevel,
       });
       carrier.extrudeRegions = picks.filter(({ region }) => sameAsCarrier(region))
-        .map(({ region, footprint }) => ({ name: region.partName, rings: footprint.toPolygons(),
+        .map(({ region, footprint }) => ({ name: region.partName, sourcePartName: region.partName, rings: footprint.toPolygons(),
           topZ: capTopZ + Math.max(0, componentLevel(region) * params.stepHeight) }));
     }
   }

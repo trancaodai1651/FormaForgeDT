@@ -219,6 +219,8 @@ export interface BuildParams {
   switches: SwitchPlacement[];
   keychain: KeychainParams;
   baseFilamentRgb: RGB;
+  /** Stable dominant image filament, independent of per-component recolors. */
+  imageCarrierColorRgb?: RGB;
   bodyColorRgb: RGB;
   componentHeights: Record<string, number>;
   edgeSettings: EdgeSetting[];
@@ -274,7 +276,7 @@ export interface ClickerPart extends MeshData {
   extrudePartName?: string;
   extrudeLayer?: { level: number; regionName: string };
   /** Independent artwork picks inside a continuous same-material carrier. */
-  extrudeRegions?: { name: string; rings: Ring[]; topZ: number }[];
+  extrudeRegions?: { name: string; sourcePartName?: string; rings: Ring[]; topZ: number }[];
   /** 1-based filament slot for slicer color assignment (shared per unique color). */
   extruder?: number;
 }
@@ -456,4 +458,4 @@ export type GeometryResponse =
   | { type: 'parts'; requestId?: number; parts: ClickerPart[]; switchPlacements: SwitchPlacement[]; warnings: string[] }
   | { type: 'blocksParts'; requestId?: number; parts: ClickerPart[]; switchPlacements: SwitchPlacement[]; warnings: string[] }
   | { type: 'error'; message: string };
-export type ColorTarget = { kind: 'extrudeLayer'; level: number; regionName: string } | { kind: 'region'; index: number; compIndex: number } | { kind: 'body' } | { kind: 'base' };
+export type ColorTarget = { kind: 'extrudeLayer'; level: number; regionName: string } | { kind: 'region'; index: number; compIndex: number; partName?: string } | { kind: 'body' } | { kind: 'base' };

@@ -106,6 +106,52 @@ async function setup() {
 }
 
 describe('Clicker viewport Extrude', () => {
+  it('separates a recolored carrier mask from the frame in the Image preview and 3MF', async () => {
+    const { wasm, socket, stem, params } = await setup();
+    const normalize = (rings: Ring[]) => rings.map(ring => ring.map(([x, y]) => [x / 40, y / 40] as [number, number]));
+    const regionColor: [number, number, number] = [0, 170, 255];
+    const regions = imageRegions.map((region, index) => ({
+      ...region,
+      filamentRgb: index === 0 ? regionColor : region.filamentRgb,
+      rings: normalize(region.rings),
+    }));
+    const result = buildClicker(wasm, socket, stem, regions, normalize(outline), {
+      ...params, imageMargin: 0, rasterImageMode: true,
+    });
+    const frame = result.parts.find(part => part.name === 'top-base')!;
+    const recoloredRegion = result.parts.find(part => part.name === 'top-color-0-0')!;
+    expect(frame.colorRgb).toEqual(params.baseFilamentRgb);
+    expect(recoloredRegion.colorRgb).toEqual(regionColor);
+    expect(recoloredRegion.triVerts.length).toBeGreaterThan(0);
+
+    const archive = unzipSync(buildThreeMF(result.parts));
+    const model = strFromU8(archive['3D/3dmodel.model']);
+    expect(model).toContain('displaycolor="#00aaffFF"');
+    expect(model).toContain('displaycolor="#faf8f5FF"');
+    socket.delete(); stem.delete();
+  });
+
+  it('keeps the hybrid carrier filament fixed when one of its image regions is recolored', async () => {
+    const { wasm, assets, keycap, socket, blockParams, params } = await setup();
+    const regionColor: [number, number, number] = [0, 170, 255];
+    const regions = imageRegions.map((region, index) => ({
+      ...region,
+      filamentRgb: index === 0 ? regionColor : region.filamentRgb,
+    }));
+    const result = buildHybridClicker(wasm, assets, keycap, socket, regions, outline, {
+      ...params, imageCarrierColorRgb: imageRegions[0].filamentRgb,
+    }, blockParams);
+    const carrier = result.parts.find(part => part.name === 'hybrid-image-base')!;
+    const recoloredRegion = result.parts.find(part => part.sourcePartName === 'top-color-0-0')!;
+    expect(carrier.colorRgb).toEqual(imageRegions[0].filamentRgb);
+    expect(recoloredRegion.colorRgb).toEqual(regionColor);
+    expect(recoloredRegion.triVerts.length).toBeGreaterThan(0);
+    const model = strFromU8(unzipSync(buildThreeMF(result.parts))['3D/3dmodel.model']);
+    expect(model).toContain('displaycolor="#00aaffFF"');
+    expect(model).toContain('displaycolor="#faf8f5FF"');
+    socket.delete();
+  });
+
   it.each(['image', 'blocks', 'imported'] as const)('raises only the picked white island in %s mode', async mode => {
     const { wasm, assets, keycap, socket, stem, blockParams, params } = await setup();
     // The star is a white island inside orange, disconnected from the white background.
@@ -133,6 +179,7 @@ describe('Clicker viewport Extrude', () => {
     const starName = mode === 'image' ? 'top-color-0-1' : 'hybrid-image-1';
     const backgroundName = mode === 'image' ? 'top-color-0-0' : 'hybrid-image-0';
     const starPick = carrier.extrudeRegions!.find(p => p.name === starName)!;
+    expect(starPick.sourcePartName).toBe(mode === 'image' ? starName : 'top-color-0-1');
     const ring = starPick.rings[0];
     const center = ring.reduce((sum, p) => [sum[0] + p[0] / ring.length, sum[1] + p[1] / ring.length], [0, 0]);
     expect(extrudeRegionAt(carrier, center[0], center[1])).toBe(starName);
