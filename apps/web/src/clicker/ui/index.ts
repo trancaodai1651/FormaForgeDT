@@ -407,7 +407,7 @@ export function createUi(
     for (const id of ['topProfileTabs', 'topthick', 'imgdepth', 'socketTolStepper', 'stemTolStepper']) {
       const el = getClickerDocument().getElementById(id);
       const field = el?.closest('.prow-stacked') ?? el?.parentElement;
-      const hideInHybrid = isHybridMode && (id === 'topthick' || id === 'imgdepth' || id === 'socketTolStepper');
+      const hideInHybrid = isHybridMode && (id === 'topthick' || (id === 'imgdepth' && !importedBlockMode) || id === 'socketTolStepper');
       const hideInFlat = flatKeychain && id !== 'imgdepth';
       if (field) (field as HTMLElement).style.display = isBlocksMode || hideInHybrid || hideInFlat ? 'none' : '';
     }

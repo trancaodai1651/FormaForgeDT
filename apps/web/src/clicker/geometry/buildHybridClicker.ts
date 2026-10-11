@@ -296,7 +296,9 @@ export function buildHybridClicker(
   const imagePadding = clamp(params.hybridImagePaddingMm, 0, 20, 1.2);
   const imageTopZ = imageThickness - baseThickness;
   const imageSurfaceLift = 0.04;
-  const inlayDepth = 0.28;
+  // Image + Imported Block uses the same printable image depth as Image mode.
+  // Keep the generated keycap hybrid's existing thin surface layer unchanged.
+  const inlayDepth = useImportedBlock ? clamp(params.imageDepth, 0.2, 3, 0.8) : 0.28;
   // The image skin must overlap the backing slightly. A skin that only touches
   // the backing at one Z plane becomes a set of detached shells after 3MF
   // export, which can render as a rippled/uneven image face in slicers.
@@ -686,7 +688,7 @@ export function buildHybridClicker(
   const imagePlateSection = bottomImageArea
     ? ctx.simp(ctx.track(imageSection.add(bottomImageArea)))
     : imageSection;
-  // Imported blocks keep the image ink on a thin top skin, as in Image mode.
+  // Imported blocks keep the image ink on a top skin with Image mode's depth.
   // Filling the entire head with the dominant colour makes its side walls
   // look like part of the block and amplifies tiny contour imperfections.
   let imageCarrier = ctx.track(wasm.Manifold.extrude(
@@ -774,8 +776,8 @@ export function buildHybridClicker(
         6,
         0,
       );
-      // Make the default image flush with the badge while giving it a shallow
-      // real inlay. When Extrude is increased, only the coloured layer rises;
+      // Make the default image flush with the badge while giving it the
+      // configured real inlay depth. When Extrude is increased, only the coloured layer rises;
       // the badge is carved first so the meshes never overlap coplanarly.
       const imageLayerHeight = inlayDepth + imageExtrude;
       const imageLayerBottom = imageTop - inlayDepth;
