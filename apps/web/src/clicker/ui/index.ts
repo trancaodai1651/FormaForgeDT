@@ -333,7 +333,7 @@ export function createUi(
     if ($('importedNeckSmooth')) $<HTMLInputElement>('importedNeckSmooth').checked = state.hybridNeckSmooth;
     if ($('importedNeckHeight')) $<HTMLInputElement>('importedNeckHeight').value = String(state.hybridImportedNeckHeightMm);
     if ($('importedNeckHeightValue')) $('importedNeckHeightValue')!.textContent = state.hybridImportedNeckHeightMm === 0
-      ? tx('Full block (auto)', 'Bằng block (tự động)')
+      ? tx('Auto to image backing', 'Tự động tới mặt dưới ảnh')
       : `${state.hybridImportedNeckHeightMm.toFixed(1)} mm`;
     if ($('importedNeckLength')) $<HTMLInputElement>('importedNeckLength').value = String(state.hybridImportedBlockSpacingMm);
     if ($('importedNeckLengthValue')) $('importedNeckLengthValue')!.textContent = `${state.hybridImportedBlockSpacingMm.toFixed(1)} mm`;

@@ -501,18 +501,24 @@ export function buildHybridClicker(
         }
       }
       // Fill the image backing depth and overlap the block in XY so the
-      // transition reads as one body. The image skin remains separate above.
+      // transition reads as one body. Stop at the image-skin underside: a
+      // full block-height neck intersects colored image layers and produces
+      // overlapping shells in slicers.
       const neckBottom = mb.minZ;
       const blockHeight = Math.max(0, mb.maxZ - mb.minZ);
       const requestedNeckHeight = clamp(params.hybridImportedNeckHeightMm, 0, 100, 0);
-      // Zero means full block height. A positive value sets a custom height
-      // upward from the block's bottom, capped so the bridge cannot exceed it.
-      const neckHeight = blockHeight > 0
+      const maxSafeNeckHeight = Math.max(0, Math.min(blockHeight, imageCarrierBottom - neckBottom));
+      // Zero means the tallest neck that meets the image backing without
+      // crossing into its colored skin. Positive values set a custom height
+      // upward from the block's bottom, capped at that same safe surface.
+      const neckHeight = maxSafeNeckHeight > 0
         ? requestedNeckHeight === 0
-          ? blockHeight
-          : Math.min(blockHeight, Math.max(0.5, requestedNeckHeight))
-        : 0.8;
-      importedNeck = ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]));
+          ? maxSafeNeckHeight
+          : Math.min(maxSafeNeckHeight, Math.max(0.5, requestedNeckHeight))
+        : 0;
+      importedNeck = neckHeight > 0
+        ? ctx.track(wasm.Manifold.extrude(neckFootprint, neckHeight).translate([0, 0, neckBottom]))
+        : null;
       carrier = importedNeck;
     } else {
       carrier = null;

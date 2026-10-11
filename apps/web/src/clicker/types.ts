@@ -195,7 +195,7 @@ export interface BuildParams {
   hybridNeckEnabled?: boolean;
   /** Round the imported block neck shoulders in the XY plane. */
   hybridNeckSmooth?: boolean;
-  /** Neck height in Z; zero automatically matches the full imported block height. */
+  /** Neck height in Z; zero reaches the image backing, and all values stop below the image skin. */
   hybridImportedNeckHeightMm?: number;
   /** How far the straight carrier head penetrates into the image badge to hide its square corner. */
   hybridBaseImageOverlapMm?: number;

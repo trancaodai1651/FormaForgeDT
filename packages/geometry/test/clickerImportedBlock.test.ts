@@ -653,7 +653,7 @@ describe('Clicker imported block image attachment', () => {
     cube.delete();
   });
 
-  it('matches the full imported block Z height by default and supports a manual neck height', async () => {
+  it('keeps the imported neck below the image skin and supports a manual neck height', async () => {
     const wasm = await Module();
     wasm.setup();
     const cube = wasm.Manifold.cube([27, 27, 20], true);
@@ -686,15 +686,17 @@ describe('Clicker imported block image attachment', () => {
     const neck = defaultBuild.parts.find((part) => part.name === 'hybrid-continuous-base')!;
     const [blockBottom, blockTop] = zBounds(block);
     const [neckBottom, neckTop] = zBounds(neck);
+    const imageCarrierBottom = 17 - 9 + 0.04 - 0.8;
     expect(neckBottom).toBeCloseTo(blockBottom, 4);
-    expect(neckTop).toBeCloseTo(blockTop, 4);
-    expect(neckTop - neckBottom).toBeCloseTo(blockTop - blockBottom, 4);
+    expect(neckTop).toBeCloseTo(imageCarrierBottom, 4);
+    expect(neckTop).toBeLessThan(blockTop);
 
     const customBuild = build(6);
     const customNeck = customBuild.parts.find((part) => part.name === 'hybrid-continuous-base')!;
     const [customBottom, customTop] = zBounds(customNeck);
     expect(customBottom).toBeCloseTo(blockBottom, 4);
     expect(customTop - customBottom).toBeCloseTo(6, 4);
+    expect(customTop).toBeLessThanOrEqual(imageCarrierBottom);
     cube.delete();
   });
 });
