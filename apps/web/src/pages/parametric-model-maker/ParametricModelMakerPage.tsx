@@ -415,6 +415,7 @@ export function ParametricModelMakerPage() {
     setUndoCount(0);
     setRedoCount(0);
     setProject(next);
+    setGrid(next.kind !== "wavy");
     setFiles(assets);
     setHistory(snapshots);
     setParts([]);
@@ -456,6 +457,14 @@ export function ParametricModelMakerPage() {
             f.name.replace(/\.[^.]+$/, "")),
     }));
   const dirty = !!project && fingerprint(project, files) !== generated;
+  const referenceDifferences =
+    project?.kind === "wavy"
+      ? WAVY_PARAMETERS.filter(
+          (p) =>
+            project.config[p.key as keyof typeof DEFAULT_WAVY] !==
+            DEFAULT_WAVY[p.key as keyof typeof DEFAULT_WAVY],
+        )
+      : [];
   const updateValue = (p: Parameter, v: ParameterValue) => {
     if (!project) return;
     if (project.kind === "wavy")
@@ -1021,6 +1030,7 @@ export function ParametricModelMakerPage() {
               <ModelViewer
                 key={project.id}
                 parts={parts}
+                orthographic={project.kind === "wavy"}
                 grid={grid}
                 bed={bed}
                 wire={wire}
@@ -1107,6 +1117,38 @@ export function ParametricModelMakerPage() {
               <div className="pmm-panel-content">
                 {panel === "params" && (
                   <>
+                    {project.kind === "wavy" && (
+                      <section
+                        className="pmm-reference-settings"
+                        aria-label="Thông số mẫu gốc"
+                      >
+                        <strong>
+                          {referenceDifferences.length
+                            ? `${referenceDifferences.length} thông số khác mẫu gốc`
+                            : "Đang dùng thông số mẫu gốc"}
+                        </strong>
+                        <p>White / Hot Pink · Balanced · 40 mm · Lilita One</p>
+                        {referenceDifferences.length > 0 && (
+                          <>
+                            <small>
+                              {referenceDifferences
+                                .map((p) => p.label)
+                                .join(" · ")}
+                            </small>
+                            <button
+                              onClick={() => {
+                                edit({ config: { ...DEFAULT_WAVY } });
+                                setMessage(
+                                  "Đã áp dụng thông số mẫu gốc. Nhấn Dựng mô hình để cập nhật.",
+                                );
+                              }}
+                            >
+                              Dùng thông số mẫu gốc
+                            </button>
+                          </>
+                        )}
+                      </section>
+                    )}
                     {parameters.length ? (
                       <>
                         {[...new Set(parameters.map((p) => p.group))].map(

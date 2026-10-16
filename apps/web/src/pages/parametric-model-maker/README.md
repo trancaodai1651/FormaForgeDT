@@ -18,6 +18,10 @@ Independent of the existing ParamaCraft workspace. Launch from the public tools 
 
 `wavyGeometry.ts` uses font outlines and Manifold to create closed solids. The text is embedded into the base; subtracting the text from the base partitions color volumes without overlap and leaves a continuous substrate. Preview and export consume the same meshes.
 
+`wavyLayout.ts` fits each row's vertical envelope to circular chords while retaining its horizontal glyph coordinates. Outline bounds, rather than font advance widths, center the ink. Side margin applies to the circular envelope, and the top/bottom percentage controls wave amplitude at its outer edges. Rounded solids are clipped to the base outline after beveling. The wavy viewer uses an orthographic camera, starts from above without a plate, and retains the camera through parameter rebuilds.
+
+The parameter panel compares saved projects with the observed reference settings. **Dùng thông số mẫu gốc** restores the complete preset, including White / Hot Pink and Balanced, through normal undo history; generation remains explicit. Opening a saved project does not silently overwrite custom values.
+
 Wavy generation also runs in its own worker (`wavyRuntime.ts` / `wavy.worker.ts`), keeping the UI responsive and allowing cancellation during geometry construction. Asset roots are passed from the page so both subpath hosting and relative desktop URLs resolve correctly.
 
 The upstream WebAssembly build does not enable 3MF export or the Manifold backend. `scad.worker.ts` therefore compiles evaluated CSG, partitions materials in `csgMaterials.ts`, then renders each region through OpenSCAD OFF output. This preserves transforms and cutters. Earlier materials win overlapping union volumes; subtraction/intersection take the first operand's material, and hull/minkowski take the first child's material. These operations do not interpolate colors. A new compiler instance is required for each phase because this upstream C++ main cannot safely run twice. Everything runs locally in a cancellable worker; user SCAD is never evaluated as JavaScript or uploaded.

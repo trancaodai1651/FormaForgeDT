@@ -1,5 +1,25 @@
 # Model Maker verification — 2026-10-16
 
+## Reference default correction (latest)
+
+Rechecked the logged-in MakerWorld page against the user's two screenshots. The numeric preset already matched: diameter 40, margin 1.5, row spacing 0.9, letter spacing 0.15, word space 35, width fill 94, round warp and glyph dimensions 100, wave enabled / 2.5 / 1 / 0 / 40, base 1, text 4, embed 0.12 and rounding 0.15. Font is Lilita One, quality Balanced, parts Both, base White and text Hot Pink. Color names were observed; exact vendor RGB values were not exposed by the page.
+
+The saved `Model Maker Demo` had three different fields (quality, base color, text color). Applied the new reference-preset action, verified Undo restored those three differences, reapplied and generated in the existing production browser tab. Custom projects are not silently reset.
+
+Corrected horizontal squeezing by fitting row heights to circular chords, centered actual outline bounds, corrected outer-edge wave influence and contained beveled text inside the base. Both preview and exports use this geometry. The wavy preview now uses orthographic projection so text height cannot enlarge its apparent footprint relative to the base.
+
+Latest gates: web typecheck and production build passed; full suite **96 passed, one existing fixture-dependent skip**, including 12 feature tests. The new regression checks vertical circular fitting, row gaps, wave edge influence, preset appearance and radial containment alongside the existing closed-solid/export checks.
+
+Exact production browser download `Model Maker Demo (2).3mf`, validated by `scripts/validate-parametric-export.mjs`:
+
+- One assembly, two closed parts, zero bad edges.
+- Base: 8,544 triangles, bounds −20…20 in X/Y, Z 0…1 mm.
+- Text: 95,144 triangles, X ±17.39, Y −18.676…18.671, Z 0.88…4.88 mm.
+- Material overlap: 0.000000443 mm³ (numeric residue).
+- Preview total: 103,688 triangles, 40 × 40 × 4.88 mm, White / Hot Pink.
+
+[Corrected reference preset](reference-defaults-fixed.jpg). This is an independent reconstruction; the protected source formula and physical slicer/print parity remain unverified. The sections below record the earlier feature baseline and its historical artifacts.
+
 ## Gates
 
 - Full monorepo typecheck passed.

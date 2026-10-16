@@ -15,12 +15,14 @@ export function ModelViewer({
   bed,
   wire,
   onSelect,
+  orthographic = false,
 }: {
   parts: PartMesh[];
   grid: boolean;
   bed: number;
   wire: boolean;
   onSelect: (role: string) => void;
+  orthographic?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
     handle = useRef<ViewerHandle | null>(null),
@@ -42,13 +44,29 @@ export function ModelViewer({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     root.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 10000);
+    const camera = orthographic
+      ? new THREE.OrthographicCamera(-30, 30, 30, -30, 0.01, 10000)
+      : new THREE.PerspectiveCamera(38, 1, 0.01, 10000);
+    let viewHeight = 60;
+    const projection = () => {
+      const { width, height } = root.getBoundingClientRect();
+      const aspect = width / Math.max(1, height);
+      if (camera instanceof THREE.OrthographicCamera) {
+        camera.left = (-viewHeight * aspect) / 2;
+        camera.right = (viewHeight * aspect) / 2;
+        camera.top = viewHeight / 2;
+        camera.bottom = -viewHeight / 2;
+      } else camera.aspect = aspect;
+      camera.updateProjectionMatrix();
+    };
     camera.up.set(0, 0, 1);
     camera.position.set(58, -74, 90);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.minDistance = 0.5;
     controls.maxDistance = 3000;
+    controls.minZoom = 0.05;
+    controls.maxZoom = 100;
     scene.add(new THREE.HemisphereLight("#ffffff", "#667799", 2.5));
     const light = new THREE.DirectionalLight("#fff", 3);
     light.position.set(-40, -50, 100);
@@ -75,6 +93,12 @@ export function ModelViewer({
       const center = currentBounds.getCenter(new THREE.Vector3());
       const size = currentBounds.getSize(new THREE.Vector3());
       const distance = Math.max(size.length() * 1.5, 25);
+      if (camera instanceof THREE.OrthographicCamera) {
+        const aspect = root.clientWidth / Math.max(1, root.clientHeight);
+        viewHeight = Math.max(size.y, size.x / aspect, size.z, 5) * 1.3;
+        camera.zoom = 1;
+        projection();
+      }
       const direction =
         preset === "top"
           ? new THREE.Vector3(0, -0.001, 1)
@@ -107,7 +131,7 @@ export function ModelViewer({
         if (list.length) {
           currentBounds = new THREE.Box3().setFromObject(meshes);
           if (!framed) {
-            frame("iso");
+            frame(orthographic ? "top" : "iso");
             framed = true;
           }
         }
@@ -131,8 +155,7 @@ export function ModelViewer({
     const resize = new ResizeObserver(() => {
       const { width, height } = root.getBoundingClientRect();
       renderer.setSize(Math.max(1, width), Math.max(1, height), false);
-      camera.aspect = width / Math.max(1, height);
-      camera.updateProjectionMatrix();
+      projection();
     });
     resize.observe(root);
     let down: [number, number] = [0, 0];
@@ -169,16 +192,16 @@ export function ModelViewer({
       renderer.domElement.remove();
       handle.current = null;
     };
-  }, []);
+  }, [orthographic]);
   useEffect(() => {
     handle.current?.setParts(parts);
-  }, [parts]);
+  }, [parts, orthographic]);
   useEffect(() => {
     handle.current?.floor(grid, bed);
-  }, [grid, bed]);
+  }, [grid, bed, orthographic]);
   useEffect(() => {
     handle.current?.wire(wire);
-  }, [wire, parts]);
+  }, [wire, parts, orthographic]);
   return (
     <div className="pmm-viewer-wrap">
       <div

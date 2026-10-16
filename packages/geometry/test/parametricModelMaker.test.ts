@@ -27,6 +27,7 @@ import {
   unionForStl,
 } from "../../../apps/web/src/pages/parametric-model-maker/export";
 import { createProject } from "../../../apps/web/src/pages/parametric-model-maker/templates";
+import { fitWavyPoint } from "../../../apps/web/src/pages/parametric-model-maker/wavyLayout";
 import {
   encodeAssets,
   decodeAssets,
@@ -116,6 +117,52 @@ function closed(part: PartMesh) {
     [...edges.values()].filter((e) => e.count !== 2 || e.direction !== 0),
   ).toEqual([]);
 }
+describe("reference circular text fitting", () => {
+  it("keeps horizontal glyph stems straight and curves the height of each row", () => {
+    const c = { ...DEFAULT_WAVY, wavy: false };
+    const low = fitWavyPoint(-0.8, 0, 0, 3, c),
+      high = fitWavyPoint(-0.8, 1, 0, 3, c);
+    expect(low[0]).toBe(high[0]);
+    expect(high[1]).toBeLessThan(fitWavyPoint(0, 1, 0, 3, c)[1]);
+    expect(fitWavyPoint(0, 1, 0, 3, c)[1]).toBeCloseTo(18.5, 5);
+    expect(fitWavyPoint(0, 0, 2, 3, c)[1]).toBeCloseTo(-18.5, 5);
+    for (const x of [-0.9, 0, 0.9])
+      expect(
+        fitWavyPoint(x, 0, 0, 3, c)[1] - fitWavyPoint(x, 1, 1, 3, c)[1],
+      ).toBeCloseTo(0.9, 5);
+  });
+  it("uses the top/bottom percentage for the wave at the outer edges", () => {
+    const flat = fitWavyPoint(0.4, 1, 0, 3, {
+      ...DEFAULT_WAVY,
+      wavy: false,
+    })[1];
+    const wave0 = fitWavyPoint(0.4, 1, 0, 3, {
+      ...DEFAULT_WAVY,
+      waveTopBottom: 0,
+    })[1];
+    const wave40 = fitWavyPoint(0.4, 1, 0, 3, DEFAULT_WAVY)[1];
+    const wave100 = fitWavyPoint(0.4, 1, 0, 3, {
+      ...DEFAULT_WAVY,
+      waveTopBottom: 100,
+    })[1];
+    expect(wave0).toBeCloseTo(flat, 5);
+    expect(wave40 - flat).toBeCloseTo((wave100 - flat) * 0.4, 5);
+  });
+  it("opens a new model with the verified reference appearance, not a saved demo palette", () => {
+    const p = createProject();
+    expect(p.config).toMatchObject({
+      baseColor: "#FFFFFF",
+      textColor: "#FF329A",
+      quality: "Balanced",
+      font: "lilita-one",
+      diameter: 40,
+      waveAmount: 2.5,
+      waveCycles: 1,
+      wavePhase: 0,
+      waveTopBottom: 40,
+    });
+  });
+});
 describe("wavy preview and export geometry", () => {
   let parts: PartMesh[];
   let api: Awaited<ReturnType<typeof Module>>;
@@ -155,6 +202,13 @@ describe("wavy preview and export geometry", () => {
     expect(meshBounds([parts[0]]).min[2]).toBe(0);
     expect(meshBounds([parts[1]]).min[2]).toBeCloseTo(0.88, 5);
     expect(meshBounds(parts).size).toEqual(expect.arrayContaining([40]));
+    let maxRadius = 0;
+    for (let i = 0; i < parts[1].vertices.length; i += 3)
+      maxRadius = Math.max(
+        maxRadius,
+        Math.hypot(parts[1].vertices[i], parts[1].vertices[i + 1]),
+      );
+    expect(maxRadius).toBeLessThanOrEqual(20.002);
     intersection.delete();
     solids.forEach((s) => s.delete());
     const stl = await unionForStl(parts, api);

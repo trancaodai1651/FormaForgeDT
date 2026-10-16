@@ -12,6 +12,7 @@ import Module, {
 } from "manifold-3d";
 import wasmUrl from "manifold-3d/manifold.wasm?url";
 import type { PartMesh, WavyConfig } from "./model";
+import { fitWavyPoint } from "./wavyLayout";
 
 let apiPromise: Promise<ManifoldToplevel> | undefined;
 const fonts = new Map<string, Promise<Font>>();
@@ -77,12 +78,9 @@ export async function buildWavy(
   };
   try {
     const detail = c.quality === "Fine" ? 24 : c.quality === "Fast" ? 6 : 12;
-    const R = c.diameter / 2 - c.margin;
     const lines = [c.line1, c.line2, c.line3].slice(0, c.layout);
     if (!lines.some((t) => t.trim()))
       throw new Error("Nhập ít nhất một dòng chữ.");
-    const rowHeight =
-      (2 * R - c.lineSpacing * (lines.length - 1)) / lines.length;
     const glyphs: CrossSection[] = [];
     for (let row = 0; row < lines.length; row++) {
       const characters = Array.from(lines[row]);
@@ -101,38 +99,25 @@ export async function buildWavy(
         const shapes = font.generateShapes(ch, 100);
         outlines.push({ shapes, x: cursor });
         for (const s of shapes)
-          for (const p of s.getPoints(detail)) bounds.expandByPoint(p);
+          for (const p of s.getPoints(detail))
+            bounds.expandByPoint(new THREE.Vector2(cursor + p.x, p.y));
         const glyph = font.data.glyphs[ch] ?? font.data.glyphs["?"];
         cursor +=
           ((glyph?.ha ?? 600) / font.data.resolution) * 100 +
           c.letterSpacing * 6;
       }
       if (!outlines.length) continue;
-      const total = Math.max(1, cursor - c.letterSpacing * 6);
+      const total = Math.max(1, bounds.max.x - bounds.min.x);
       const glyphH = Math.max(1, bounds.max.y - bounds.min.y);
-      const cy = R - rowHeight / 2 - row * (rowHeight + c.lineSpacing);
       const transform = (p: THREE.Vector2, x: number): [number, number] => {
-        const nx = ((((x + p.x) / total) * 2 - 1) * c.widthFill) / 100;
-        let y =
-          cy +
-          (((p.y - bounds.min.y) / glyphH - 0.5) *
-            rowHeight *
-            0.96 *
-            c.glyphHeight) /
-            100;
-        if (c.wavy)
-          y +=
-            c.waveAmount *
-            Math.sin(
-              nx * Math.PI * c.waveCycles + (c.wavePhase * Math.PI) / 180,
-            ) *
-            (1 - ((c.waveTopBottom / 100) * Math.abs(cy)) / R);
-        y = Math.max(-R * 0.998, Math.min(R * 0.998, y));
-        const chord = Math.sqrt(Math.max(0.01, R * R - y * y));
-        return [
-          (nx * (R + ((chord - R) * c.roundWarp) / 100) * c.glyphWidth) / 100,
-          y,
-        ];
+        const nx = ((x + p.x - bounds.min.x) / total) * 2 - 1;
+        return fitWavyPoint(
+          nx,
+          (p.y - bounds.min.y) / glyphH,
+          row,
+          lines.length,
+          c,
+        );
       };
       for (const { shapes, x } of outlines)
         for (const shape of shapes) {
@@ -210,6 +195,8 @@ export async function buildWavy(
         );
       }
     }
+    // Bevel offsets can overshoot the circular outline at sampled corners.
+    text = keep(text.intersect(keep(circle.extrude(c.textHeight))));
     const embed = Math.min(c.textEmbed, Math.max(0, c.baseDepth - 0.2));
     text = keep(text.translate([0, 0, c.baseDepth - embed]));
     const output: PartMesh[] = [];

@@ -1257,6 +1257,32 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+.pmm-reference-settings {
+  border: 1px solid #dce3ed;
+  border-radius: 10px;
+  background: #f5f8fc;
+  padding: 13px;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+.pmm-reference-settings strong {
+  font-size: 14px;
+  color: #26476a;
+}
+.pmm-reference-settings p {
+  font-size: 12px;
+  color: #66738a;
+  margin-top: 5px;
+}
+.pmm-reference-settings small {
+  display: block;
+  margin-top: 8px;
+}
+.pmm-reference-settings button {
+  width: 100%;
+  margin-top: 12px;
+  font-size: 13px;
+}
 
 /* Only this workspace opts out of the legacy fixed-height app shell. */
 .app-shell:has(.pmm-page) {
