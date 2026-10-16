@@ -1,0 +1,76 @@
+{
+  "runtime": "https://files.openscad.org/playground/OpenSCAD-2025.03.25.wasm24456-WebAssembly-web.zip",
+  "fonts": [
+    {
+      "slug": "lilita-one",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/lilitaone/LilitaOne-Regular.ttf"
+    },
+    {
+      "slug": "cherry-bomb-one",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/cherrybombone/CherryBombOne-Regular.ttf"
+    },
+    {
+      "slug": "luckiest-guy",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/apache/luckiestguy/LuckiestGuy-Regular.ttf"
+    },
+    {
+      "slug": "titan-one",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/titanone/TitanOne-Regular.ttf"
+    },
+    {
+      "slug": "bagel-fat-one",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/bagelfatone/BagelFatOne-Regular.ttf"
+    },
+    {
+      "slug": "bevan",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/bevan/Bevan-Regular.ttf"
+    },
+    {
+      "slug": "ultra",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/apache/ultra/Ultra-Regular.ttf"
+    }
+  ],
+  "libraries": [
+    {
+      "name": "BOSL2",
+      "repo": "https://github.com/BelfrySCAD/BOSL2",
+      "commit": "48304c31bf4b45bc42590abe7244494dad74b15e",
+      "files": 59
+    },
+    {
+      "name": "UB",
+      "repo": "https://github.com/UBaer21/UB.scad",
+      "commit": "5419befe8b3927d2300e974976ffcb831abaf644",
+      "files": 7
+    },
+    {
+      "name": "KeyV2",
+      "repo": "https://github.com/rsheldiii/keyv2",
+      "commit": "19f0d2faadd4949634c93f38d1a66869d29e8f43",
+      "files": 104
+    },
+    {
+      "name": "gridfinity-rebuilt-openscad",
+      "repo": "https://github.com/kennetek/gridfinity-rebuilt-openscad",
+      "commit": "910e22d8607fd7f5f51ad5e5cbc5287a76810bfd",
+      "files": 21
+    },
+    {
+      "name": "threads-scad",
+      "repo": "https://github.com/rcolyer/threads-scad",
+      "commit": "4ae9aeb3b136f9858200f77a304b909a000ce3b4",
+      "files": 3
+    },
+    {
+      "name": "Getriebe",
+      "repo": "https://github.com/janssen86/OpenSCAD-Getriebebibliothek",
+      "commit": "8ded88e907a0780cd17b33029299af8ddab7e70c",
+      "files": 3
+    },
+    {
+      "name": "knurledFinishLib_v2",
+      "repo": "https://git.sixteenmillimeter.com/16mm/mcopy/raw/commit/7e516a59b65257ec75e6486e6fd01234781a5fe4/scad/knurledFinishLib_v2.scad",
+      "files": 1
+    }
+  ]
+}

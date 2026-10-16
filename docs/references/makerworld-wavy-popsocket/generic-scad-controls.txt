@@ -1,0 +1,178 @@
+- button:
+- generic: Parametric Model Maker
+- button:
+- separator
+- button "50":
+  - generic: "50"
+- separator
+- button "Download"
+- generic: Customize
+- button "Code"
+- button "No history record" [disabled]:
+- region "scrollable content":
+  - heading "Parameters" [level=3]:
+    - button "Parameters" [expanded]:
+      - generic: Parameters
+  - region:
+    - generic: NoDesc
+    - textbox: "1"
+    - button:
+    - button:
+    - generic: WithDesc
+    - generic: The comment will be displayed as the description of the parameter.
+    - textbox: "1"
+    - button:
+    - button:
+  - heading "Dropdown" [level=3]:
+    - button "Dropdown" [expanded]:
+      - generic: Dropdown
+  - region:
+    - generic: NumberDropdown
+    - generic: Dropbox for numbers
+    - combobox:
+      - generic: "2"
+    - textbox: "2"
+    - generic: StringDropdown
+    - generic: Dropbox for string
+    - combobox:
+      - generic: foo
+    - textbox: foo
+    - generic: Labeled values
+    - generic: Labeled dropdown box for numbers
+    - combobox:
+      - generic: L
+    - textbox: L
+    - generic: Labeled value
+    - generic: Labeled dropdown box for strings
+    - combobox:
+      - generic: Small
+    - textbox: Small
+  - heading "Slider" [level=3]:
+    - button "Slider" [expanded]:
+      - generic: Slider
+  - region:
+    - generic: slider
+    - generic: Slider with min and max
+    - textbox: "34"
+    - slider: "34"
+    - generic: stepSlider
+    - generic: Step slider with min, max and step
+    - textbox: "2"
+    - slider: "0"
+    - generic: decimalSlider
+    - generic: Step slider for decimal numbers
+    - textbox: "2.0"
+    - slider: "2"
+  - heading "Checkbox" [level=3]:
+    - button "Checkbox" [expanded]:
+      - generic: Checkbox
+  - region:
+    - generic: checkbox1
+    - generic: Checkbox for boolean
+    - checkbox [checked]
+  - heading "Spinbox" [level=3]:
+    - button "Spinbox" [expanded]:
+      - generic: Spinbox
+  - region:
+    - generic: SpinboxForInt
+    - generic: Spinbox with step size 1
+    - textbox: "5"
+    - button:
+    - button:
+    - generic: SpinboxForDecimal
+    - generic: Spinbox with step size 0.1
+    - textbox: "5.0"
+    - button:
+    - button:
+  - heading "Textbox" [level=3]:
+    - button "Textbox" [expanded]:
+      - generic: Textbox
+  - region:
+    - generic: stringTextbox
+    - generic: Text box for string
+    - textbox: hello
+  - heading "Vector" [level=3]:
+    - button "Vector" [expanded]:
+      - generic: Vector
+  - region:
+    - generic: VectorSingleValue
+    - generic: Vector with single value
+    - textbox: "1"
+    - button:
+    - button:
+    - generic: VectorMultipleValues
+    - generic: Vector with multiple values
+    - textbox: "12"
+    - button:
+    - button:
+    - textbox: "34"
+    - button:
+    - button:
+    - textbox: "46"
+    - button:
+    - button:
+    - textbox: "24"
+    - button:
+    - button:
+    - generic: VectorRGB
+    - generic: Vector with range and step size
+    - textbox: "128"
+    - button:
+    - button:
+    - textbox: "23"
+    - button:
+    - button:
+    - textbox: "231"
+    - button:
+    - button:
+    - generic: VectorWithStep
+    - generic: Vector with step size 0.1
+    - textbox: "12"
+    - button:
+    - button:
+    - textbox: "34"
+    - button:
+    - button:
+  - heading "File" [level=3]:
+    - button "File" [expanded]:
+      - generic: File
+  - region:
+    - generic: filenamePNG1
+    - generic: Ask for a PNG file. The value has to be "default.png".
+    - button "Upload local file":
+      - generic: Upload local file
+    - generic: filenamePNG2
+    - generic: You can ask for multiple files with the same type
+    - button "Upload local file":
+      - generic: Upload local file
+    - generic: filenameSVG
+    - generic: Ask for a SVG file. The value has to be "default.svg".
+    - button "Upload local file":
+      - generic: Upload local file
+    - generic: filenameSTL
+    - generic: Ask for a STL file. The value has to be "default.stl".
+    - button "Upload local file":
+      - generic: Upload local file
+  - heading "Color" [level=3]:
+    - button "Color" [expanded]:
+      - generic: Color
+  - region:
+    - generic: color
+    - generic: "#"
+    - textbox: FF0000
+    - button
+  - heading "Font" [level=3]:
+    - button "Font" [expanded] [active]:
+      - generic: Font
+  - region:
+    - paragraph: font
+    - paragraph
+    - paragraph: HarmonyOS Sans SC:style=Black
+- button "Reset all parameters":
+- button "Undo":
+- button "Generate":
+  - generic: Generate
+- separator
+- alert: Parametric Model Maker
+- alert
+- alert

@@ -9,6 +9,7 @@
 | Clicker tools | `/admin/clicker`, `/admin/flex-*` | `apps/web/src/pages/clicker` | Image, blocks, keychain, organizer |
 | Flex Lamp | `/admin/flex-lamp` | `apps/web/src/pages/flex-lamp` | Lamp geometry workspace |
 | Paramacraft | `/paramacraft*`, `/admin/paramacraft` | `apps/web/src/pages/paramacraft` | Parametric editor |
+| Parametric Model Maker | `/parametric-model-maker`, `/admin/parametric-model-maker` | `apps/web/src/pages/parametric-model-maker` | Wavy text, OpenSCAD, fonts, libraries and printable exports |
 | Price Reader | `/price-reader` | `apps/web/src/pages/price-reader` | Customer price reader |
 | Hunyuan 3D | `/admin/hunyuan-3d` | `apps/web/src/pages/hunyuan-3d` | Desktop-only generation gate |
 | Split 3MF | `/admin/split-3mf` | `apps/web/src/pages/split-3mf` | Admin-only multi-color 3MF splitting and export |

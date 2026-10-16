@@ -23,6 +23,7 @@ const tools: ToolCard[] = [
   { to: '/tulip-creator', label: 'Tulip Creator', description: 'Create a parametric lamp shade and body.', mark: 'TC', icon: Flame },
   { to: '/home-item', label: 'Home Item', description: 'Create parametric home decor and functional vessels.', mark: 'HI', icon: Shapes },
   { to: '/paramacraft', label: 'ParamaCraft', description: 'Design printable parametric shapes and surfaces.', mark: 'P', icon: Cuboid },
+  { to: '/parametric-model-maker', label: 'Model Maker', description: 'Customize wavy text, edit OpenSCAD and export printable models.', mark: 'PM', icon: Cuboid },
   { to: '/module-studio', label: 'Module Studio', description: 'Design and assemble modular lamp parts.', mark: 'M', icon: CircuitBoard },
   { to: '/hunyuan-3d', label: 'Hunyuan3D', description: 'Generate high-fidelity 3D assets in the desktop app.', mark: '3D', icon: Box },
   { to: '/split-3mf', label: 'Split 3MF', description: 'Separate multi-colour 3MF projects into parts.', mark: '3MF', icon: FileBox },

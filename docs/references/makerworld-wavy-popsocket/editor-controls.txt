@@ -1,0 +1,146 @@
+- button:
+- generic: Parametric Model Maker
+- button:
+- separator
+- button "50":
+  - generic: "50"
+- separator
+- button "Download"
+- generic: Model
+- button "expand section":
+- img "cover"
+- generic "Parametric Chunky Text Pop Socket Phone Grip Name"
+- img "user avatar"
+- generic: GreedyDog
+- generic: description
+- generic: comment（4）
+- generic: "8"
+- separator
+- generic: "191"
+- separator
+- generic: "289"
+- generic: Customizable List
+- combobox "Select customization options...": 124 wavy text popsocket.scad
+- button "Open":
+- generic: Customize
+- button "A new history is added":
+- region "scrollable content":
+  - heading "Words" [level=3]:
+    - button "Words" [expanded]:
+      - generic: Words
+  - region:
+    - generic: Line 1
+    - textbox: TRAN
+    - generic: Line 2
+    - textbox: CAO
+    - generic: Line 3
+    - textbox: DAI
+    - generic: Layout
+    - combobox:
+      - generic: 3 Lines
+    - textbox: 3 Lines
+  - heading "Chunky Font Picker" [level=3]:
+    - button "Chunky Font Picker" [expanded]:
+      - generic: Chunky Font Picker
+  - region:
+    - generic: Font Choice
+    - combobox:
+      - generic: Lilita One
+    - textbox: Lilita One
+  - heading "Circular Fitting" [level=3]:
+    - button "Circular Fitting" [expanded]:
+      - generic: Circular Fitting
+  - region:
+    - generic: Base Diameter
+    - textbox: "40"
+    - slider: "40"
+    - generic: Side Margin
+    - textbox: "1.50"
+    - slider: "1.5"
+    - generic: Line Spacing
+    - textbox: "0.9"
+    - slider: "0.9"
+    - generic: Letter Spacing
+    - textbox: "0.15"
+    - slider: "0.15"
+    - generic: Word Space
+    - textbox: "35"
+    - button:
+    - button:
+    - generic: Width Fill
+    - textbox: "94"
+    - slider: "94"
+    - generic: Round Warp
+    - textbox: "100"
+    - slider: "100"
+    - generic: Glyph Width Adjust
+    - textbox: "100"
+    - slider: "100"
+    - generic: Glyph Height Adjust
+    - textbox: "100"
+    - slider: "100"
+  - heading "Wavy Letter Warp" [level=3]:
+    - button "Wavy Letter Warp" [expanded]:
+      - generic: Wavy Letter Warp
+  - region:
+    - generic: Wavy Lines
+    - checkbox [checked]
+    - generic: Wave Amount
+    - textbox: "2.50"
+    - slider: "2.5"
+    - generic: Wave Cycles
+    - textbox: "1.00"
+    - slider: "1"
+    - generic: Wave Phase
+    - textbox: "0"
+    - slider: "0"
+    - generic: Wave Top Bottom
+    - textbox: "40"
+    - slider: "40"
+  - heading "Round Base + Text" [level=3]:
+    - button "Round Base + Text" [expanded]:
+      - generic: Round Base + Text
+  - region:
+    - generic: Base Depth
+    - textbox: "1.0"
+    - slider: "1"
+    - generic: Text Height
+    - textbox: "4.00"
+    - slider: "4"
+    - generic: Text Embed
+    - textbox: "0.12"
+    - slider: "0.12"
+    - generic: Top Edge Round
+    - textbox: "0.15"
+    - slider: "0.15"
+  - heading "Render Quality" [level=3]:
+    - button "Render Quality" [expanded]:
+      - generic: Render Quality
+  - region:
+    - generic: Quality
+    - combobox:
+      - generic: Balanced
+    - textbox: Balanced
+    - generic: Show Part
+    - generic: Export parts separately, then import both as parts of one object in Bambu Studio.
+    - combobox [active]:
+      - generic: Both
+    - textbox: Both
+  - heading "Bambu PLA Preview Colours" [level=3]:
+    - button "Bambu PLA Preview Colours" [expanded]:
+      - generic: Bambu PLA Preview Colours
+  - region:
+    - generic: Base PLA
+    - combobox:
+      - generic: White
+    - textbox: White
+    - generic: Text PLA
+    - combobox:
+      - generic: Hot Pink
+    - textbox: Hot Pink
+- button "Reset all parameters":
+- button "Undo":
+- button "Generate":
+  - generic: Generate
+- separator
+- alert

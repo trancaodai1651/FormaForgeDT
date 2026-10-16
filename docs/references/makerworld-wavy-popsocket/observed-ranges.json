@@ -1,0 +1,118 @@
+{
+  "observedOn": "2026-10-16",
+  "source": "MakerWorld logged-in customizer UI",
+  "ranges": [
+    {
+      "label": "Base Diameter",
+      "max": "80",
+      "min": "30",
+      "step": "1",
+      "value": "40"
+    },
+    {
+      "label": "Side Margin",
+      "max": "4",
+      "min": "0.5",
+      "step": "0.25",
+      "value": "1.5"
+    },
+    {
+      "label": "Line Spacing",
+      "max": "3",
+      "min": "0",
+      "step": "0.1",
+      "value": "0.9"
+    },
+    {
+      "label": "Letter Spacing",
+      "max": "1.5",
+      "min": "0",
+      "step": "0.05",
+      "value": "0.15"
+    },
+    {
+      "label": "Width Fill",
+      "max": "100",
+      "min": "70",
+      "step": "1",
+      "value": "94"
+    },
+    {
+      "label": "Round Warp",
+      "max": "100",
+      "min": "0",
+      "step": "5",
+      "value": "100"
+    },
+    {
+      "label": "Glyph Width Adjust",
+      "max": "145",
+      "min": "65",
+      "step": "5",
+      "value": "100"
+    },
+    {
+      "label": "Glyph Height Adjust",
+      "max": "125",
+      "min": "70",
+      "step": "5",
+      "value": "100"
+    },
+    {
+      "label": "Wave Amount",
+      "max": "6",
+      "min": "0",
+      "step": "0.25",
+      "value": "2.5"
+    },
+    {
+      "label": "Wave Cycles",
+      "max": "2.5",
+      "min": "0.5",
+      "step": "0.25",
+      "value": "1"
+    },
+    {
+      "label": "Wave Phase",
+      "max": "180",
+      "min": "-180",
+      "step": "10",
+      "value": "0"
+    },
+    {
+      "label": "Wave Top Bottom",
+      "max": "100",
+      "min": "0",
+      "step": "5",
+      "value": "40"
+    },
+    {
+      "label": "Base Depth",
+      "max": "3",
+      "min": "0",
+      "step": "0.1",
+      "value": "1"
+    },
+    {
+      "label": "Text Height",
+      "max": "10",
+      "min": "1",
+      "step": "0.25",
+      "value": "4"
+    },
+    {
+      "label": "Text Embed",
+      "max": "0.3",
+      "min": "0",
+      "step": "0.01",
+      "value": "0.12"
+    },
+    {
+      "label": "Top Edge Round",
+      "max": "1.5",
+      "min": "0",
+      "step": "0.05",
+      "value": "0.15"
+    }
+  ]
+}

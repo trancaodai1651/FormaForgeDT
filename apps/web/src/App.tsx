@@ -1,4 +1,5 @@
 import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { getDesktopInvoke } from './lib/downloadFile';
 import './desktop-shell.css';
@@ -20,6 +21,11 @@ import { DownloadsPage } from './pages/downloads';
 import { PublicClickerPage } from './pages/clicker/PublicClickerPage';
 import { ReferenceClickerPage } from './pages/clicker/ReferenceClickerPage';
 import { BlockCarsPage } from './pages/block-cars';
+
+const LazyModelMaker = lazy(() => import('./pages/parametric-model-maker').then(module => ({ default: module.ParametricModelMakerPage })));
+function ModelMakerRoute() {
+  return <Suspense fallback={<p role="status" style={{ padding: 32 }}>Đang tải Model Maker…</p>}><LazyModelMaker /></Suspense>;
+}
 
 function PublicAdminTool({ mode }: { mode: Parameters<typeof AdminToolPage>[0]['mode'] }) {
   return <AdminToolPage mode={mode} publicAccess />;
@@ -72,6 +78,8 @@ function AppFrame() {
       <Route path="/admin/hunyuan-3d" element={<Hunyuan3DPage publicAccess />} />
       <Route path="/paramacraft/viewer/:presetId" element={<ParamacraftPage />} />
       <Route path="/paramacraft" element={<ParamacraftPage />} />
+      <Route path="/parametric-model-maker" element={<ModelMakerRoute />} />
+      <Route path="/admin/parametric-model-maker" element={<ModelMakerRoute />} />
       <Route path="/admin/paramacraft" element={<ParamacraftPage />} />
       <Route path="/module-studio" element={<ModuleLampStudioPage />} />
       <Route path="/module-studio/sketch" element={<ModuleSketchPage />} />
