@@ -1294,6 +1294,60 @@
   height: auto !important;
   overflow: visible !important;
 }
+.pmm-page:has(.pmm-workspace) {
+  height: 100dvh;
+  min-height: 0;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pmm-page:has(.pmm-workspace) > .pmm-header,
+.pmm-page:has(.pmm-workspace) > .pmm-alert,
+.pmm-page:has(.pmm-workspace) > .pmm-project-bar,
+.pmm-page:has(.pmm-workspace) > .pmm-console {
+  flex: 0 0 auto;
+}
+.pmm-page:has(.pmm-workspace) > .pmm-console {
+  max-height: 18dvh;
+  overflow: auto;
+}
+.pmm-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+.pmm-preview,
+.pmm-inspector {
+  min-height: 0;
+  height: 100%;
+}
+.pmm-preview {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  top: auto;
+}
+.pmm-viewer-wrap {
+  height: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.pmm-inspector {
+  display: flex;
+  flex-direction: column;
+}
+.pmm-inspector-tabs {
+  position: relative;
+  flex: 0 0 auto;
+}
+.pmm-panel-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
 .pmm-project-bar {
   position: sticky;
   top: 0;
@@ -1301,10 +1355,43 @@
   box-shadow: 0 4px 14px #1b315008;
 }
 .pmm-preview {
-  top: 112px;
+  top: auto;
   scroll-margin-top: 140px;
 }
 @media (max-width: 780px) {
+  .pmm-page:has(.pmm-workspace) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .pmm-page:has(.pmm-workspace) > .pmm-console {
+    max-height: none;
+  }
+  .pmm-workspace {
+    flex: none;
+    min-height: auto;
+    align-items: initial;
+  }
+  .pmm-preview,
+  .pmm-inspector {
+    height: auto;
+  }
+  .pmm-preview {
+    display: block;
+  }
+  .pmm-viewer-wrap {
+    height: 44dvh;
+    min-height: 300px;
+    flex: none;
+  }
+  .pmm-inspector {
+    display: block;
+  }
+  .pmm-panel-content {
+    flex: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
   .pmm-preview {
     top: auto;
   }

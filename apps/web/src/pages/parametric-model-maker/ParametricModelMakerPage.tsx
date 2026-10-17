@@ -1152,10 +1152,10 @@ export function ParametricModelMakerPage() {
                     {parameters.length ? (
                       <>
                         {[...new Set(parameters.map((p) => p.group))].map(
-                          (group) => (
+                          (group, index) => (
                             <details
                               className="pmm-parameter-group"
-                              open
+                              open={project.kind !== "wavy" || index < 4}
                               key={group}
                             >
                               <summary>

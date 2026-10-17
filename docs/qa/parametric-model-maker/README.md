@@ -20,6 +20,8 @@ Exact production browser download `Model Maker Demo (2).3mf`, validated by `scri
 
 [Corrected reference preset](reference-defaults-fixed.jpg). This is an independent reconstruction; the protected source formula and physical slicer/print parity remain unverified. The sections below record the earlier feature baseline and its historical artifacts.
 
+The editor now stays within the available desktop height, keeps the model visible, and scrolls its inspector independently. At 1440 × 900, the document stays one screen tall; scrolling the parameter panel leaves document scroll at zero and the preview in place. At 768 × 1024 and 390 × 844, the inspector and preview return to normal page scrolling with no horizontal overflow. Main input groups start open, with the less frequent base, quality, and color groups collapsed. The default camera is a shallow three-quarter orthographic view with a wider initial framing to show the raised letters at a reference-like scale without perspective size distortion. [The current production view](reference-defaults-fixed.jpg).
+
 ## Gates
 
 - Full monorepo typecheck passed.

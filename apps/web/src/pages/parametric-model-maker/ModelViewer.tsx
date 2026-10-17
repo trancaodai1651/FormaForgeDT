@@ -95,7 +95,9 @@ export function ModelViewer({
       const distance = Math.max(size.length() * 1.5, 25);
       if (camera instanceof THREE.OrthographicCamera) {
         const aspect = root.clientWidth / Math.max(1, root.clientHeight);
-        viewHeight = Math.max(size.y, size.x / aspect, size.z, 5) * 1.3;
+        const referenceScale = preset === "source" ? 1.5 : 1;
+        viewHeight =
+          Math.max(size.y, size.x / aspect, size.z, 5) * 1.3 * referenceScale;
         camera.zoom = 1;
         projection();
       }
@@ -104,7 +106,9 @@ export function ModelViewer({
           ? new THREE.Vector3(0, -0.001, 1)
           : preset === "front"
             ? new THREE.Vector3(0, -1, 0.03)
-            : new THREE.Vector3(0.48, -0.68, 0.9).normalize();
+            : orthographic
+              ? new THREE.Vector3(0.18, -0.28, 1).normalize()
+              : new THREE.Vector3(0.48, -0.68, 0.9).normalize();
       controls.target.copy(center);
       camera.position.copy(center).addScaledVector(direction, distance);
       controls.update();
@@ -131,7 +135,7 @@ export function ModelViewer({
         if (list.length) {
           currentBounds = new THREE.Box3().setFromObject(meshes);
           if (!framed) {
-            frame(orthographic ? "top" : "iso");
+            frame(orthographic ? "source" : "iso");
             framed = true;
           }
         }
