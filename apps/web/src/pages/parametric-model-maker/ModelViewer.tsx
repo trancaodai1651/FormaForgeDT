@@ -95,7 +95,7 @@ export function ModelViewer({
       const distance = Math.max(size.length() * 1.5, 25);
       if (camera instanceof THREE.OrthographicCamera) {
         const aspect = root.clientWidth / Math.max(1, root.clientHeight);
-        const referenceScale = preset === "source" ? 1.18 : 1;
+        const referenceScale = preset === "source" ? 1.05 : 1;
         viewHeight =
           Math.max(size.y, size.x / aspect, size.z, 5) * 1.3 * referenceScale;
         camera.zoom = 1;

@@ -1,8 +1,7 @@
 import type { WavyConfig } from "./model";
 
-/** Place each text row along a shallow circular arc and keep glyphs tangent to
- * that arc. This mirrors the reference's radial lettering while retaining the
- * source font's proportions. */
+/** Fit each text row into a circular band. Keep X fixed along glyph stems and
+ * use the circle chord to determine the available height at each X position. */
 export function fitWavyPoint(
   nx: number,
   v: number,
@@ -12,24 +11,18 @@ export function fitWavyPoint(
 ): [number, number] {
   const radius = c.diameter / 2;
   const insetRadius = Math.max(0.1, radius - c.margin);
-  const maxX =
-    (insetRadius * c.widthFill * c.glyphWidth) / 10000;
-  const x = nx * maxX;
-  const halfHeight = insetRadius;
+  const x = (((nx * insetRadius * c.widthFill) / 100) * c.glyphWidth) / 100;
+  const chord = Math.sqrt(Math.max(0.01, insetRadius * insetRadius - x * x));
+  const halfHeight = insetRadius + ((chord - insetRadius) * c.roundWarp) / 100;
   const rowHeight = Math.max(
     0.05,
     (2 * halfHeight - c.lineSpacing * (rows - 1)) / rows,
   );
-  const flatCenter = ((rows - 1 - 2 * row) * (rowHeight + c.lineSpacing)) / 2;
-  const edgeCurve =
-    0.45 *
-    (c.roundWarp / 100) *
-    Math.min(1, (x * x) / Math.max(0.01, maxX * maxX));
-  const center = flatCenter * (1 - edgeCurve);
+  const center = ((rows - 1 - 2 * row) * (rowHeight + c.lineSpacing)) / 2;
   let y = center + ((v - 0.5) * rowHeight * c.glyphHeight) / 100;
   if (c.wavy) {
-    // Outer edges receive the selected percentage; internal row boundaries
-    // receive the full wave so the lines flow together without pinching X.
+    // Scale the wave using the point's flat position, so the selected edge
+    // percentage remains stable while the displacement is applied.
     const edgeDistance = Math.min(1, Math.abs(y) / Math.max(0.01, halfHeight));
     const influence = 1 - (1 - c.waveTopBottom / 100) * edgeDistance;
     y +=

@@ -1276,10 +1276,10 @@
   color: white;
 }
 .pmm-page:has(.pmm-workspace) .pmm-workspace {
-  grid-template-columns: minmax(360px, 430px) minmax(0, 1fr);
+  grid-template-columns: clamp(320px, 25vw, 430px) minmax(0, 1fr);
   grid-template-areas: "inspector preview";
-  gap: 8px;
-  margin: 8px;
+  gap: clamp(8px, 1vw, 16px);
+  margin: 8px clamp(8px, 1.2vw, 20px);
   overflow: hidden;
 }
 .pmm-page:has(.pmm-workspace) .pmm-inspector {
@@ -1301,7 +1301,19 @@
   color: #eee;
 }
 .pmm-page:has(.pmm-workspace) .pmm-preview-toolbar {
-  font-size: 14px;
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 10px;
+  min-height: 34px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: #292929d9;
+  font-size: 13px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-preview-toolbar > div {
+  gap: 10px;
 }
 .pmm-page:has(.pmm-workspace) .pmm-preview-footer {
   font-size: 13px;
@@ -1355,6 +1367,10 @@
   background: #373737 !important;
   border-color: #505050 !important;
   color: #f1f1f1 !important;
+}
+.pmm-page:has(.pmm-workspace) .pmm-number > input[type="number"] {
+  width: 68px !important;
+  min-height: 36px;
 }
 .pmm-page:has(.pmm-workspace) .pmm-panel-content button {
   background: #383838;

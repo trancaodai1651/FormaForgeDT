@@ -263,17 +263,6 @@ function Field({
         </div>
       ) : p.type === "number" ? (
         <div className="pmm-number">
-          {p.min !== undefined && p.max !== undefined && (
-            <input
-              aria-label={`${p.label} thanh trượt`}
-              type="range"
-              min={p.min}
-              max={p.max}
-              step={p.step ?? "any"}
-              value={Number(value)}
-              onChange={(e) => onChange(Number(e.target.value))}
-            />
-          )}
           <input
             id={id}
             type="number"
@@ -285,6 +274,17 @@ function Field({
               if (e.target.value !== "") onChange(Number(e.target.value));
             }}
           />
+          {p.min !== undefined && p.max !== undefined && (
+            <input
+              aria-label={`${p.label} thanh trượt`}
+              type="range"
+              min={p.min}
+              max={p.max}
+              step={p.step ?? "any"}
+              value={Number(value)}
+              onChange={(e) => onChange(Number(e.target.value))}
+            />
+          )}
         </div>
       ) : p.type === "boolean" ? null : (
         <input
@@ -1013,12 +1013,6 @@ export function ParametricModelMakerPage() {
           <div className="pmm-workspace">
             <section className="pmm-preview">
               <div className="pmm-preview-toolbar">
-                <span>
-                  <Box size={17} />
-                  {project.kind === "wavy"
-                    ? "Chữ tròn lượn sóng"
-                    : "Mô hình OpenSCAD"}
-                </span>
                 <div>
                   <label>
                     <input

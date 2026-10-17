@@ -1,5 +1,11 @@
 # Model Maker verification — 2026-10-16
 
+## UI and circular-fit follow-up — 2026-10-17
+
+Reduced the inspector width with a viewport-based 320–430 px clamp, removed the duplicate model title from the canvas, and moved print-bed/grid controls into a compact top-right overlay. Numeric controls now place the editable value before the slider, matching the reference interaction order. The default orthographic framing is slightly closer.
+
+Restored chord-based circular fitting after the row-arc experiment broke the expected gaps at the circular edges. In the production browser, the saved three-line model regenerated at 40 × 40 × 4.88 mm with 89,744 triangles across two parts. Geometry feature tests passed 12/12; monorepo typecheck and web production build passed. The app's exact 3MF download is still unavailable in the shared Downloads folder, so this latest mesh was not independently checked by the export validator. Exact parity remains limited by the protected upstream SCAD.
+
 ## Production and dialog follow-up — 2026-10-17
 
 On the final production bundle at 1280 × 720, the saved wavy-text project auto-generated on open with the source preset: 40 × 40 × 4.88 mm, 91,094 triangles, two parts. The export dialog now uses readable dark text and controls on its white surface; the 3MF, merged STL and split STL ZIP choices were visible. Choosing 3MF showed the app's successful export message. The browser download did not appear in the shared Downloads folder, so this exact latest 3MF could not be passed to `validate-parametric-export.mjs`; the older artifact validation below remains historical and is not evidence for the current mesh.
