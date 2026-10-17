@@ -1,7 +1,6 @@
 import type { WavyConfig } from "./model";
 
-/** Fit each text row into a circular band. Keep X fixed along glyph stems and
- * use the circle chord to determine the available height at each X position. */
+/** Fit chunky glyphs along curved text rows without collapsing the outer rows. */
 export function fitWavyPoint(
   nx: number,
   v: number,
@@ -14,16 +13,28 @@ export function fitWavyPoint(
   const x = (((nx * insetRadius * c.widthFill) / 100) * c.glyphWidth) / 100;
   const chord = Math.sqrt(Math.max(0.01, insetRadius * insetRadius - x * x));
   const halfHeight = insetRadius + ((chord - insetRadius) * c.roundWarp) / 100;
-  const rowHeight = Math.max(
+  const lineSpacing = c.lineSpacing;
+  const maximumRowHeight = Math.max(
     0.05,
-    (2 * halfHeight - c.lineSpacing * (rows - 1)) / rows,
+    (2 * insetRadius - lineSpacing * (rows - 1)) / rows,
   );
-  const center = ((rows - 1 - 2 * row) * (rowHeight + c.lineSpacing)) / 2;
-  let y = center + ((v - 0.5) * rowHeight * c.glyphHeight) / 100;
+  const chordRowHeight = Math.max(
+    0.05,
+    (2 * halfHeight - lineSpacing * (rows - 1)) / rows,
+  );
+  // Let the row center follow the circular chord, while retaining enough
+  // glyph height for the outer words to remain legible.
+  const glyphRowHeight = Math.max(
+    chordRowHeight * 0.55,
+    maximumRowHeight * 0.2,
+  );
+  const center =
+    ((rows - 1 - 2 * row) * (chordRowHeight + lineSpacing)) / 2;
+  let y = center + ((v - 0.5) * glyphRowHeight * c.glyphHeight) / 100;
   if (c.wavy) {
-    // Scale the wave using the point's flat position, so the selected edge
-    // percentage remains stable while the displacement is applied.
-    const edgeDistance = Math.min(1, Math.abs(y) / Math.max(0.01, halfHeight));
+    // Interpolate from full wave at the glyph center to the selected strength
+    // at its top and bottom edges.
+    const edgeDistance = Math.min(1, Math.abs(v - 0.5) * 2);
     const influence = 1 - (1 - c.waveTopBottom / 100) * edgeDistance;
     y +=
       c.waveAmount *

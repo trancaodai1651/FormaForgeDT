@@ -19,7 +19,10 @@ import {
   selectedParts,
   type PartMesh,
 } from "../../../apps/web/src/pages/parametric-model-maker/model";
-import { buildWavy } from "../../../apps/web/src/pages/parametric-model-maker/wavyGeometry";
+import {
+  buildWavy,
+  packWavyRows,
+} from "../../../apps/web/src/pages/parametric-model-maker/wavyGeometry";
 import {
   modelThreeMf,
   partStl,
@@ -154,12 +157,19 @@ describe("reference circular text fitting", () => {
       high = fitWavyPoint(-0.8, 1, 0, 3, c);
     expect(low[0]).toBe(high[0]);
     expect(high[1]).toBeLessThan(fitWavyPoint(0, 1, 0, 3, c)[1]);
-    expect(fitWavyPoint(0, 1, 0, 3, c)[1]).toBeCloseTo(18.5, 5);
-    expect(fitWavyPoint(0, 0, 2, 3, c)[1]).toBeCloseTo(-18.5, 5);
-    for (const x of [-0.9, 0, 0.9])
-      expect(
-        fitWavyPoint(x, 0, 0, 3, c)[1] - fitWavyPoint(x, 1, 1, 3, c)[1],
-      ).toBeCloseTo(0.9, 5);
+    expect(fitWavyPoint(0, 1, 0, 3, c)[1]).toBeCloseTo(15.86, 2);
+    expect(fitWavyPoint(0, 0, 2, 3, c)[1]).toBeCloseTo(-15.86, 2);
+    const outerRowCenter = fitWavyPoint(0.9, 0.5, 0, 3, c)[1];
+    const middleRowCenter = fitWavyPoint(0.9, 0.5, 1, 3, c)[1];
+    expect(outerRowCenter - middleRowCenter).toBeGreaterThan(c.lineSpacing);
+    expect(
+      fitWavyPoint(0, 0.5, 0, 3, c)[1] - outerRowCenter,
+    ).toBeGreaterThan(5);
+    const fullHeight =
+      fitWavyPoint(0, 1, 0, 3, c)[1] - fitWavyPoint(0, 0, 0, 3, c)[1];
+    const edgeHeight =
+      fitWavyPoint(0.9, 1, 0, 3, c)[1] - fitWavyPoint(0.9, 0, 0, 3, c)[1];
+    expect(edgeHeight).toBeGreaterThan(fullHeight * 0.49);
   });
   it("uses the top/bottom percentage for the wave at the outer edges", () => {
     const flat = fitWavyPoint(0.4, 1, 0, 3, {
@@ -216,6 +226,9 @@ describe("wavy preview and export geometry", () => {
   afterAll(() => vi.unstubAllGlobals());
   it("creates closed solids with a continuous substrate, no overlapping colors and supported text", async () => {
     expect(parts.map((p) => p.role)).toEqual(["base", "text"]);
+    const textBounds = meshBounds([parts[1]]);
+    expect(textBounds.size[0]).toBeGreaterThan(28.5);
+    expect(textBounds.size[1]).toBeGreaterThan(30);
     parts.forEach(closed);
     const solids = parts.map(
       (p) =>
@@ -238,7 +251,7 @@ describe("wavy preview and export geometry", () => {
         maxRadius,
         Math.hypot(parts[1].vertices[i], parts[1].vertices[i + 1]),
       );
-    expect(maxRadius).toBeLessThanOrEqual(20.002);
+    expect(maxRadius).toBeLessThanOrEqual(19.752);
     intersection.delete();
     solids.forEach((s) => s.delete());
     const stl = await unionForStl(parts, api);
@@ -309,5 +322,38 @@ describe("wavy preview and export geometry", () => {
     expect(changed[1].vertices).not.toEqual(parts[1].vertices);
     expect(selectedParts(parts, "Text Only")[0]).toBe(parts[1]);
     expect(selectedParts(parts, "Base Only")[0]).toBe(parts[0]);
+  });
+  it("packs crossing text rows without changing their relative scale", () => {
+    const makeRow = (y: number) => {
+      const square = api.CrossSection.square([10, 10], true);
+      const row = square.translate(0, y);
+      square.delete();
+      return row;
+    };
+    const sections = [makeRow(3), makeRow(0), makeRow(-3)];
+    const tracked: typeof sections = [];
+    const packed = packWavyRows(sections, DEFAULT_WAVY, (shape) => {
+      tracked.push(shape);
+      return shape;
+    });
+    for (let i = 0; i < packed.length; i++)
+      for (let j = i + 1; j < packed.length; j++) {
+        const overlap = packed[i].intersect(packed[j]);
+        expect(overlap.area()).toBeLessThan(1e-5);
+        overlap.delete();
+      }
+    const rowHeights = packed.map(
+      (row) => row.bounds().max[1] - row.bounds().min[1],
+    );
+    expect(rowHeights[0]).toBeCloseTo(rowHeights[1], 5);
+    expect(rowHeights[1]).toBeCloseTo(rowHeights[2], 5);
+    let maxRadius = 0;
+    for (const row of packed)
+      for (const polygon of row.toPolygons())
+        for (const [x, y] of polygon)
+          maxRadius = Math.max(maxRadius, Math.hypot(x, y));
+    expect(maxRadius).toBeLessThanOrEqual(19.751);
+    sections.forEach((shape) => shape.delete());
+    tracked.forEach((shape) => shape.delete());
   });
 });
