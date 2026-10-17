@@ -1,6 +1,6 @@
 import type { WavyConfig } from "./model";
 
-/** Fit chunky glyphs along curved text rows without collapsing the outer rows. */
+/** Deform the complete ink of a text row into its circular band. */
 export function fitWavyPoint(
   nx: number,
   v: number,
@@ -14,31 +14,27 @@ export function fitWavyPoint(
   const chord = Math.sqrt(Math.max(0.01, insetRadius * insetRadius - x * x));
   const halfHeight = insetRadius + ((chord - insetRadius) * c.roundWarp) / 100;
   const lineSpacing = c.lineSpacing;
-  const maximumRowHeight = Math.max(
-    0.05,
-    (2 * insetRadius - lineSpacing * (rows - 1)) / rows,
-  );
   const chordRowHeight = Math.max(
     0.05,
     (2 * halfHeight - lineSpacing * (rows - 1)) / rows,
   );
-  // Let the row center follow the circular chord, while retaining enough
-  // glyph height for the outer words to remain legible.
-  const glyphRowHeight = Math.max(
-    chordRowHeight * 0.55,
-    maximumRowHeight * 0.2,
-  );
-  const center =
-    ((rows - 1 - 2 * row) * (chordRowHeight + lineSpacing)) / 2;
-  let y = center + ((v - 0.5) * glyphRowHeight * c.glyphHeight) / 100;
+  const center = ((rows - 1 - 2 * row) * (chordRowHeight + lineSpacing)) / 2;
+  let y = center + ((v - 0.5) * chordRowHeight * c.glyphHeight) / 100;
   if (c.wavy) {
-    // Interpolate from full wave at the glyph center to the selected strength
-    // at its top and bottom edges.
-    const edgeDistance = Math.min(1, Math.abs(v - 0.5) * 2);
-    const influence = 1 - (1 - c.waveTopBottom / 100) * edgeDistance;
+    // Adjacent bands share the same wave displacement at their boundary.
+    // This changes their height while preserving the requested line gap.
+    const edgeStrength = c.waveTopBottom / 100;
+    const upperStrength = row === 0 ? edgeStrength : 1;
+    const lowerStrength = row === rows - 1 ? -edgeStrength : 1;
+    const influence = lowerStrength + (upperStrength - lowerStrength) * v;
+    const maxSlope = rows > 1 ? 1 + edgeStrength : 2 * edgeStrength;
+    const amplitude = Math.min(
+      c.waveAmount,
+      (chordRowHeight * 0.95) / Math.max(0.01, maxSlope),
+    );
     y +=
-      c.waveAmount *
-      Math.sin(
+      amplitude *
+      Math.cos(
         (x / radius) * Math.PI * c.waveCycles + (c.wavePhase * Math.PI) / 180,
       ) *
       influence;

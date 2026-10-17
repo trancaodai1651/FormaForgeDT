@@ -1173,15 +1173,15 @@ export function ParametricModelMakerPage() {
               <div className="pmm-panel-content">
                 {panel === "params" && (
                   <>
-                    {project.kind === "wavy" && (
+                    {project.kind === "wavy" && referenceDifferences.length > 0 && (
                       <section
                         className="pmm-reference-settings"
-                        aria-label="Thông số mẫu gốc"
+                        aria-label="Thông số tham chiếu"
                       >
                         <strong>
                           {referenceDifferences.length
-                            ? `${referenceDifferences.length} thông số khác mẫu gốc`
-                            : "Đang dùng thông số mẫu gốc"}
+                            ? `${referenceDifferences.length} thông số khác mẫu tham chiếu`
+                            : "Đang dùng thông số tham chiếu"}
                         </strong>
                         <p>White / Hot Pink · Balanced · 40 mm · Lilita One</p>
                         {referenceDifferences.length > 0 && (
@@ -1195,11 +1195,11 @@ export function ParametricModelMakerPage() {
                               onClick={() => {
                                 edit({ config: { ...DEFAULT_WAVY } });
                                 setMessage(
-                                  "Đã áp dụng thông số mẫu gốc. Nhấn Dựng mô hình để cập nhật.",
+                                  "Đã áp dụng thông số tham chiếu. Nhấn Dựng mô hình để cập nhật.",
                                 );
                               }}
                             >
-                              Dùng thông số mẫu gốc
+                              Dùng thông số tham chiếu
                             </button>
                           </>
                         )}

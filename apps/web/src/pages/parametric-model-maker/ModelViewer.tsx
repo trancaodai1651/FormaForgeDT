@@ -107,7 +107,7 @@ export function ModelViewer({
           : preset === "front"
             ? new THREE.Vector3(0, -1, 0.03)
             : orthographic
-              ? new THREE.Vector3(0.12, -0.18, 1).normalize()
+              ? new THREE.Vector3(0, -0.18, 1).normalize()
               : new THREE.Vector3(0.48, -0.68, 0.9).normalize();
       controls.target.copy(center);
       camera.position.copy(center).addScaledVector(direction, distance);

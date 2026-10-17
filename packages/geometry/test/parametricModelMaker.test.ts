@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import Module from "../../../apps/web/node_modules/manifold-3d/manifold.js";
 import { unzipSync, strFromU8 } from "fflate";
+import { SaxesParser } from "saxes";
 import {
   parseCustomizer,
   applyParameters,
@@ -19,10 +20,7 @@ import {
   selectedParts,
   type PartMesh,
 } from "../../../apps/web/src/pages/parametric-model-maker/model";
-import {
-  buildWavy,
-  packWavyRows,
-} from "../../../apps/web/src/pages/parametric-model-maker/wavyGeometry";
+import { buildWavy } from "../../../apps/web/src/pages/parametric-model-maker/wavyGeometry";
 import {
   modelThreeMf,
   partStl,
@@ -157,8 +155,8 @@ describe("reference circular text fitting", () => {
       high = fitWavyPoint(-0.8, 1, 0, 3, c);
     expect(low[0]).toBe(high[0]);
     expect(high[1]).toBeLessThan(fitWavyPoint(0, 1, 0, 3, c)[1]);
-    expect(fitWavyPoint(0, 1, 0, 3, c)[1]).toBeCloseTo(15.86, 2);
-    expect(fitWavyPoint(0, 0, 2, 3, c)[1]).toBeCloseTo(-15.86, 2);
+    expect(fitWavyPoint(0, 1, 0, 3, c)[1]).toBeCloseTo(18.5, 2);
+    expect(fitWavyPoint(0, 0, 2, 3, c)[1]).toBeCloseTo(-18.5, 2);
     const outerRowCenter = fitWavyPoint(0.9, 0.5, 0, 3, c)[1];
     const middleRowCenter = fitWavyPoint(0.9, 0.5, 1, 3, c)[1];
     expect(outerRowCenter - middleRowCenter).toBeGreaterThan(c.lineSpacing);
@@ -241,6 +239,8 @@ describe("wavy preview and export geometry", () => {
         ),
     );
     const intersection = solids[0].intersect(solids[1]);
+    // The reference uses the full circular bands, not small glyphs on arcs.
+    expect(solids[1].volume()).toBeGreaterThan(2200);
     expect(intersection.volume()).toBeLessThan(1e-5);
     expect(meshBounds([parts[0]]).min[2]).toBe(0);
     expect(meshBounds([parts[1]]).min[2]).toBeCloseTo(0.88, 5);
@@ -251,7 +251,7 @@ describe("wavy preview and export geometry", () => {
         maxRadius,
         Math.hypot(parts[1].vertices[i], parts[1].vertices[i + 1]),
       );
-    expect(maxRadius).toBeLessThanOrEqual(19.752);
+    expect(maxRadius).toBeLessThanOrEqual(20.002);
     intersection.delete();
     solids.forEach((s) => s.delete());
     const stl = await unionForStl(parts, api);
@@ -306,6 +306,22 @@ describe("wavy preview and export geometry", () => {
     );
     expect(rectangularBed).toContain("165 160 0");
   });
+  it("exports well-formed XML in the actual 3MF package, including escaped project names", () => {
+    const project = { ...createProject(), name: 'Text & base <test> "A"' };
+    const files = unzipSync(
+      modelThreeMf(parts, project, "A1", { width: 256, depth: 256 }),
+    );
+    for (const name of [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "3D/3dmodel.model",
+      "Metadata/model_settings.config",
+    ])
+      expect(
+        () => new SaxesParser({ xmlns: true }).write(strFromU8(files[name])).close(),
+        name,
+      ).not.toThrow();
+  });
   it("applies dimensions, wave and font controls to actual geometry; selection preserves assembly coordinates", async () => {
     const changed = await buildWavy(
       {
@@ -323,37 +339,26 @@ describe("wavy preview and export geometry", () => {
     expect(selectedParts(parts, "Text Only")[0]).toBe(parts[1]);
     expect(selectedParts(parts, "Base Only")[0]).toBe(parts[0]);
   });
-  it("packs crossing text rows without changing their relative scale", () => {
-    const makeRow = (y: number) => {
-      const square = api.CrossSection.square([10, 10], true);
-      const row = square.translate(0, y);
-      square.delete();
-      return row;
-    };
-    const sections = [makeRow(3), makeRow(0), makeRow(-3)];
-    const tracked: typeof sections = [];
-    const packed = packWavyRows(sections, DEFAULT_WAVY, (shape) => {
-      tracked.push(shape);
-      return shape;
-    });
-    for (let i = 0; i < packed.length; i++)
-      for (let j = i + 1; j < packed.length; j++) {
-        const overlap = packed[i].intersect(packed[j]);
-        expect(overlap.area()).toBeLessThan(1e-5);
-        overlap.delete();
+  it("keeps the circular row bands separated while deforming their full ink height", () => {
+    for (const layout of [1, 2, 3]) {
+      for (let nx = -1; nx <= 1; nx += 0.025) {
+        for (let row = 0; row < layout - 1; row++) {
+          const upperBottom = fitWavyPoint(nx, 0, row, layout, DEFAULT_WAVY)[1];
+          const lowerTop = fitWavyPoint(nx, 1, row + 1, layout, DEFAULT_WAVY)[1];
+          expect(upperBottom - lowerTop).toBeCloseTo(DEFAULT_WAVY.lineSpacing, 5);
+        }
       }
-    const rowHeights = packed.map(
-      (row) => row.bounds().max[1] - row.bounds().min[1],
-    );
-    expect(rowHeights[0]).toBeCloseTo(rowHeights[1], 5);
-    expect(rowHeights[1]).toBeCloseTo(rowHeights[2], 5);
-    let maxRadius = 0;
-    for (const row of packed)
-      for (const polygon of row.toPolygons())
-        for (const [x, y] of polygon)
-          maxRadius = Math.max(maxRadius, Math.hypot(x, y));
-    expect(maxRadius).toBeLessThanOrEqual(19.751);
-    sections.forEach((shape) => shape.delete());
-    tracked.forEach((shape) => shape.delete());
+    }
+  });
+  it("does not fold circular bands at the strongest supported wave settings", () => {
+    for (const layout of [1, 2, 3])
+      for (const wavePhase of [-180, -90, 0, 90, 180])
+        for (let nx = -1; nx <= 1; nx += 0.05)
+          for (let row = 0; row < layout; row++) {
+            const config = { ...DEFAULT_WAVY, waveAmount: 6, waveCycles: 2.5, wavePhase };
+            const bottom = fitWavyPoint(nx, 0, row, layout, config)[1];
+            const top = fitWavyPoint(nx, 1, row, layout, config)[1];
+            expect(top).toBeGreaterThan(bottom);
+          }
   });
 });

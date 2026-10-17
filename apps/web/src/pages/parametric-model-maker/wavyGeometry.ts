@@ -14,112 +14,6 @@ import wasmUrl from "manifold-3d/manifold.wasm?url";
 import type { PartMesh, WavyConfig } from "./model";
 import { fitWavyPoint } from "./wavyLayout";
 
-export function packWavyRows(
-  sourceRows: (CrossSection | undefined)[],
-  config: WavyConfig,
-  track: (section: CrossSection) => CrossSection,
-): CrossSection[] {
-  const active = sourceRows.flatMap((row, index) =>
-    row ? [{ index, row }] : [],
-  );
-  if (active.length === 0) return [];
-
-  // `margin` already insets each curved row's path in fitWavyPoint. Keep only
-  // a small manufacturing clearance here instead of subtracting it twice.
-  const safeRadius = Math.max(0.1, config.diameter / 2 - 0.25);
-  const rowsAtScale = (sizeScale: number) =>
-    active.map(({ row }) => {
-      if (sizeScale === 1) return row;
-      const bounds = row.bounds();
-      const centerX = (bounds.min[0] + bounds.max[0]) / 2;
-      const centerY = (bounds.min[1] + bounds.max[1]) / 2;
-      const centered = row.translate(-centerX, -centerY);
-      const resized = centered.scale(sizeScale);
-      const restored = resized.translate(centerX, centerY);
-      centered.delete();
-      resized.delete();
-      return track(restored);
-    });
-  const pack = (placed: CrossSection[]) => {
-    const shifts = placed.map(() => 0);
-    const intersectionArea = (i: number, j: number, delta = 0) => {
-      const upper = placed[i].translate(0, delta / 2 + shifts[i]);
-      const lower = placed[j].translate(0, -delta / 2 + shifts[j]);
-      const overlap = upper.intersect(lower);
-      const area = overlap.area();
-      overlap.delete();
-      upper.delete();
-      lower.delete();
-      return area;
-    };
-
-    for (let pass = 0; pass < 32; pass++) {
-      let foundOverlap = false;
-      for (let i = 0; i < placed.length - 1; i++) {
-        for (let j = i + 1; j < placed.length; j++) {
-          if (intersectionArea(i, j) <= 1e-5) continue;
-          foundOverlap = true;
-
-          const upperBounds = placed[i].bounds();
-          const lowerBounds = placed[j].bounds();
-          const maxShift = Math.max(
-            0.25,
-            lowerBounds.max[1] +
-              shifts[j] -
-              upperBounds.min[1] -
-              shifts[i] +
-              0.05,
-          );
-          let low = 0;
-          let high = maxShift;
-          for (let iteration = 0; iteration < 14; iteration++) {
-            const middle = (low + high) / 2;
-            if (intersectionArea(i, j, middle) > 1e-5) low = middle;
-            else high = middle;
-          }
-          const clearance = high + 0.03;
-          shifts[i] += clearance / 2;
-          shifts[j] -= clearance / 2;
-        }
-      }
-      if (!foundOverlap) break;
-    }
-
-    for (let i = 0; i < placed.length - 1; i++)
-      for (let j = i + 1; j < placed.length; j++)
-        if (intersectionArea(i, j) > 1e-5)
-          throw new Error("Không thể tách các hàng chữ mà không giao nhau.");
-
-    const separated = placed.map((row, index) =>
-      shifts[index] ? track(row.translate(0, shifts[index])) : row,
-    );
-    let maxRadius = 0;
-    for (const row of separated)
-      for (const polygon of row.toPolygons())
-        for (const [x, y] of polygon)
-          maxRadius = Math.max(maxRadius, Math.hypot(x, y));
-    return { separated, maxRadius };
-  };
-
-  const initial = pack(rowsAtScale(1));
-  if (initial.maxRadius <= safeRadius + 1e-4) return initial.separated;
-
-  let low = 0.001;
-  let high = 1;
-  let best = pack(rowsAtScale(low));
-  if (best.maxRadius > safeRadius + 1e-4)
-    throw new Error("Không thể căn chữ vào đường kính nền đã chọn.");
-  for (let iteration = 0; iteration < 16; iteration++) {
-    const middle = (low + high) / 2;
-    const candidate = pack(rowsAtScale(middle));
-    if (candidate.maxRadius <= safeRadius + 1e-4) {
-      low = middle;
-      best = candidate;
-    } else high = middle;
-  }
-  return best.separated;
-}
-
 let apiPromise: Promise<ManifoldToplevel> | undefined;
 const fonts = new Map<string, Promise<Font>>();
 const fontNames = new Map<string, string>();
@@ -195,7 +89,6 @@ export async function buildWavy(
       const outlines: {
         shapes: THREE.Shape[];
         x: number;
-        centerX: number;
       }[] = [];
       const bounds = new THREE.Box2();
       for (const ch of characters) {
@@ -209,73 +102,28 @@ export async function buildWavy(
           );
         const shapes = font.generateShapes(ch, 100);
         const glyphBounds = new THREE.Box2();
-        for (const s of shapes)
-          for (const p of s.getPoints(detail))
-            glyphBounds.expandByPoint(p);
+        for (const shape of shapes)
+          for (const point of shape.getPoints(detail))
+            glyphBounds.expandByPoint(point);
+        const glyphX = cursor - glyphBounds.min.x;
         outlines.push({
           shapes,
-          x: cursor,
-          centerX: cursor + (glyphBounds.min.x + glyphBounds.max.x) / 2,
+          x: glyphX,
         });
         for (const s of shapes)
           for (const p of s.getPoints(detail))
-            bounds.expandByPoint(new THREE.Vector2(cursor + p.x, p.y));
-        const glyph = font.data.glyphs[ch] ?? font.data.glyphs["?"];
+            bounds.expandByPoint(new THREE.Vector2(glyphX + p.x, p.y));
         cursor +=
-          ((glyph?.ha ?? 600) / font.data.resolution) * 100 +
-          c.letterSpacing * 6;
+          glyphBounds.max.x - glyphBounds.min.x + c.letterSpacing;
       }
       if (!outlines.length) continue;
       const total = Math.max(1, bounds.max.x - bounds.min.x);
       const glyphH = Math.max(1, bounds.max.y - bounds.min.y);
-      const flatConfig = { ...c, roundWarp: 0, wavy: false };
-      for (const { shapes, x, centerX } of outlines) {
-        const centerNx = ((centerX - bounds.min.x) / total) * 2 - 1;
-        const flatAnchor = fitWavyPoint(
-          centerNx,
-          0.5,
-          row,
-          lines.length,
-          flatConfig,
-        );
-        // Keep the original spacing between glyph centers. Compressing only
-        // the anchors makes neighboring chunky letters collide after rotation.
-        const anchorNx = centerNx;
-        const anchor = fitWavyPoint(anchorNx, 0.5, row, lines.length, c);
-        const tangentStep = 0.002;
-        const before = fitWavyPoint(
-          anchorNx - tangentStep,
-          0.5,
-          row,
-          lines.length,
-          c,
-        );
-        const after = fitWavyPoint(
-          anchorNx + tangentStep,
-          0.5,
-          row,
-          lines.length,
-          c,
-        );
-        const angle = Math.atan2(after[1] - before[1], after[0] - before[0]);
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
+      for (const { shapes, x } of outlines) {
         const transformGlyphPoint = (p: THREE.Vector2) => {
           const nx = ((x + p.x - bounds.min.x) / total) * 2 - 1;
           const v = (p.y - bounds.min.y) / glyphH;
-          const flatPoint = fitWavyPoint(
-            nx,
-            v,
-            row,
-            lines.length,
-            flatConfig,
-          );
-          const dx = flatPoint[0] - flatAnchor[0];
-          const dy = flatPoint[1] - flatAnchor[1];
-          return [
-            anchor[0] + dx * cos - dy * sin,
-            anchor[1] + dx * sin + dy * cos,
-          ] as [number, number];
+          return fitWavyPoint(nx, v, row, lines.length, c);
         };
         const glyphPaths = shapes.map((shape) =>
           [shape, ...shape.holes].map((path, index) => {
@@ -309,19 +157,13 @@ export async function buildWavy(
       }
       if (rowGlyphs.length) {
         const rowSection = section(api.CrossSection.union(rowGlyphs));
-        const rowBounds = rowSection.bounds();
-        // Tangential rotation changes each glyph's silhouette. Recenter the
-        // finished row after rotation so asymmetric glyphs cannot shift a line.
-        const centeredRow = section(
-          rowSection.translate(-((rowBounds.min[0] + rowBounds.max[0]) / 2), 0),
-        );
-        rowSections[row] = centeredRow;
+        rowSections[row] = rowSection;
       }
     }
     const circle = section(
       api.CrossSection.circle(c.diameter / 2, detail * 12),
     );
-    const glyphs = packWavyRows(rowSections, c, section);
+    const glyphs = rowSections.filter((row): row is CrossSection => !!row);
     if (!glyphs.length) throw new Error("Không có đường nét chữ để dựng.");
     const textSection = section(
       section(api.CrossSection.union(glyphs)).intersect(circle),
