@@ -17,7 +17,6 @@ import {
   Download,
   FileUp,
   FolderOpen,
-  Grid2X2,
   History,
   Loader2,
   Play,
@@ -347,6 +346,7 @@ export function ParametricModelMakerPage() {
   const past = useRef<MakerProject[]>([]),
     future = useRef<MakerProject[]>([]),
     controller = useRef<AbortController | null>(null),
+    autoBuildWavyProject = useRef<string>(""),
     upload = useRef<HTMLInputElement>(null),
     folder = useRef<HTMLInputElement>(null),
     projectUpload = useRef<HTMLInputElement>(null),
@@ -361,6 +361,11 @@ export function ParametricModelMakerPage() {
       controller.current?.abort();
     };
   }, []);
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [message]);
   useEffect(() => {
     if (!project) return;
     setSaveState("Đang lưu…");
@@ -471,7 +476,7 @@ export function ParametricModelMakerPage() {
       edit({ config: configFromValues({ ...project.config, [p.key]: v }) });
     else edit({ values: { ...project.values, [p.key]: v } });
   };
-  const generate = async () => {
+  const generate = useCallback(async () => {
     if (!project || busy) return;
     const snapshot = structuredClone(project),
       signature = fingerprint(project, files),
@@ -520,7 +525,13 @@ export function ParametricModelMakerPage() {
         controller.current = null;
       }
     }
-  };
+  }, [project, busy, files]);
+  useEffect(() => {
+    if (project?.kind !== "wavy" || parts.length || busy || generated) return;
+    if (autoBuildWavyProject.current === project.id) return;
+    autoBuildWavyProject.current = project.id;
+    void generate();
+  }, [project, parts.length, busy, generated, generate]);
   const importFiles = async (input: FileList | null) => {
     if (!input || !project) return;
     try {
@@ -694,43 +705,115 @@ export function ParametricModelMakerPage() {
   );
   return (
     <main className="pmm-page">
-      <header className="pmm-header">
-        <div className="pmm-brand">
-          <Link to="/" aria-label="Về các công cụ">
-            <Box size={27} />
-          </Link>
-          <div>
-            <strong>Model Maker</strong>
-            <small>Thiết kế tham số · FormaForgeDT</small>
-          </div>
-        </div>
-        <nav>
-          {project ? (
-            <>
-              <button onClick={goHome}>
-                <Grid2X2 size={17} />
-                Thư viện
+      <header className={`pmm-header${project ? " pmm-editor-header" : ""}`}>
+        {project ? (
+          <>
+            <div className="pmm-editor-identity">
+              <button title="Về thư viện" onClick={goHome}>
+                <ArrowLeft size={19} />
               </button>
-              <button onClick={saveJson}>
+              <Link to="/" aria-label="Về các công cụ">
+                <Box size={22} />
+              </Link>
+              <label>
+                <input
+                  aria-label="Tên dự án"
+                  value={project.name}
+                  onChange={(e) => edit({ name: e.target.value })}
+                />
+                <small>{saveState}</small>
+              </label>
+              <button
+                aria-label="Yêu thích dự án"
+                aria-pressed={project.favorite}
+                onClick={() => edit({ favorite: !project.favorite })}
+              >
+                <Star
+                  size={18}
+                  fill={project.favorite ? "currentColor" : "none"}
+                />
+              </button>
+            </div>
+            <nav className="pmm-editor-actions" aria-label="Công cụ dự án">
+              <button title="Lưu dự án" onClick={saveJson}>
                 <Save size={17} />
-                Lưu dự án
+                <span>Lưu dự án</span>
               </button>
-            </>
-          ) : (
-            <button onClick={() => projectUpload.current?.click()}>
-              <FolderOpen size={18} />
-              Mở dự án
-            </button>
-          )}
-          <button
-            aria-label="Hướng dẫn"
-            title="Hướng dẫn"
-            onClick={() => setModal("about")}
-          >
-            <BookOpen size={17} />
-            <span>Hướng dẫn</span>
-          </button>
-        </nav>
+              <button
+                aria-label="Hướng dẫn"
+                title="Hướng dẫn"
+                onClick={() => setModal("about")}
+              >
+                <BookOpen size={17} />
+              </button>
+              <span className="pmm-toolbar-divider" aria-hidden="true" />
+              <button
+                aria-label="Hoàn tác"
+                title="Hoàn tác tham số"
+                disabled={!undoCount}
+                onClick={() => restore("undo")}
+              >
+                <Undo2 size={19} />
+              </button>
+              <button
+                aria-label="Làm lại"
+                title="Làm lại"
+                disabled={!redoCount}
+                onClick={() => restore("redo")}
+              >
+                <Redo2 size={19} />
+              </button>
+              <button
+                title="Đặt lại tham số"
+                onClick={() =>
+                  edit(
+                    project.kind === "wavy"
+                      ? { config: { ...DEFAULT_WAVY } }
+                      : { values: {} },
+                  )
+                }
+              >
+                <RotateCcw size={17} />
+                <span>Đặt lại</span>
+              </button>
+              <button
+                className="pmm-export-button"
+                title="Xuất file"
+                disabled={dirty || !parts.length || busy}
+                onClick={() => setModal("export")}
+              >
+                <Download size={18} />
+                <span>Xuất file</span>
+              </button>
+            </nav>
+          </>
+        ) : (
+          <>
+            <div className="pmm-brand">
+              <Link to="/" aria-label="Về các công cụ">
+                <Box size={27} />
+              </Link>
+              <div>
+                <strong>Model Maker</strong>
+                <small>Thiết kế tham số · FormaForgeDT</small>
+              </div>
+            </div>
+            <nav>
+              <button onClick={() => projectUpload.current?.click()}>
+                <FolderOpen size={18} />
+                Mở dự án
+              </button>
+              <button
+                aria-label="Hướng dẫn"
+                title="Hướng dẫn"
+                onClick={() => setModal("about")}
+              >
+                <BookOpen size={17} />
+                <span>Hướng dẫn</span>
+              </button>
+            </nav>
+          </>
+        )}
       </header>
       <input
         hidden
@@ -927,78 +1010,6 @@ export function ParametricModelMakerPage() {
         </section>
       ) : (
         <>
-          <div className="pmm-project-bar">
-            <div className="pmm-project-title">
-              <button title="Về thư viện" onClick={goHome}>
-                <ArrowLeft size={20} />
-              </button>
-              <input
-                aria-label="Tên dự án"
-                value={project.name}
-                onChange={(e) => edit({ name: e.target.value })}
-              />
-              <button
-                aria-label="Yêu thích dự án"
-                aria-pressed={project.favorite}
-                onClick={() => edit({ favorite: !project.favorite })}
-              >
-                <Star
-                  size={18}
-                  fill={project.favorite ? "currentColor" : "none"}
-                />
-              </button>
-              <small>{saveState}</small>
-            </div>
-            <div className="pmm-project-actions">
-              <button
-                aria-label="Hoàn tác"
-                title="Hoàn tác tham số"
-                disabled={!undoCount}
-                onClick={() => restore("undo")}
-              >
-                <Undo2 size={19} />
-              </button>
-              <button
-                aria-label="Làm lại"
-                disabled={!redoCount}
-                onClick={() => restore("redo")}
-              >
-                <Redo2 size={19} />
-              </button>
-              <button
-                title="Đặt lại tham số"
-                onClick={() =>
-                  edit(
-                    project.kind === "wavy"
-                      ? { config: { ...DEFAULT_WAVY } }
-                      : { values: {} },
-                  )
-                }
-              >
-                <RotateCcw size={17} />
-                <span>Đặt lại</span>
-              </button>
-              {busy ? (
-                <button onClick={() => controller.current?.abort()}>
-                  <X size={18} />
-                  Hủy dựng
-                </button>
-              ) : (
-                <button className="pmm-primary" onClick={() => void generate()}>
-                  <Play size={17} />
-                  Dựng mô hình
-                </button>
-              )}
-              <button
-                className="pmm-export-button"
-                disabled={dirty || !parts.length || busy}
-                onClick={() => setModal("export")}
-              >
-                <Download size={18} />
-                Xuất file
-              </button>
-            </div>
-          </div>
           <div className="pmm-workspace">
             <section className="pmm-preview">
               <div className="pmm-preview-toolbar">
@@ -1390,6 +1401,27 @@ export function ParametricModelMakerPage() {
                     </button>
                   </>
                 )}
+              </div>
+              <div className="pmm-inspector-actions">
+                <button
+                  className="pmm-primary"
+                  onClick={() =>
+                    busy ? controller.current?.abort() : void generate()
+                  }
+                >
+                  {busy ? (
+                    <Loader2 className="pmm-spin" size={17} />
+                  ) : (
+                    <Play size={17} />
+                  )}
+                  {busy
+                    ? "Hủy dựng"
+                    : dirty && parts.length
+                      ? "Cập nhật mô hình"
+                      : parts.length
+                        ? "Dựng lại mô hình"
+                        : "Dựng mô hình"}
+                </button>
               </div>
             </aside>
           </div>

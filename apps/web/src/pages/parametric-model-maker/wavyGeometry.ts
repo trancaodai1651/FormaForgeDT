@@ -84,8 +84,13 @@ export async function buildWavy(
     const glyphs: CrossSection[] = [];
     for (let row = 0; row < lines.length; row++) {
       const characters = Array.from(lines[row]);
+      const rowGlyphs: CrossSection[] = [];
       let cursor = 0;
-      const outlines: { shapes: THREE.Shape[]; x: number }[] = [];
+      const outlines: {
+        shapes: THREE.Shape[];
+        x: number;
+        centerX: number;
+      }[] = [];
       const bounds = new THREE.Box2();
       for (const ch of characters) {
         if (/\s/.test(ch)) {
@@ -97,7 +102,15 @@ export async function buildWavy(
             `Phông này chưa có ký tự “${ch}”. Hãy chọn phông hỗ trợ ký tự đó trong thư viện.`,
           );
         const shapes = font.generateShapes(ch, 100);
-        outlines.push({ shapes, x: cursor });
+        const glyphBounds = new THREE.Box2();
+        for (const s of shapes)
+          for (const p of s.getPoints(detail))
+            glyphBounds.expandByPoint(p);
+        outlines.push({
+          shapes,
+          x: cursor,
+          centerX: cursor + (glyphBounds.min.x + glyphBounds.max.x) / 2,
+        });
         for (const s of shapes)
           for (const p of s.getPoints(detail))
             bounds.expandByPoint(new THREE.Vector2(cursor + p.x, p.y));
@@ -109,19 +122,57 @@ export async function buildWavy(
       if (!outlines.length) continue;
       const total = Math.max(1, bounds.max.x - bounds.min.x);
       const glyphH = Math.max(1, bounds.max.y - bounds.min.y);
-      const transform = (p: THREE.Vector2, x: number): [number, number] => {
-        const nx = ((x + p.x - bounds.min.x) / total) * 2 - 1;
-        return fitWavyPoint(
-          nx,
-          (p.y - bounds.min.y) / glyphH,
+      const flatConfig = { ...c, roundWarp: 0, wavy: false };
+      for (const { shapes, x, centerX } of outlines) {
+        const centerNx = ((centerX - bounds.min.x) / total) * 2 - 1;
+        const flatAnchor = fitWavyPoint(
+          centerNx,
+          0.5,
+          row,
+          lines.length,
+          flatConfig,
+        );
+        // Keep the original spacing between glyph centers. Compressing only
+        // the anchors makes neighboring chunky letters collide after rotation.
+        const anchorNx = centerNx;
+        const anchor = fitWavyPoint(anchorNx, 0.5, row, lines.length, c);
+        const tangentStep = 0.002;
+        const before = fitWavyPoint(
+          anchorNx - tangentStep,
+          0.5,
           row,
           lines.length,
           c,
         );
-      };
-      for (const { shapes, x } of outlines)
-        for (const shape of shapes) {
-          const paths = [shape, ...shape.holes].map((path, index) => {
+        const after = fitWavyPoint(
+          anchorNx + tangentStep,
+          0.5,
+          row,
+          lines.length,
+          c,
+        );
+        const angle = Math.atan2(after[1] - before[1], after[0] - before[0]);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const transformGlyphPoint = (p: THREE.Vector2) => {
+          const nx = ((x + p.x - bounds.min.x) / total) * 2 - 1;
+          const v = (p.y - bounds.min.y) / glyphH;
+          const flatPoint = fitWavyPoint(
+            nx,
+            v,
+            row,
+            lines.length,
+            flatConfig,
+          );
+          const dx = flatPoint[0] - flatAnchor[0];
+          const dy = flatPoint[1] - flatAnchor[1];
+          return [
+            anchor[0] + dx * cos - dy * sin,
+            anchor[1] + dx * sin + dy * cos,
+          ] as [number, number];
+        };
+        const glyphPaths = shapes.map((shape) =>
+          [shape, ...shape.holes].map((path, index) => {
             // Split straight segments too: circular warping is nonlinear even on a straight glyph edge.
             const raw = path.getPoints(detail);
             const dense: THREE.Vector2[] = [];
@@ -137,16 +188,40 @@ export async function buildWavy(
                 dense.push(raw[i].clone().lerp(raw[i + 1], j / count));
             }
             dense.push(raw[raw.length - 1]);
-            const pts = dense.map((p) => transform(p, x));
+            const pts = dense.map(transformGlyphPoint);
             const area = THREE.ShapeUtils.area(
               pts.map((p) => new THREE.Vector2(...p)),
             );
             if ((index === 0 && area < 0) || (index > 0 && area > 0))
               pts.reverse();
             return pts;
-          });
-          glyphs.push(section(new api.CrossSection(paths, "NonZero")));
+          }),
+        );
+        for (const paths of glyphPaths) {
+          rowGlyphs.push(section(new api.CrossSection(paths, "NonZero")));
         }
+      }
+      if (rowGlyphs.length) {
+        const rowSection = section(api.CrossSection.union(rowGlyphs));
+        const rowBounds = rowSection.bounds();
+        // Tangential rotation changes each glyph's silhouette. Recenter the
+        // finished row after rotation so asymmetric glyphs cannot shift a line.
+        const centeredRow = section(
+          rowSection.translate(-((rowBounds.min[0] + rowBounds.max[0]) / 2), 0),
+        );
+        const safeRadius = Math.max(0.1, c.diameter / 2 - c.margin - 0.25);
+        const rowRadius = Math.max(
+          0,
+          ...centeredRow
+            .toPolygons()
+            .flat()
+            .map(([px, py]) => Math.hypot(px, py)),
+        );
+        const rowScale = rowRadius > safeRadius ? safeRadius / rowRadius : 1;
+        glyphs.push(
+          rowScale < 1 ? section(centeredRow.scale(rowScale)) : centeredRow,
+        );
+      }
     }
     const circle = section(
       api.CrossSection.circle(c.diameter / 2, detail * 12),

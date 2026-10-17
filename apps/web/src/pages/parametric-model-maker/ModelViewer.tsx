@@ -40,7 +40,7 @@ export function ModelViewer({
       return;
     }
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setClearColor("#0b1120");
+    renderer.setClearColor("#414141");
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     root.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
@@ -95,7 +95,7 @@ export function ModelViewer({
       const distance = Math.max(size.length() * 1.5, 25);
       if (camera instanceof THREE.OrthographicCamera) {
         const aspect = root.clientWidth / Math.max(1, root.clientHeight);
-        const referenceScale = preset === "source" ? 1.5 : 1;
+        const referenceScale = preset === "source" ? 1.18 : 1;
         viewHeight =
           Math.max(size.y, size.x / aspect, size.z, 5) * 1.3 * referenceScale;
         camera.zoom = 1;
@@ -107,7 +107,7 @@ export function ModelViewer({
           : preset === "front"
             ? new THREE.Vector3(0, -1, 0.03)
             : orthographic
-              ? new THREE.Vector3(0.18, -0.28, 1).normalize()
+              ? new THREE.Vector3(0.12, -0.18, 1).normalize()
               : new THREE.Vector3(0.48, -0.68, 0.9).normalize();
       controls.target.copy(center);
       camera.position.copy(center).addScaledVector(direction, distance);

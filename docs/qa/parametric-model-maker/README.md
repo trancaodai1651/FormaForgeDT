@@ -1,5 +1,23 @@
 # Model Maker verification — 2026-10-16
 
+## Production and dialog follow-up — 2026-10-17
+
+On the final production bundle at 1280 × 720, the saved wavy-text project auto-generated on open with the source preset: 40 × 40 × 4.88 mm, 91,094 triangles, two parts. The export dialog now uses readable dark text and controls on its white surface; the 3MF, merged STL and split STL ZIP choices were visible. Choosing 3MF showed the app's successful export message. The browser download did not appear in the shared Downloads folder, so this exact latest 3MF could not be passed to `validate-parametric-export.mjs`; the older artifact validation below remains historical and is not evidence for the current mesh.
+
+The opened MakerWorld page and current preview were compared directly. They share the reference's default values and three-line arrangement, while the protected SCAD formula is unavailable for exact shape parity. Web typecheck and production build passed. `git diff --check` passed. No test suite was run in this follow-up.
+
+## Reference and layout follow-up — 2026-10-17
+
+Reopened the logged-in protected MakerWorld reference and compared it with the live development preview. It confirms the source's three curved rows, tangent-rotated chunky letters, 40 mm disk, Lilita One, White base and Hot Pink text. The source SCAD remains protected, so the implementation can match observed appearance and exposed controls but cannot claim formula-level or exact-mesh parity.
+
+The latest geometry recenters each row after tangent rotation to correct horizontal drift, preserves the layout's glyph spacing, and scales a complete row uniformly only if it crosses the configured circular margin. Preview and export consume the same generated meshes. The first preview of a wavy project is generated automatically when it is opened; SCAD compilation remains user-triggered.
+
+The active editor now has one project toolbar; the back-to-library control replaces its duplicate library action. The preview was enlarged for its panel, toolbar labels and parameter headings were made clearer, and the narrow layout keeps the preview above the inspector with touch-sized actions. Final typecheck, production build, and browser verification are recorded under the latest follow-up below.
+
+## Visual and first-open follow-up — 2026-10-17
+
+Removed the glyph-anchor compression that caused chunky neighboring letters to collide after tangent rotation. Preserved each glyph's original layout spacing, recentered the completed row, and added an inward proportional correction for a complete row only when its radial extent exceeds the configured circular margin. Moved the persistent generate/update action to the inspector footer so it stays available while controls scroll. Wavy projects now create their first preview on open to match the reference's immediately visible model. Protected MakerWorld source code is unavailable, so this improves the observed shape and interaction without claiming exact SCAD or mesh parity.
+
 ## Reference default correction (latest)
 
 Rechecked the logged-in MakerWorld page against the user's two screenshots. The numeric preset already matched: diameter 40, margin 1.5, row spacing 0.9, letter spacing 0.15, word space 35, width fill 94, round warp and glyph dimensions 100, wave enabled / 2.5 / 1 / 0 / 40, base 1, text 4, embed 0.12 and rounding 0.15. Font is Lilita One, quality Balanced, parts Both, base White and text Hot Pink. Color names were observed; exact vendor RGB values were not exposed by the page.
@@ -20,7 +38,7 @@ Exact production browser download `Model Maker Demo (2).3mf`, validated by `scri
 
 [Corrected reference preset](reference-defaults-fixed.jpg). This is an independent reconstruction; the protected source formula and physical slicer/print parity remain unverified. The sections below record the earlier feature baseline and its historical artifacts.
 
-The editor now stays within the available desktop height, keeps the model visible, and scrolls its inspector independently. At 1440 × 900, the document stays one screen tall; scrolling the parameter panel leaves document scroll at zero and the preview in place. At 768 × 1024 and 390 × 844, the inspector and preview return to normal page scrolling with no horizontal overflow. Main input groups start open, with the less frequent base, quality, and color groups collapsed. The default camera is a shallow three-quarter orthographic view with a wider initial framing to show the raised letters at a reference-like scale without perspective size distortion. [The current production view](reference-defaults-fixed.jpg).
+The editor now uses a compact two-row toolbar, a dark 430 px parameter inspector on the left, and a gray model preview on the right. At 1440 × 900, the document stays one screen tall; scrolling the parameter panel leaves document scroll at zero and the preview in place. At 768 × 1024 and 390 × 844, the inspector and preview return to normal page scrolling with no horizontal overflow. Main input groups start open, with the less frequent base, quality, and color groups collapsed. The default camera is a shallow orthographic view and the disk fills about two thirds of the preview height, matching the MakerWorld reference framing while keeping the raised letters visible. The saved screenshot below documents the earlier geometry correction and does not show this latest workspace styling.
 
 ## Gates
 

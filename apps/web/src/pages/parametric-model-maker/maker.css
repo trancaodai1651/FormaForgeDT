@@ -1102,6 +1102,378 @@
     font-size: 21px;
   }
 }
+
+/* Compact dark model-making workspace, aligned with the MakerWorld reference. */
+.pmm-page:has(.pmm-workspace) {
+  --pmm-ink: #f1f1f1;
+  --pmm-muted: #b0b0b0;
+  --pmm-border: #484848;
+  --pmm-accent: #078df0;
+  background: #404040;
+  color: var(--pmm-ink);
+}
+.pmm-page:has(.pmm-workspace) .pmm-header,
+.pmm-page:has(.pmm-workspace) .pmm-project-bar {
+  background: #252525;
+  color: var(--pmm-ink);
+  border-color: #3d3d3d;
+}
+.pmm-page:has(.pmm-workspace) .pmm-header {
+  height: 56px;
+  padding: 6px 14px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-brand {
+  gap: 9px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-brand > a {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #3a3a3a;
+}
+.pmm-page:has(.pmm-workspace) .pmm-brand strong {
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.pmm-page:has(.pmm-workspace) .pmm-brand small {
+  font-size: 11px;
+  color: #a9a9a9;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-header {
+  min-height: 58px;
+  height: auto;
+  padding: 6px 10px;
+  gap: 12px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 7px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity > button,
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity > a {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 6px;
+  background: #383838;
+  color: #eee;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity > a {
+  display: grid;
+  place-items: center;
+  border: 1px solid #4d4d4d;
+  text-decoration: none;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity > label {
+  display: grid;
+  min-width: 100px;
+  max-width: 210px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity > label > input {
+  min-height: 25px !important;
+  padding: 0 3px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #f3f3f3 !important;
+  font-size: 15px !important;
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-identity > label > small {
+  padding-left: 3px;
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 5px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-actions > button {
+  min-height: 38px;
+  padding: 6px 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.pmm-page:has(.pmm-workspace) .pmm-editor-actions > button[aria-label="Hướng dẫn"],
+.pmm-page:has(.pmm-workspace) .pmm-editor-actions > button[aria-label="Hoàn tác"],
+.pmm-page:has(.pmm-workspace) .pmm-editor-actions > button[aria-label="Làm lại"] {
+  width: 34px;
+  padding: 0;
+}
+.pmm-page:has(.pmm-workspace) .pmm-toolbar-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 2px;
+  background: #4a4a4a;
+}
+.pmm-page:has(.pmm-workspace) .pmm-header nav button,
+.pmm-page:has(.pmm-workspace) .pmm-project-bar button {
+  min-height: 36px;
+  padding: 6px 10px;
+  background: #383838;
+  color: #f4f4f4;
+  border-color: #4d4d4d;
+  border-radius: 6px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-header nav button:hover,
+.pmm-page:has(.pmm-workspace) .pmm-project-bar button:hover {
+  background: #484848;
+}
+.pmm-page:has(.pmm-workspace) .pmm-header nav {
+  gap: 6px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-bar {
+  min-height: 54px;
+  padding: 6px 12px;
+  align-items: center;
+  box-shadow: none;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-title {
+  align-items: center;
+  gap: 7px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-title > input {
+  max-width: min(250px, 22vw);
+  min-width: 90px;
+  min-height: 36px;
+  padding: 5px 8px;
+  background: transparent !important;
+  color: #f3f3f3 !important;
+  font-size: 16px !important;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-title > small {
+  flex-basis: auto;
+  padding-left: 0;
+  color: #aaa;
+  white-space: nowrap;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-actions {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-actions > .pmm-primary {
+  background: #078df0;
+  border-color: #078df0;
+  color: white;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-actions > .pmm-primary:hover {
+  background: #0876c6;
+}
+.pmm-page:has(.pmm-workspace) .pmm-project-actions > .pmm-export-button {
+  background: #078df0;
+  border-color: #078df0;
+  color: white;
+}
+.pmm-page:has(.pmm-workspace) .pmm-workspace {
+  grid-template-columns: minmax(360px, 430px) minmax(0, 1fr);
+  grid-template-areas: "inspector preview";
+  gap: 8px;
+  margin: 8px;
+  overflow: hidden;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector {
+  grid-area: inspector;
+  background: #262626;
+  border-color: #343434;
+  border-radius: 7px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-preview {
+  grid-area: preview;
+  background: #414141;
+  border-color: #333;
+  border-radius: 7px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-preview-toolbar,
+.pmm-page:has(.pmm-workspace) .pmm-preview-footer {
+  background: #292929;
+  border-color: #383838;
+  color: #eee;
+}
+.pmm-page:has(.pmm-workspace) .pmm-preview-toolbar {
+  font-size: 14px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-preview-footer {
+  font-size: 13px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-tabs {
+  background: #262626;
+  border-color: #414141;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-tabs > button {
+  background: #363636;
+  border-radius: 5px;
+  color: #c6c6c6;
+  min-height: 44px;
+  font-size: 13px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-tabs > button[aria-pressed="true"] {
+  background: #3b3b3b;
+  color: #45aaff;
+}
+.pmm-page:has(.pmm-workspace) .pmm-panel-content {
+  background: #262626;
+  color: #e7e7e7;
+  scrollbar-color: #666 #292929;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-actions {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  background: #262626;
+  border-top: 1px solid #414141;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-actions > button {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #078df0;
+  border-radius: 6px;
+  background: #078df0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 650;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-actions > button:hover {
+  background: #0876c6;
+}
+.pmm-page:has(.pmm-workspace) .pmm-inspector-actions > button:disabled {
+  opacity: 0.6;
+}
+.pmm-page:has(.pmm-workspace) .pmm-panel-content input:not([type="range"]):not([type="checkbox"]):not([type="color"]),
+.pmm-page:has(.pmm-workspace) .pmm-panel-content select {
+  background: #373737 !important;
+  border-color: #505050 !important;
+  color: #f1f1f1 !important;
+}
+.pmm-page:has(.pmm-workspace) .pmm-panel-content button {
+  background: #383838;
+  border-color: #505050;
+  color: #f0f0f0;
+}
+.pmm-page:has(.pmm-workspace) .pmm-panel-content button:hover {
+  background: #494949;
+}
+.pmm-page:has(.pmm-workspace) .pmm-panel-content button[aria-pressed="true"] {
+  background: #393939;
+  border-color: #148ee8;
+  color: #55b4ff;
+}
+.pmm-page:has(.pmm-workspace) .pmm-parameter-group,
+.pmm-page:has(.pmm-workspace) .pmm-parameter-group summary {
+  border-color: #414141;
+  color: #ededed;
+  font-size: 16px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-parameter-group summary > span {
+  background: #3a3a3a;
+  color: #bcbcbc;
+}
+.pmm-page:has(.pmm-workspace) .pmm-reference-settings {
+  background: #303030;
+  border-color: #454545;
+}
+.pmm-page:has(.pmm-workspace) .pmm-reference-settings strong {
+  color: #85c7ff;
+}
+.pmm-page:has(.pmm-workspace) .pmm-reference-settings p,
+.pmm-page:has(.pmm-workspace) .pmm-reference-settings small {
+  color: #b5b5b5;
+}
+.pmm-page:has(.pmm-workspace) .pmm-field > label {
+  color: #e8e8e8;
+  font-size: 15px;
+}
+.pmm-page:has(.pmm-workspace) .pmm-field > small,
+.pmm-page:has(.pmm-workspace) .pmm-online-font > span:last-child {
+  color: #aaa;
+}
+.pmm-page:has(.pmm-workspace) .pmm-alert.pmm-success {
+  position: fixed;
+  top: 66px;
+  right: 14px;
+  z-index: 30;
+  max-width: min(480px, calc(100vw - 28px));
+  border: 1px solid #356d54;
+  border-radius: 7px;
+  box-shadow: 0 8px 30px #0006;
+}
+@media (max-width: 1100px) and (min-width: 781px) {
+  .pmm-page:has(.pmm-workspace) .pmm-editor-header {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px 10px;
+    padding-block: 5px;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-editor-identity {
+    flex: 1 1 280px;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-editor-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-workspace {
+    grid-template-columns: minmax(320px, 36vw) minmax(0, 1fr);
+  }
+}
+@media (max-width: 780px) {
+  .pmm-page:has(.pmm-workspace) .pmm-editor-header {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-editor-identity {
+    flex: 1 1 100%;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-editor-identity > label {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-editor-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-editor-actions > button {
+    min-height: 42px;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-preview {
+    order: 0;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-inspector {
+    order: 1;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: none;
+    margin: 10px;
+    overflow: visible;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-header {
+    padding-inline: 10px;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-project-bar {
+    padding: 8px 10px;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-project-title > input {
+    max-width: none;
+  }
+  .pmm-page:has(.pmm-workspace) .pmm-project-actions {
+    flex-wrap: wrap;
+  }
+}
 @media (max-width: 450px) {
   .pmm-brand {
     gap: 8px;
@@ -1392,6 +1764,12 @@
     overflow: visible;
     scrollbar-gutter: auto;
   }
+  .pmm-page:has(.pmm-workspace) .pmm-inspector-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    box-shadow: 0 -8px 18px #0004;
+  }
   .pmm-preview {
     top: auto;
   }
@@ -1410,4 +1788,31 @@
     width: 18px;
     height: 18px;
   }
+}
+
+/* Dialogs keep a light surface inside the dark editor workspace. */
+.pmm-page:has(.pmm-workspace) .pmm-modal {
+  --pmm-ink: #19243a;
+  --pmm-muted: #66738a;
+  --pmm-border: #dce3ed;
+  background: #fff;
+  color: var(--pmm-ink);
+}
+.pmm-page:has(.pmm-workspace) .pmm-modal > p {
+  color: #526176;
+}
+.pmm-page:has(.pmm-workspace) .pmm-modal .pmm-printer {
+  color: #334155;
+}
+.pmm-page:has(.pmm-workspace) .pmm-modal .pmm-printer small {
+  color: #64748b;
+}
+.pmm-page:has(.pmm-workspace) .pmm-modal button {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: var(--pmm-ink);
+}
+.pmm-page:has(.pmm-workspace) .pmm-modal button:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
 }
