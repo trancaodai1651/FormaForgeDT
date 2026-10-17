@@ -19,6 +19,7 @@ import {
   FolderOpen,
   History,
   Loader2,
+  Minus,
   Play,
   Plus,
   Redo2,
@@ -262,7 +263,9 @@ function Field({
           ))}
         </div>
       ) : p.type === "number" ? (
-        <div className="pmm-number">
+        <div
+          className={`pmm-number${p.key === "wordSpace" ? " pmm-number-spinbox" : ""}`}
+        >
           <input
             id={id}
             type="number"
@@ -274,7 +277,35 @@ function Field({
               if (e.target.value !== "") onChange(Number(e.target.value));
             }}
           />
-          {p.min !== undefined && p.max !== undefined && (
+          {p.key === "wordSpace" && (
+            <div className="pmm-number-stepper" aria-label={p.label}>
+              <button
+                type="button"
+                aria-label={`${p.label} giảm`}
+                disabled={p.min !== undefined && Number(value) <= p.min}
+                onClick={() =>
+                  onChange(
+                    Math.max(p.min ?? Number.NEGATIVE_INFINITY, Number(value) - (p.step ?? 1)),
+                  )
+                }
+              >
+                <Minus size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label={`${p.label} tăng`}
+                disabled={p.max !== undefined && Number(value) >= p.max}
+                onClick={() =>
+                  onChange(
+                    Math.min(p.max ?? Number.POSITIVE_INFINITY, Number(value) + (p.step ?? 1)),
+                  )
+                }
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          )}
+          {p.key !== "wordSpace" && p.min !== undefined && p.max !== undefined && (
             <input
               aria-label={`${p.label} thanh trượt`}
               type="range"
@@ -335,7 +366,7 @@ export function ParametricModelMakerPage() {
   const [grid, setGrid] = useState(true),
     [wire, setWire] = useState(false),
     [printer, setPrinter] = useState("A1"),
-    [bed, setBed] = useState(256),
+    [bed, setBed] = useState({ width: 256, depth: 256 }),
     [exporting, setExporting] = useState(false),
     [libraryQuery, setLibraryQuery] = useState("");
   const [fontTarget, setFontTarget] = useState(""),
@@ -679,7 +710,9 @@ export function ParametricModelMakerPage() {
         value={printer}
         onChange={(e) => {
           setPrinter(e.target.value);
-          setBed(PRINTERS.find((p) => p.name === e.target.value)?.size ?? 256);
+          const profile = PRINTERS.find((p) => p.name === e.target.value);
+          if (profile)
+            setBed({ width: profile.width, depth: profile.depth });
         }}
       >
         {PRINTERS.map((p) => (
@@ -687,19 +720,37 @@ export function ParametricModelMakerPage() {
         ))}
       </select>
       {printer === "Tùy chỉnh" && (
-        <input
-          aria-label="Cạnh bàn in (mm)"
-          type="number"
-          min="50"
-          max="1000"
-          value={bed}
-          onChange={(e) =>
-            setBed(Math.max(50, Math.min(1000, Number(e.target.value))))
-          }
-        />
+        <>
+          <input
+            aria-label="Rộng bàn in (mm)"
+            type="number"
+            min="50"
+            max="1000"
+            value={bed.width}
+            onChange={(e) =>
+              setBed((old) => ({
+                ...old,
+                width: Math.max(50, Math.min(1000, Number(e.target.value))),
+              }))
+            }
+          />
+          <input
+            aria-label="Sâu bàn in (mm)"
+            type="number"
+            min="50"
+            max="1000"
+            value={bed.depth}
+            onChange={(e) =>
+              setBed((old) => ({
+                ...old,
+                depth: Math.max(50, Math.min(1000, Number(e.target.value))),
+              }))
+            }
+          />
+        </>
       )}
       <small>
-        Bàn xem {bed} × {bed} mm
+        Bàn xem {bed.width} × {bed.depth} mm
       </small>
     </label>
   );
@@ -1450,7 +1501,8 @@ export function ParametricModelMakerPage() {
             3MF giữ màu và vị trí lắp ráp. STL không chứa màu. ZIP chứa từng
             phần STL ở chung hệ tọa độ.
           </p>
-          {bounds && bounds.size.some((n, i) => i < 2 && n > bed) && (
+          {bounds &&
+            (bounds.size[0] > bed.width || bounds.size[1] > bed.depth) && (
             <p className="pmm-warning">
               Mô hình lớn hơn bàn xem đã chọn. Điều chỉnh kích thước hoặc máy in
               trước khi in.

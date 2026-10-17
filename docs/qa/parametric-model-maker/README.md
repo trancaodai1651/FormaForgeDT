@@ -1,5 +1,13 @@
 # Model Maker verification — 2026-10-16
 
+## MakerWorld feature audit — 2026-10-17
+
+Compared the live protected MakerWorld customizer with the workspace route `/#/parametric-model-maker`. All 27 controls for the selected wavy-text model are represented, and the source preset in `DEFAULT_WAVY` matches the observed text, font, numeric values, quality, part selection, and White / Hot Pink colors. The open browser tab showed a locally saved customization (Fast, Blue / Light Pink), which explains its current difference from MakerWorld's Balanced, White / Hot Pink preset; opening a saved project preserves those edits.
+
+Matched the source's 16 sliders and Word Space number stepper, and expanded the printer menu to the 14 observed profiles plus custom. Printer build areas now keep separate width and depth in the viewer, fit warning, and 3MF placement.
+
+The main model workflow is implemented locally, but the UI and service are not identical to MakerWorld: MakerWorld model metadata/community history and server/license-gated export are not reproduced. More importantly, the source SCAD is protected, so the native geometry is an independent reconstruction; exact formula, mesh, and visual parity cannot be verified or claimed. The route is already linked from the public tools hub and is included in the Pages web build.
+
 ## UI and circular-fit follow-up — 2026-10-17
 
 Reduced the inspector width with a viewport-based 320–430 px clamp, removed the duplicate model title from the canvas, and moved print-bed/grid controls into a compact top-right overlay. Numeric controls now place the editable value before the slider, matching the reference interaction order. The default orthographic framing is slightly closer.

@@ -6,7 +6,7 @@ import type { PartMesh } from "./model";
 type ViewerHandle = {
   setParts: (p: PartMesh[]) => void;
   view: (preset: string) => void;
-  floor: (grid: boolean, size: number) => void;
+  floor: (grid: boolean, width: number, depth: number) => void;
   wire: (enabled: boolean) => void;
 };
 export function ModelViewer({
@@ -19,7 +19,7 @@ export function ModelViewer({
 }: {
   parts: PartMesh[];
   grid: boolean;
-  bed: number;
+  bed: { width: number; depth: number };
   wire: boolean;
   onSelect: (role: string) => void;
   orthographic?: boolean;
@@ -141,11 +141,13 @@ export function ModelViewer({
         }
       },
       view: frame,
-      floor(show, size) {
+      floor(show, width, depth) {
         dispose(plate);
         if (!show) return;
+        const size = Math.max(width, depth);
         const grid = new THREE.GridHelper(size, 20, "#60728c", "#263449");
         grid.rotateX(Math.PI / 2);
+        grid.scale.set(width / size, 1, depth / size);
         grid.position.z = -0.05;
         plate.add(grid);
       },
@@ -201,8 +203,8 @@ export function ModelViewer({
     handle.current?.setParts(parts);
   }, [parts, orthographic]);
   useEffect(() => {
-    handle.current?.floor(grid, bed);
-  }, [grid, bed, orthographic]);
+    handle.current?.floor(grid, bed.width, bed.depth);
+  }, [grid, bed.width, bed.depth, orthographic]);
   useEffect(() => {
     handle.current?.wire(wire);
   }, [wire, parts, orthographic]);

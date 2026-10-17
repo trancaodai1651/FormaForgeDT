@@ -14,6 +14,7 @@ import {
 } from "../../../apps/web/src/pages/parametric-model-maker/csgMaterials";
 import {
   DEFAULT_WAVY,
+  PRINTERS,
   configFromValues,
   selectedParts,
   type PartMesh,
@@ -78,6 +79,35 @@ describe("SCAD customizer parsing", () => {
     expect(config.diameter).toBe(80);
     expect(config.textColor).toBe(DEFAULT_WAVY.textColor);
     expect(configFromValues({ baseColor: "red" }).baseColor).toBe("#FFFFFF");
+  });
+  it("matches the reference printer list and rectangular build plates", () => {
+    expect(PRINTERS.map((printer) => printer.name)).toEqual([
+      "A1",
+      "A1 mini",
+      "A2L",
+      "P1S",
+      "P2S",
+      "X1C",
+      "X2D",
+      "H2D",
+      "H2D Pro",
+      "H2C",
+      "H2S",
+      "P1P",
+      "X1E",
+      "X1",
+      "Tùy chỉnh",
+    ]);
+    expect(PRINTERS.find((printer) => printer.name === "A2L")).toEqual({
+      name: "A2L",
+      width: 330,
+      depth: 320,
+    });
+    expect(PRINTERS.find((printer) => printer.name === "H2D")).toEqual({
+      name: "H2D",
+      width: 350,
+      depth: 320,
+    });
   });
 });
 describe("compiled CSG material regions", () => {
@@ -218,7 +248,12 @@ describe("wavy preview and export geometry", () => {
     );
   });
   it("exports one assembly with unique resources, independent materials and correct slicer arrays", () => {
-    const zip = unzipSync(modelThreeMf(parts, createProject(), "A1", 256)),
+    const zip = unzipSync(
+        modelThreeMf(parts, createProject(), "A1", {
+          width: 256,
+          depth: 256,
+        }),
+      ),
       xml = strFromU8(zip["3D/3dmodel.model"]),
       metadata = JSON.parse(strFromU8(zip["Metadata/project_settings.config"]));
     expect(xml.match(/<item /g)).toHaveLength(1);
@@ -233,7 +268,12 @@ describe("wavy preview and export geometry", () => {
     expect(metadata.flush_multiplier).toHaveLength(1);
     expect(Object.keys(unzipSync(partsZip(parts)))).toHaveLength(2);
     const textOnly = strFromU8(
-      unzipSync(modelThreeMf([parts[1]], createProject(), "A1", 256))[
+      unzipSync(
+        modelThreeMf([parts[1]], createProject(), "A1", {
+          width: 256,
+          depth: 256,
+        }),
+      )[
         "3D/3dmodel.model"
       ],
     );
@@ -242,6 +282,16 @@ describe("wavy preview and export geometry", () => {
       .split(" ")
       .map(Number);
     expect(transform[11]).toBeCloseTo(-0.88, 5);
+
+    const rectangularBed = strFromU8(
+      unzipSync(
+        modelThreeMf(parts, createProject(), "A2L", {
+          width: 330,
+          depth: 320,
+        }),
+      )["3D/3dmodel.model"],
+    );
+    expect(rectangularBed).toContain("165 160 0");
   });
   it("applies dimensions, wave and font controls to actual geometry; selection preserves assembly coordinates", async () => {
     const changed = await buildWavy(

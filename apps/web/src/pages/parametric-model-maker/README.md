@@ -10,7 +10,7 @@ Independent of the existing ParamaCraft workspace. Launch from the public tools 
 - Seven library packages, include insertion, local SCAD/STL/SVG/PNG/font uploads and folder imports retaining relative paths.
 - Searchable Google Fonts catalog (3,894 actual font files in the bundled snapshot). Selecting a font downloads its TTF and license from the pinned Google Fonts commit. These files are saved with the project; the bundled seven work without this download.
 - Named projects, favorite projects/history entries, search/category/sort, IndexedDB autosave, 30 generation snapshots, parameter undo/redo/reset, JSON project backup/import including assets.
-- Z-up Three.js preview, orbit/pan/pinch, view presets, wireframe, plate/printer selection and custom square plate size. Geometry changes preserve the camera.
+- Z-up Three.js preview, orbit/pan/pinch, view presets, wireframe, printer profiles matching the observed MakerWorld list, rectangular build plates and custom width/depth. Geometry changes preserve the camera.
 - Binary STL union, ZIP of individual STL parts, standard multi-material 3MF with one assembly, independent materials and slicer flush metadata. Desktop saves use the shared Tauri-aware `downloadFile` helper.
 - Responsive phone/tablet/desktop layout, visible dirty state, disabled stale exports, generation cancellation and a 120-second OpenSCAD timeout.
 

@@ -275,14 +275,21 @@ translate(offset) color(model_color) difference() {
 }
 `;
 export const PRINTERS = [
-  { name: "A1", size: 256 },
-  { name: "A1 mini", size: 180 },
-  { name: "P1S", size: 256 },
-  { name: "P1P", size: 256 },
-  { name: "X1C", size: 256 },
-  { name: "X1E", size: 256 },
-  { name: "H2D", size: 350 },
-  { name: "Tùy chỉnh", size: 256 },
+  { name: "A1", width: 256, depth: 256 },
+  { name: "A1 mini", width: 180, depth: 180 },
+  { name: "A2L", width: 330, depth: 320 },
+  { name: "P1S", width: 256, depth: 256 },
+  { name: "P2S", width: 256, depth: 256 },
+  { name: "X1C", width: 256, depth: 256 },
+  { name: "X2D", width: 256, depth: 256 },
+  { name: "H2D", width: 350, depth: 320 },
+  { name: "H2D Pro", width: 350, depth: 320 },
+  { name: "H2C", width: 330, depth: 320 },
+  { name: "H2S", width: 340, depth: 320 },
+  { name: "P1P", width: 256, depth: 256 },
+  { name: "X1E", width: 256, depth: 256 },
+  { name: "X1", width: 256, depth: 256 },
+  { name: "Tùy chỉnh", width: 256, depth: 256 },
 ];
 export function selectedParts(parts: PartMesh[], mode: string) {
   return parts.filter(

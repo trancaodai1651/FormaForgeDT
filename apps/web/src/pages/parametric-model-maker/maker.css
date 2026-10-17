@@ -628,6 +628,29 @@
 .pmm-number > input[type="number"]:only-child {
   width: 100% !important;
 }
+.pmm-number-spinbox {
+  gap: 6px;
+}
+.pmm-number-stepper {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+.pmm-page .pmm-number-stepper > button {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 36px;
+  padding: 0 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #26354d;
+}
+.pmm-page .pmm-number-stepper > button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .pmm-vector {
   display: flex;
   gap: 6px;

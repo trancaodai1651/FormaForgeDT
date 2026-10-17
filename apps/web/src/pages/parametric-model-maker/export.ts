@@ -97,7 +97,7 @@ export function modelThreeMf(
   parts: PartMesh[],
   project: MakerProject,
   printer: string,
-  bed: number,
+  bed: { width: number; depth: number },
 ): Uint8Array {
   if (!parts.length) throw new Error("Chưa có phần mô hình để xuất.");
   const colors = [...new Set(parts.map((p) => p.color.toUpperCase()))];
@@ -120,7 +120,7 @@ export function modelThreeMf(
     .map((_, i) => `<component objectid="${i + 2}"/>`)
     .join("");
   const z = -meshBounds(parts).min[2];
-  const model = `<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"><metadata name="Title">${xml(project.name)}</metadata><metadata name="Application">FormaForgeDT Parametric Model Maker</metadata><resources><basematerials id="1">${materials}</basematerials>${objects}<object id="${root}" name="${xml(project.name)}" type="model"><components>${components}</components></object></resources><build><item objectid="${root}" transform="1 0 0 0 1 0 0 0 1 ${bed / 2} ${bed / 2} ${z}"/></build></model>`;
+  const model = `<?xml version="1.0" encoding="UTF-8"?><model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"><metadata name="Title">${xml(project.name)}</metadata><metadata name="Application">FormaForgeDT Parametric Model Maker</metadata><resources><basematerials id="1">${materials}</basematerials>${objects}<object id="${root}" name="${xml(project.name)}" type="model"><components>${components}</component></object></resources><build><item objectid="${root}" transform="1 0 0 0 1 0 0 0 1 ${bed.width / 2} ${bed.depth / 2} ${z}"/></build></model>`;
   const metadata = `<?xml version="1.0" encoding="UTF-8"?><config><object id="${root}"><metadata key="name" value="${xml(project.name)}"/><metadata key="extruder" value="1"/>${parts.map((p, i) => `<part id="${i + 2}" subtype="normal_part"><metadata key="name" value="${xml(p.name)}"/><metadata key="extruder" value="${colors.indexOf(p.color.toUpperCase()) + 1}"/></part>`).join("")}</object><plate><metadata key="plater_id" value="1"/><metadata key="plater_name" value="${xml(project.name)}"/><model_instance><metadata key="object_id" value="${root}"/><metadata key="instance_id" value="0"/><metadata key="identify_id" value="${root}"/></model_instance></plate></config>`;
   return zipSync(
     {
