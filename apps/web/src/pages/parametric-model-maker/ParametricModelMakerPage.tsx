@@ -285,7 +285,10 @@ function Field({
                 disabled={p.min !== undefined && Number(value) <= p.min}
                 onClick={() =>
                   onChange(
-                    Math.max(p.min ?? Number.NEGATIVE_INFINITY, Number(value) - (p.step ?? 1)),
+                    Math.max(
+                      p.min ?? Number.NEGATIVE_INFINITY,
+                      Number(value) - (p.step ?? 1),
+                    ),
                   )
                 }
               >
@@ -297,7 +300,10 @@ function Field({
                 disabled={p.max !== undefined && Number(value) >= p.max}
                 onClick={() =>
                   onChange(
-                    Math.min(p.max ?? Number.POSITIVE_INFINITY, Number(value) + (p.step ?? 1)),
+                    Math.min(
+                      p.max ?? Number.POSITIVE_INFINITY,
+                      Number(value) + (p.step ?? 1),
+                    ),
                   )
                 }
               >
@@ -305,17 +311,19 @@ function Field({
               </button>
             </div>
           )}
-          {p.key !== "wordSpace" && p.min !== undefined && p.max !== undefined && (
-            <input
-              aria-label={`${p.label} thanh trượt`}
-              type="range"
-              min={p.min}
-              max={p.max}
-              step={p.step ?? "any"}
-              value={Number(value)}
-              onChange={(e) => onChange(Number(e.target.value))}
-            />
-          )}
+          {p.key !== "wordSpace" &&
+            p.min !== undefined &&
+            p.max !== undefined && (
+              <input
+                aria-label={`${p.label} thanh trượt`}
+                type="range"
+                min={p.min}
+                max={p.max}
+                step={p.step ?? "any"}
+                value={Number(value)}
+                onChange={(e) => onChange(Number(e.target.value))}
+              />
+            )}
         </div>
       ) : p.type === "boolean" ? null : (
         <input
@@ -443,6 +451,13 @@ export function ParametricModelMakerPage() {
     snapshots: MakerProject[] = [],
   ) => {
     controller.current?.abort();
+    if (next.kind === "wavy")
+      next = {
+        ...next,
+        config: configFromValues(
+          next.config as unknown as Record<string, ParameterValue>,
+        ),
+      };
     for (const f of assets)
       if (/\.(ttf|otf)$/i.test(f.name))
         registerMakerFont(`custom:${f.name}`, f.data);
@@ -497,8 +512,9 @@ export function ParametricModelMakerPage() {
     project?.kind === "wavy"
       ? WAVY_PARAMETERS.filter(
           (p) =>
+            p.reference !== false &&
             project.config[p.key as keyof typeof DEFAULT_WAVY] !==
-            DEFAULT_WAVY[p.key as keyof typeof DEFAULT_WAVY],
+              DEFAULT_WAVY[p.key as keyof typeof DEFAULT_WAVY],
         )
       : [];
   const updateValue = (p: Parameter, v: ParameterValue) => {
@@ -711,8 +727,7 @@ export function ParametricModelMakerPage() {
         onChange={(e) => {
           setPrinter(e.target.value);
           const profile = PRINTERS.find((p) => p.name === e.target.value);
-          if (profile)
-            setBed({ width: profile.width, depth: profile.depth });
+          if (profile) setBed({ width: profile.width, depth: profile.depth });
         }}
       >
         {PRINTERS.map((p) => (
@@ -994,7 +1009,9 @@ export function ParametricModelMakerPage() {
                       <div className="pmm-card-art">
                         {t.icon}
                         <span>
-                          {t.kind === "wavy" ? "27 tham số" : "OpenSCAD"}
+                          {t.kind === "wavy"
+                            ? `${WAVY_PARAMETERS.length} tham số`
+                            : "OpenSCAD"}
                         </span>
                       </div>
                       <div className="pmm-card-copy">
@@ -1173,45 +1190,53 @@ export function ParametricModelMakerPage() {
               <div className="pmm-panel-content">
                 {panel === "params" && (
                   <>
-                    {project.kind === "wavy" && referenceDifferences.length > 0 && (
-                      <section
-                        className="pmm-reference-settings"
-                        aria-label="Thông số tham chiếu"
-                      >
-                        <strong>
-                          {referenceDifferences.length
-                            ? `${referenceDifferences.length} thông số khác mẫu tham chiếu`
-                            : "Đang dùng thông số tham chiếu"}
-                        </strong>
-                        <p>White / Hot Pink · Balanced · 40 mm · Lilita One</p>
-                        {referenceDifferences.length > 0 && (
-                          <>
-                            <small>
-                              {referenceDifferences
-                                .map((p) => p.label)
-                                .join(" · ")}
-                            </small>
-                            <button
-                              onClick={() => {
-                                edit({ config: { ...DEFAULT_WAVY } });
-                                setMessage(
-                                  "Đã áp dụng thông số tham chiếu. Nhấn Dựng mô hình để cập nhật.",
-                                );
-                              }}
-                            >
-                              Dùng thông số tham chiếu
-                            </button>
-                          </>
-                        )}
-                      </section>
-                    )}
+                    {project.kind === "wavy" &&
+                      referenceDifferences.length > 0 && (
+                        <section
+                          className="pmm-reference-settings"
+                          aria-label="Thông số tham chiếu"
+                        >
+                          <strong>
+                            {referenceDifferences.length
+                              ? `${referenceDifferences.length} thông số khác mẫu tham chiếu`
+                              : "Đang dùng thông số tham chiếu"}
+                          </strong>
+                          <p>
+                            White / Hot Pink · Balanced · 40 mm · Lilita One
+                          </p>
+                          {referenceDifferences.length > 0 && (
+                            <>
+                              <small>
+                                {referenceDifferences
+                                  .map((p) => p.label)
+                                  .join(" · ")}
+                              </small>
+                              <button
+                                onClick={() => {
+                                  edit({ config: { ...DEFAULT_WAVY } });
+                                  setMessage(
+                                    "Đã áp dụng thông số tham chiếu. Nhấn Dựng mô hình để cập nhật.",
+                                  );
+                                }}
+                              >
+                                Dùng thông số tham chiếu
+                              </button>
+                            </>
+                          )}
+                        </section>
+                      )}
                     {parameters.length ? (
                       <>
                         {[...new Set(parameters.map((p) => p.group))].map(
                           (group, index) => (
                             <details
                               className="pmm-parameter-group"
-                              open={project.kind !== "wavy" || index < 4}
+                              open={
+                                project.kind !== "wavy" ||
+                                index < 4 ||
+                                group === "Móc khóa" ||
+                                group === "Làm mượt và bo góc"
+                              }
                               key={group}
                             >
                               <summary>
@@ -1224,7 +1249,17 @@ export function ParametricModelMakerPage() {
                                 </span>
                               </summary>
                               {parameters
-                                .filter((p) => p.group === group)
+                                .filter(
+                                  (p) =>
+                                    p.group === group &&
+                                    (project.kind !== "wavy" ||
+                                      p.key !== "cornerRadius" ||
+                                      values.smoothEdges) &&
+                                    (project.kind !== "wavy" ||
+                                      group !== "Móc khóa" ||
+                                      p.key === "keychainEnabled" ||
+                                      values.keychainEnabled),
+                                )
                                 .map((p) => (
                                   <div id={`pmm-${p.key}-group`} key={p.key}>
                                     <Field
@@ -1503,11 +1538,11 @@ export function ParametricModelMakerPage() {
           </p>
           {bounds &&
             (bounds.size[0] > bed.width || bounds.size[1] > bed.depth) && (
-            <p className="pmm-warning">
-              Mô hình lớn hơn bàn xem đã chọn. Điều chỉnh kích thước hoặc máy in
-              trước khi in.
-            </p>
-          )}
+              <p className="pmm-warning">
+                Mô hình lớn hơn bàn xem đã chọn. Điều chỉnh kích thước hoặc máy
+                in trước khi in.
+              </p>
+            )}
           <div className="pmm-export-options">
             {(
               [

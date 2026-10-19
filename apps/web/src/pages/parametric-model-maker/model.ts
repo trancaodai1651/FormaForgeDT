@@ -26,6 +26,7 @@ export type Parameter = {
   step?: number;
   options?: { label: string; value: string | number }[];
   description?: string;
+  reference?: boolean;
 };
 export type WavyConfig = {
   line1: string;
@@ -51,6 +52,13 @@ export type WavyConfig = {
   textHeight: number;
   textEmbed: number;
   edgeRound: number;
+  smoothEdges: boolean;
+  cornerRadius: number;
+  keychainEnabled: boolean;
+  keychainAngle: number;
+  keychainOffset: number;
+  keychainHole: number;
+  keychainThickness: number;
   quality: string;
   showPart: string;
   baseColor: string;
@@ -80,6 +88,13 @@ export const DEFAULT_WAVY: WavyConfig = {
   textHeight: 4,
   textEmbed: 0.12,
   edgeRound: 0.15,
+  smoothEdges: true,
+  cornerRadius: 0.15,
+  keychainEnabled: false,
+  keychainAngle: 90,
+  keychainOffset: 0,
+  keychainHole: 5.2,
+  keychainThickness: 2.5,
   quality: "Balanced",
   showPart: "Both",
   baseColor: "#FFFFFF",
@@ -208,7 +223,69 @@ export const WAVY_PARAMETERS: Parameter[] = [
   numeric("baseDepth", "Độ dày nền (mm)", "Nền và chữ", 0, 3, 0.1),
   numeric("textHeight", "Chiều cao chữ (mm)", "Nền và chữ", 1, 10, 0.25),
   numeric("textEmbed", "Độ lồng chữ (mm)", "Nền và chữ", 0, 0.3, 0.01),
-  numeric("edgeRound", "Bo cạnh trên (mm)", "Nền và chữ", 0, 1.5, 0.05),
+  numeric("edgeRound", "Bo cạnh trên (mm)", "Làm mượt và bo góc", 0, 1.5, 0.05),
+  {
+    key: "smoothEdges",
+    label: "Làm mượt thành và mép chữ",
+    group: "Làm mượt và bo góc",
+    type: "boolean",
+    initial: true,
+    reference: false,
+    description:
+      "Biến dạng liên tục để loại bỏ các gợn dọc; bo cạnh bằng bề mặt cong.",
+  },
+  {
+    ...numeric(
+      "cornerRadius",
+      "Bo góc chữ (mm)",
+      "Làm mượt và bo góc",
+      0,
+      1.5,
+      0.05,
+    ),
+    reference: false,
+  },
+  {
+    key: "keychainEnabled",
+    label: "Gắn móc khóa",
+    group: "Móc khóa",
+    type: "boolean",
+    initial: false,
+    reference: false,
+    description:
+      "Vòng và cầu nối từ Image của Clicker Lab, nối liền vào nền và cùng màu nền.",
+  },
+  {
+    ...numeric("keychainAngle", "Vị trí móc (°)", "Móc khóa", 0, 360, 5),
+    reference: false,
+    description: "90°: trên · 0°: phải · 180°: trái · 270°: dưới.",
+  },
+  {
+    ...numeric(
+      "keychainOffset",
+      "Dịch móc dọc mép (mm)",
+      "Móc khóa",
+      -40,
+      40,
+      0.5,
+    ),
+    reference: false,
+  },
+  {
+    ...numeric(
+      "keychainHole",
+      "Đường kính lỗ móc (mm)",
+      "Móc khóa",
+      3,
+      16,
+      0.1,
+    ),
+    reference: false,
+  },
+  {
+    ...numeric("keychainThickness", "Độ dày móc (mm)", "Móc khóa", 1, 6, 0.1),
+    reference: false,
+  },
   {
     key: "quality",
     label: "Chất lượng",

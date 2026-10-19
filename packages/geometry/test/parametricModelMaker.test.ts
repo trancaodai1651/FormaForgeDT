@@ -21,6 +21,7 @@ import {
   type PartMesh,
 } from "../../../apps/web/src/pages/parametric-model-maker/model";
 import { buildWavy } from "../../../apps/web/src/pages/parametric-model-maker/wavyGeometry";
+import { wavyKeyring } from "../../../apps/web/src/pages/parametric-model-maker/keyring";
 import {
   modelThreeMf,
   partStl,
@@ -199,6 +200,7 @@ describe("reference circular text fitting", () => {
 });
 describe("wavy preview and export geometry", () => {
   let parts: PartMesh[];
+  let referenceParts: PartMesh[];
   let api: Awaited<ReturnType<typeof Module>>;
   beforeAll(async () => {
     api = await Module();
@@ -216,6 +218,10 @@ describe("wavy preview and export geometry", () => {
         ),
     );
     parts = await buildWavy(DEFAULT_WAVY, api);
+    referenceParts = await buildWavy(
+      { ...DEFAULT_WAVY, smoothEdges: false, cornerRadius: 0 },
+      api,
+    );
   }, 30000);
   afterAll(() => vi.unstubAllGlobals());
   it("creates closed solids with a continuous substrate, no overlapping colors and supported text", async () => {
@@ -337,6 +343,7 @@ describe("wavy preview and export geometry", () => {
     expect(selectedParts(parts, "Base Only")[0]).toBe(parts[0]);
   });
   it("matches measured sections and visible height of the supplied MakerWorld mesh", () => {
+    const parts = referenceParts;
     const solid = new api.Manifold(
       new api.Mesh({
         numProp: 3,
@@ -400,6 +407,151 @@ describe("wavy preview and export geometry", () => {
     components.forEach((part) => part.delete());
     solid.delete();
     spaced.forEach(closed);
+  });
+  it("removes tiny staircase corners from the actual outline and makes a continuous top fillet", () => {
+    const solidOf = (p: PartMesh) =>
+      new api.Manifold(
+        new api.Mesh({
+          numProp: 3,
+          vertProperties: p.vertices,
+          triVerts: p.indices,
+        }),
+      );
+    const smooth = solidOf(parts[1]),
+      stepped = solidOf(referenceParts[1]);
+    const aa = smooth.slice(2),
+      bb = stepped.slice(2);
+    const a = aa.simplify(0.001),
+      b = bb.simplify(0.001);
+    const jaggies = (section: ReturnType<typeof smooth.slice>) =>
+      section.toPolygons().reduce(
+        (count, ring) =>
+          count +
+          ring.filter((p, i) => {
+            const q = ring[(i + 1) % ring.length],
+              r = ring[(i + 2) % ring.length];
+            const ax = q[0] - p[0],
+              ay = q[1] - p[1],
+              bx = r[0] - q[0],
+              by = r[1] - q[1];
+            return (
+              Math.hypot(ax, ay) < 0.025 &&
+              (ax * bx + ay * by) /
+                Math.max(1e-12, Math.hypot(ax, ay) * Math.hypot(bx, by)) <
+                0.8
+            );
+          }).length,
+        0,
+      );
+    expect(jaggies(a)).toBeLessThan(jaggies(b) * 0.1);
+    expect(meshBounds(parts).max[2]).toBeCloseTo(5, 4);
+    const z = new Set(
+      Array.from(parts[1].vertices)
+        .filter((_, i) => i % 3 === 2)
+        .map((v) => v.toFixed(5)),
+    );
+    expect(z.size).toBeGreaterThan(16);
+    a.delete();
+    b.delete();
+    aa.delete();
+    bb.delete();
+    smooth.delete();
+    stepped.delete();
+  });
+  it("reuses the Image keyring with a connected neck, open bore, independent color and printable exports", async () => {
+    const config = {
+      ...DEFAULT_WAVY,
+      line1: "PHAM",
+      line2: "VAN",
+      line3: "TOAN",
+      keychainEnabled: true,
+      quality: "Balanced",
+    };
+    const hooked = await buildWavy(config, api);
+    hooked.forEach(closed);
+    const base = new api.Manifold(
+      new api.Mesh({
+        numProp: 3,
+        vertProperties: hooked[0].vertices,
+        triVerts: hooked[0].indices,
+      }),
+    );
+    const components = base.decompose();
+    expect(components.length).toBe(1);
+    expect(meshBounds([hooked[0]]).max[1]).toBeCloseTo(28.8, 3);
+    expect(meshBounds([hooked[0]]).max[2]).toBeCloseTo(2.5, 4);
+    const section = api.CrossSection.circle(2.5, 64).translate([0, 24.4]);
+    const cutter = section.extrude(7);
+    const obstruction = base.intersect(cutter);
+    expect(obstruction.volume()).toBeLessThan(1e-6);
+    const stl = await unionForStl(hooked, api);
+    closed(stl);
+    const assembly = new api.Manifold(
+      new api.Mesh({
+        numProp: 3,
+        vertProperties: stl.vertices,
+        triVerts: stl.indices,
+      }),
+    );
+    const assemblyPieces = assembly.decompose();
+    expect(assemblyPieces.length).toBe(1);
+    assemblyPieces.forEach((p) => p.delete());
+    assembly.delete();
+    expect(meshBounds([stl]).max[1]).toBeCloseTo(28.8, 3);
+    const zip = unzipSync(
+      modelThreeMf(hooked, { ...createProject(), config }, "A1", {
+        width: 256,
+        depth: 256,
+      }),
+    );
+    expect(
+      JSON.parse(strFromU8(zip["Metadata/formaforge-project.json"])).config,
+    ).toMatchObject({
+      keychainEnabled: true,
+      keychainHole: 5.2,
+      keychainThickness: 2.5,
+      smoothEdges: true,
+    });
+    expect(hooked[0].color).toBe(DEFAULT_WAVY.baseColor);
+    expect(hooked[1].color).toBe(DEFAULT_WAVY.textColor);
+    components.forEach((p) => p.delete());
+    obstruction.delete();
+    cutter.delete();
+    section.delete();
+    base.delete();
+  });
+  it("moves the Image attachment with angle and tangential offset and rejects disconnected placements", () => {
+    const plate = api.CrossSection.circle(20, 256);
+    const ring = wavyKeyring(api, plate, {
+      ...DEFAULT_WAVY,
+      keychainEnabled: true,
+      keychainAngle: 0,
+      keychainOffset: 4,
+    })!;
+    const body = plate.extrude(1),
+      joined = body.add(ring),
+      components = joined.decompose();
+    expect(components.length).toBe(1);
+    expect(ring.boundingBox().max[0]).toBeCloseTo(28.8, 3);
+    expect(() =>
+      wavyKeyring(api, plate, {
+        ...DEFAULT_WAVY,
+        keychainEnabled: true,
+        baseDepth: 0,
+      }),
+    ).toThrow("cần có nền");
+    expect(() =>
+      wavyKeyring(api, plate, {
+        ...DEFAULT_WAVY,
+        keychainEnabled: true,
+        keychainOffset: 40,
+      }),
+    ).toThrow("quá xa nền");
+    components.forEach((p) => p.delete());
+    joined.delete();
+    body.delete();
+    ring.delete();
+    plate.delete();
   });
   it("does not fold circular bands at the strongest supported wave settings", () => {
     for (const layout of [1, 2, 3])

@@ -4,7 +4,8 @@ export const TEMPLATES = [
     id: "wavy",
     name: "Chữ tròn lượn sóng",
     category: "Chữ và trang trí",
-    description: "Ba dòng chữ, ép tròn, lượn sóng và hai vùng màu độc lập.",
+    description:
+      "Chữ lượn sóng, bo góc mượt, hai vùng màu và móc khóa tùy chỉnh.",
     kind: "wavy" as const,
     icon: "Aa",
     source: "",

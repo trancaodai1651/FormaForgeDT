@@ -11,8 +11,15 @@ import Module, {
   type ManifoldToplevel,
 } from "manifold-3d";
 import wasmUrl from "manifold-3d/manifold.wasm?url";
-import type { PartMesh, WavyConfig } from "./model";
+import {
+  configFromValues,
+  type ParameterValue,
+  type PartMesh,
+  type WavyConfig,
+} from "./model";
 import { warpWavyColumn, wavyRowWidth } from "./wavyLayout";
+import { wavyKeyring } from "./keyring";
+import { smoothTextSolid } from "./smoothText";
 
 let apiPromise: Promise<ManifoldToplevel> | undefined;
 const fonts = new Map<string, Promise<Font>>();
@@ -59,6 +66,7 @@ export async function buildWavy(
   runtime?: ManifoldToplevel,
   base = assetBase(),
 ): Promise<PartMesh[]> {
+  c = configFromValues(c as unknown as Record<string, ParameterValue>);
   const api =
     runtime ??
     (await (apiPromise ??= Module({ locateFile: () => wasmUrl }).then((m) => {
@@ -77,10 +85,19 @@ export async function buildWavy(
     return s;
   };
   try {
-    const detail = c.quality === "Fine" ? 24 : c.quality === "Fast" ? 6 : 12;
+    const detail = c.quality === "Fine" ? 48 : c.quality === "Fast" ? 12 : 24;
     const slices = c.quality === "Fine" ? 96 : c.quality === "Fast" ? 24 : 48;
-    const circleSegments =
-      c.quality === "Fine" ? 240 : c.quality === "Fast" ? 64 : 120;
+    const circleSegments = c.smoothEdges
+      ? c.quality === "Fine"
+        ? 512
+        : c.quality === "Fast"
+          ? 128
+          : 256
+      : c.quality === "Fine"
+        ? 240
+        : c.quality === "Fast"
+          ? 64
+          : 120;
     const lines = [c.line1, c.line2, c.line3].slice(0, c.layout);
     if (!lines.some((t) => t.trim()))
       throw new Error("Nhập ít nhất một dòng chữ.");
@@ -111,15 +128,33 @@ export async function buildWavy(
         const fontScale = (cellWidth * 0.01368 * c.glyphWidth) / 100;
         const paths = font.generateShapes(ch, 100).flatMap((shape) =>
           [shape, ...shape.holes].map((path, index) => {
-            const points = path
-              .getPoints(detail)
-              .map(
-                (p) =>
-                  [center + (p.x - glyph.ha / 20) * fontScale, p.y] as [
-                    number,
-                    number,
-                  ],
-              );
+            const raw = path.getPoints(c.smoothEdges ? detail : detail / 2);
+            const dense: THREE.Vector2[] = [];
+            for (let i = 0; i < raw.length - 1; i++) {
+              const count = c.smoothEdges
+                ? Math.max(
+                    1,
+                    Math.ceil(
+                      (Math.abs(raw[i + 1].x - raw[i].x) * fontScale) /
+                        (c.quality === "Fine"
+                          ? 0.04
+                          : c.quality === "Fast"
+                            ? 0.15
+                            : 0.08),
+                    ),
+                  )
+                : 1;
+              for (let j = 0; j < count; j++)
+                dense.push(raw[i].clone().lerp(raw[i + 1], j / count));
+            }
+            dense.push(raw[raw.length - 1]);
+            const points = dense.map(
+              (p) =>
+                [center + (p.x - glyph.ha / 20) * fontScale, p.y] as [
+                  number,
+                  number,
+                ],
+            );
             const area = THREE.ShapeUtils.area(
               points.map((p) => new THREE.Vector2(...p)),
             );
@@ -130,6 +165,27 @@ export async function buildWavy(
         );
         const source = section(new api.CrossSection(paths, "NonZero"));
         const gap = c.letterSpacing - 0.15;
+        if (c.smoothEdges) {
+          const clip = section(
+            new api.CrossSection([
+              [
+                [left + gap / 2 - 0.003, -500],
+                [left + cellWidth - gap / 2 + 0.003, -500],
+                [left + cellWidth - gap / 2 + 0.003, 500],
+                [left + gap / 2 - 0.003, 500],
+              ],
+            ]),
+          );
+          rowSlices.push(
+            section(
+              section(source.intersect(clip)).warp((p) => {
+                p[1] = warpWavyColumn(p[0], p[1], row, lines.length, c)[1];
+              }),
+            ),
+          );
+          left += advance;
+          continue;
+        }
         for (let i = 0; i < slices; i++) {
           const cellLeft = left + gap / 2;
           const cellRight = left + cellWidth - gap / 2;
@@ -179,14 +235,41 @@ export async function buildWavy(
     );
     // Strip intersections can leave numerical specks much smaller than an extrusion line.
     const islands = rawTextSection.decompose().map(section);
-    const textSection = section(
+    let textSection = section(
       api.CrossSection.union(islands.filter((s) => s.area() > 0.0001)),
     );
+    if (c.smoothEdges && c.cornerRadius > 0.001) {
+      const inner = section(
+        textSection.offset(-c.cornerRadius, "Round", 2, 32),
+      );
+      if (!inner.isEmpty())
+        textSection = section(
+          section(inner.offset(c.cornerRadius, "Round", 2, 32)).intersect(
+            circle,
+          ),
+        );
+    }
+    if (c.smoothEdges)
+      textSection = section(
+        textSection.simplify(
+          c.quality === "Fine" ? 0.001 : c.quality === "Fast" ? 0.008 : 0.003,
+        ),
+      );
     const embed = Math.min(c.textEmbed, Math.max(0, c.baseDepth - 0.2));
     const round = Math.min(c.edgeRound, c.textHeight * 0.45);
     const textBottom = c.baseDepth - embed;
-    let text = keep(textSection.extrude(c.textHeight + embed - round));
-    if (round > 0.001) {
+    let text = c.smoothEdges
+      ? keep(
+          smoothTextSolid(
+            api,
+            textSection,
+            c.textHeight + embed,
+            round,
+            c.quality === "Fine" ? 24 : c.quality === "Fast" ? 8 : 16,
+          ),
+        )
+      : keep(textSection.extrude(c.textHeight + embed - round));
+    if (!c.smoothEdges && round > 0.001) {
       // The supplied model uses overlapping offset layers, rather than a smooth
       // Three.js bevel. Sample the circular round at each layer's midpoint.
       const levels = c.quality === "Fine" ? 10 : c.quality === "Fast" ? 3 : 5;
@@ -232,9 +315,14 @@ export async function buildWavy(
       });
     };
     if (c.baseDepth > 0) {
-      const base = keep(circle.extrude(c.baseDepth));
+      let base = keep(circle.extrude(c.baseDepth));
+      const ring = wavyKeyring(api, circle, c);
+      if (ring) base = keep(base.add(keep(ring)));
       outputPart("Nền tròn", keep(base.subtract(text)), c.baseColor, "base");
-    }
+    } else if (c.keychainEnabled)
+      throw new Error(
+        "Móc khóa cần có nền. Hãy tăng Độ dày nền trước khi gắn móc.",
+      );
     outputPart("Chữ nổi", text, c.textColor, "text");
     return output;
   } finally {

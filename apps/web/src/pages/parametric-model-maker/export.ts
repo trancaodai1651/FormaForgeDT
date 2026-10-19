@@ -59,7 +59,13 @@ export async function unionForStl(
       ),
   );
   try {
-    const solid = api.Manifold.union(solids);
+    const union = api.Manifold.union(solids);
+    const components = union.decompose();
+    // Re-importing complementary color meshes as float32 can create zero-volume
+    // internal shells. Preserve real solids/cavities and remove only numerical dust.
+    const solid = api.Manifold.compose(
+      components.filter((p) => Math.abs(p.volume()) > 1e-8),
+    );
     try {
       const mesh = solid.getMesh();
       const vertices = new Float32Array(mesh.numVert * 3);
@@ -77,6 +83,8 @@ export async function unionForStl(
       };
     } finally {
       solid.delete();
+      components.forEach((p) => p.delete());
+      union.delete();
     }
   } finally {
     for (const s of solids) s.delete();
