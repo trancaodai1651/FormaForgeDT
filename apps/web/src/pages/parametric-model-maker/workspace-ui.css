@@ -1,0 +1,676 @@
+/* Model Maker uses the same theme tokens as the FormaForge workspaces. */
+html:has(.pmm-themed),
+body:has(.pmm-themed),
+#root:has(.pmm-themed) {
+  min-width: 0;
+}
+.pmm-page.pmm-themed {
+  --pmm-ink: var(--text);
+  --pmm-muted: var(--muted);
+  --pmm-border: var(--line);
+  --pmm-accent: var(--accent);
+  --pmm-panel: var(--surface-strong);
+  --pmm-control: color-mix(in srgb, var(--surface-strong) 84%, var(--bg));
+  color: var(--pmm-ink);
+  background:
+    radial-gradient(
+      ellipse at 4% 0%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 38%
+    ),
+    var(--bg);
+  font-size: 16px;
+  color-scheme: inherit;
+}
+.pmm-page.pmm-themed :is(button, a, input, select, summary) {
+  -webkit-tap-highlight-color: transparent;
+}
+.pmm-page.pmm-themed button {
+  min-height: 44px;
+  border-radius: 12px;
+  border-color: var(--pmm-border);
+  background: var(--pmm-control);
+  color: var(--pmm-ink);
+  font-size: 15px;
+  box-shadow: none;
+}
+.pmm-page.pmm-themed
+  :is(.pmm-header, .pmm-panel-content, .pmm-modal, .pmm-inspector-tabs)
+  button {
+  color: var(--pmm-ink);
+  background: var(--pmm-control);
+  border-color: var(--pmm-border);
+  border-radius: 12px;
+}
+.pmm-page.pmm-themed .pmm-header nav button {
+  min-height: 44px;
+  background: var(--pmm-control);
+  color: var(--pmm-ink);
+  border-color: var(--pmm-border);
+  border-radius: 12px;
+}
+.pmm-page.pmm-themed button:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--pmm-control));
+}
+.pmm-page.pmm-themed :focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 70%, white);
+  outline-offset: 3px;
+}
+.pmm-page.pmm-themed
+  input:not([type="range"]):not([type="checkbox"]):not([type="color"]),
+.pmm-page.pmm-themed select {
+  background: var(--pmm-control) !important;
+  border-color: var(--line-strong) !important;
+  color: var(--pmm-ink) !important;
+  border-radius: 10px;
+  min-height: 44px;
+  font-size: 16px !important;
+}
+.pmm-page.pmm-themed
+  .pmm-panel-content
+  input:not([type="range"]):not([type="checkbox"]):not([type="color"]),
+.pmm-page.pmm-themed .pmm-panel-content select {
+  background: var(--pmm-control) !important;
+  color: var(--pmm-ink) !important;
+  border-color: var(--line-strong) !important;
+}
+.pmm-page.pmm-themed input::placeholder {
+  color: var(--pmm-muted);
+  opacity: 0.8;
+}
+.pmm-page.pmm-themed input[type="range"] {
+  accent-color: var(--pmm-accent);
+  min-height: 32px;
+}
+.pmm-page.pmm-themed input[type="checkbox"] {
+  accent-color: var(--pmm-accent);
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.pmm-page.pmm-themed
+  :is(small, .pmm-note, .pmm-card-copy p, .pmm-online-font > span:last-child) {
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed a {
+  color: var(--accent-strong);
+}
+.pmm-page.pmm-themed .pmm-primary,
+.pmm-page.pmm-themed .pmm-header .pmm-export-button,
+.pmm-page.pmm-themed .pmm-inspector-actions > button {
+  min-height: 46px;
+  background: linear-gradient(145deg, #ef5058, #d72e3b);
+  border-color: transparent;
+  border-radius: 12px;
+  color: white;
+  font-weight: 650;
+  box-shadow: 0 5px 16px #d72e3b26;
+}
+.pmm-page.pmm-themed :is(.pmm-primary, .pmm-export-button):hover,
+.pmm-page.pmm-themed .pmm-inspector-actions > button:hover {
+  background: #c72b36;
+  color: white;
+}
+.pmm-page.pmm-themed button[aria-pressed="true"],
+.pmm-page.pmm-themed .pmm-inspector-tabs > button[aria-pressed="true"] {
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, var(--pmm-panel));
+}
+.pmm-page.pmm-themed .pmm-header {
+  min-height: 76px;
+  height: auto;
+  padding: 12px 22px;
+  background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
+  border-color: var(--pmm-border);
+  backdrop-filter: blur(20px);
+}
+.pmm-page.pmm-themed .pmm-editor-identity {
+  flex: 1 1 auto;
+  gap: 10px;
+}
+.pmm-page.pmm-themed .pmm-editor-identity > :is(button, a),
+.pmm-page.pmm-themed .pmm-brand > a {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  flex-basis: 44px;
+  border-radius: 13px;
+  color: var(--pmm-ink);
+  background: var(--pmm-control);
+  border: 1px solid var(--pmm-border);
+}
+.pmm-page.pmm-themed .pmm-editor-identity > a,
+.pmm-page.pmm-themed .pmm-brand > a {
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--pmm-panel));
+}
+.pmm-page.pmm-themed .pmm-editor-identity > label {
+  flex: 1 1 auto;
+  max-width: 350px;
+  gap: 3px;
+}
+.pmm-page.pmm-themed .pmm-editor-identity > label > input {
+  min-height: 28px;
+  border: 0;
+  padding: 0 3px;
+  background: transparent !important;
+  color: var(--pmm-ink) !important;
+  font-size: 18px !important;
+}
+.pmm-page.pmm-themed .pmm-editor-identity > label > small {
+  color: var(--pmm-muted);
+  font-size: 12px;
+}
+.pmm-page.pmm-themed .pmm-editor-actions {
+  flex: 0 0 auto;
+  gap: 7px;
+}
+.pmm-page.pmm-themed .pmm-editor-actions > button {
+  min-height: 44px;
+  padding: 9px 12px;
+}
+.pmm-page.pmm-themed .pmm-editor-actions > button[aria-label] {
+  width: 44px;
+  padding: 0;
+}
+.pmm-page.pmm-themed .pmm-toolbar-divider {
+  background: var(--line-strong);
+}
+.pmm-page.pmm-themed .pmm-brand small {
+  font-size: 12px;
+}
+.pmm-page.pmm-themed .pmm-workspace {
+  grid-template-columns: clamp(340px, 28vw, 400px) minmax(0, 1fr);
+  gap: 16px;
+  margin: 16px;
+  overflow: hidden;
+}
+.pmm-page.pmm-themed :is(.pmm-inspector, .pmm-preview) {
+  border: 1px solid var(--pmm-border);
+  border-radius: 18px;
+  background: var(--pmm-panel);
+  box-shadow: 0 10px 30px #00000012;
+}
+.pmm-page.pmm-themed .pmm-preview {
+  background: radial-gradient(ellipse at 50% 35%, #22334d, #101a2a 80%);
+}
+:root[data-theme="light"] .pmm-page.pmm-themed .pmm-preview {
+  background: radial-gradient(ellipse at 50% 35%, #eef3fa, #cfd9e6 90%);
+}
+.pmm-page.pmm-themed .pmm-preview-toolbar {
+  position: static;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 0;
+  background: var(--pmm-panel);
+  border-bottom: 1px solid var(--pmm-border);
+  color: var(--pmm-ink);
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+.pmm-page.pmm-themed .pmm-preview-toolbar label {
+  min-height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.pmm-page.pmm-themed .pmm-camera-controls {
+  top: 14px;
+  left: 14px;
+  gap: 6px;
+}
+.pmm-page.pmm-themed .pmm-camera-controls button {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 10px;
+  background: #18263fe8;
+  color: #e9f0fb;
+  border-color: #8fadd333;
+}
+.pmm-page.pmm-themed .pmm-orbit-hint {
+  color: #c0cce0;
+  font-size: 13px;
+}
+:root[data-theme="light"] .pmm-page.pmm-themed .pmm-orbit-hint {
+  color: #4e6078;
+}
+.pmm-page.pmm-themed .pmm-preview-footer {
+  background: var(--pmm-panel);
+  color: var(--pmm-ink);
+  border-color: var(--pmm-border);
+  padding: 12px 16px;
+  gap: 10px;
+  font-size: 13px;
+}
+.pmm-page.pmm-themed .pmm-printer {
+  color: var(--pmm-ink);
+  font-size: 14px;
+}
+.pmm-page.pmm-themed .pmm-printer > select {
+  min-height: 40px !important;
+  font-size: 14px !important;
+}
+.pmm-page.pmm-themed .pmm-printer > small {
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed
+  :is(.pmm-inspector-tabs, .pmm-panel-content, .pmm-inspector-actions) {
+  background: var(--pmm-panel);
+  color: var(--pmm-ink);
+  border-color: var(--pmm-border);
+}
+.pmm-page.pmm-themed .pmm-inspector-tabs {
+  gap: 4px;
+  padding: 10px;
+}
+.pmm-page.pmm-themed .pmm-inspector-tabs > button {
+  min-height: 56px;
+  font-size: 14px;
+  gap: 5px;
+}
+.pmm-page.pmm-themed .pmm-panel-content {
+  padding: 10px 20px 22px;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.pmm-inspector-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 16px 8px;
+  padding-left: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  flex: 0 0 auto;
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed .pmm-inspector-search input {
+  border: 0 !important;
+  background: transparent !important;
+  min-width: 0;
+  padding-left: 0;
+}
+.pmm-inspector-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+.pmm-page.pmm-themed .pmm-inspector-search button {
+  width: 40px;
+  min-height: 40px;
+  flex-shrink: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.pmm-inspector-search:focus-within {
+  outline: 2px solid var(--pmm-accent);
+  outline-offset: 2px;
+}
+.pmm-page.pmm-themed .pmm-inspector-search input:focus-visible {
+  outline: 0;
+}
+.pmm-page.pmm-themed .pmm-parameter-group {
+  border-color: var(--pmm-border);
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+}
+.pmm-page.pmm-themed .pmm-parameter-group summary {
+  min-height: 52px;
+  display: list-item;
+  align-content: center;
+  padding: 12px 0;
+  color: var(--pmm-ink);
+  font-size: 16px;
+}
+.pmm-page.pmm-themed .pmm-parameter-group summary > span {
+  background: var(--pmm-control);
+  color: var(--pmm-muted);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 12px;
+}
+.pmm-page.pmm-themed .pmm-field {
+  padding: 10px 0;
+}
+.pmm-page.pmm-themed .pmm-field > label {
+  color: var(--pmm-ink);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 26px;
+}
+.pmm-page.pmm-themed .pmm-field > small {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed .pmm-number > input[type="number"] {
+  width: 80px !important;
+  min-height: 44px;
+}
+.pmm-page.pmm-themed .pmm-number > input[type="number"]:only-child {
+  width: 100% !important;
+}
+.pmm-page.pmm-themed .pmm-number-stepper > button {
+  min-height: 44px;
+  min-width: 40px;
+}
+.pmm-page.pmm-themed .pmm-field-link {
+  font-size: 14px;
+  color: var(--accent-strong);
+  background: transparent;
+}
+.pmm-page.pmm-themed .pmm-reference-settings {
+  border: 1px solid var(--pmm-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--pmm-control);
+  margin: 8px 0 12px;
+}
+.pmm-page.pmm-themed .pmm-reference-settings summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed .pmm-reference-settings summary > span {
+  float: right;
+  font-size: 12px;
+}
+.pmm-page.pmm-themed .pmm-reference-settings :is(p, small) {
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed .pmm-reference-settings p {
+  margin-top: 12px;
+}
+.pmm-page.pmm-themed .pmm-inspector-actions {
+  padding: 14px 16px;
+}
+.pmm-page.pmm-themed .pmm-inspector-actions > button {
+  font-size: 16px;
+}
+.pmm-page.pmm-themed .pmm-custom-color input {
+  background: var(--pmm-control);
+}
+.pmm-page.pmm-themed .pmm-palette {
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.pmm-page.pmm-themed .pmm-palette > button {
+  background: var(--swatch);
+  border-color: #9ca9bd66;
+  min-height: 30px;
+}
+.pmm-page.pmm-themed .pmm-palette > button[aria-pressed="true"] {
+  outline-color: var(--accent-strong);
+}
+.pmm-page.pmm-themed
+  :is(
+    .pmm-console,
+    .pmm-doc pre,
+    .pmm-saved-list > div,
+    .pmm-search,
+    .pmm-modal
+  ) {
+  background: var(--pmm-panel);
+  color: var(--pmm-ink);
+  border-color: var(--pmm-border);
+}
+.pmm-page.pmm-themed .pmm-modal {
+  --pmm-ink: var(--text);
+  --pmm-muted: var(--muted);
+  --pmm-border: var(--line);
+  padding: 24px;
+  border-radius: 20px;
+}
+.pmm-page.pmm-themed .pmm-modal > p {
+  color: var(--pmm-muted);
+}
+.pmm-page.pmm-themed .pmm-modal .pmm-printer {
+  color: var(--pmm-ink);
+}
+.pmm-page.pmm-themed .pmm-online-fonts {
+  scrollbar-color: var(--line-strong) transparent;
+}
+.pmm-page.pmm-themed .pmm-alert {
+  border-radius: 12px;
+  font-size: 14px;
+}
+.pmm-page.pmm-themed .pmm-home {
+  max-width: 1500px;
+  padding-top: 40px;
+}
+.pmm-page.pmm-themed .pmm-eyebrow {
+  color: var(--accent-strong);
+}
+.pmm-page.pmm-themed .pmm-card {
+  border-radius: 20px;
+  background: var(--pmm-panel);
+}
+.pmm-page.pmm-themed .pmm-card-copy > span {
+  color: var(--accent-strong);
+}
+.pmm-page.pmm-themed .pmm-card-copy p {
+  min-height: 0;
+}
+.pmm-page.pmm-themed .pmm-project-symbol {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 10%, var(--pmm-panel));
+}
+
+@media (max-width: 1100px) and (min-width: 981px) {
+  .pmm-page.pmm-themed .pmm-editor-header {
+    flex-wrap: nowrap;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions {
+    flex-basis: auto;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity {
+    flex-basis: auto;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity > a {
+    display: none;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity > label {
+    max-width: 220px;
+  }
+  .pmm-page.pmm-themed .pmm-workspace {
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 12px;
+    margin: 12px;
+  }
+}
+@media (max-width: 980px) {
+  .pmm-page.pmm-themed:has(.pmm-workspace) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .pmm-page.pmm-themed .pmm-header {
+    padding: 12px 16px;
+  }
+  .pmm-page.pmm-themed .pmm-editor-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity {
+    flex: 1 1 100%;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity > label {
+    max-width: none;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    overflow: visible;
+  }
+  .pmm-page.pmm-themed .pmm-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    overflow: visible;
+    margin: 14px;
+    gap: 16px;
+  }
+  .pmm-page.pmm-themed :is(.pmm-preview, .pmm-inspector) {
+    width: 100%;
+    height: auto;
+  }
+  .pmm-page.pmm-themed .pmm-preview {
+    order: 0;
+    display: flex;
+  }
+  .pmm-page.pmm-themed .pmm-inspector {
+    order: 1;
+    display: flex;
+    overflow: visible;
+  }
+  .pmm-page.pmm-themed .pmm-viewer-wrap {
+    height: clamp(300px, 48svh, 540px);
+    min-height: 300px;
+    flex: none;
+  }
+  .pmm-page.pmm-themed .pmm-panel-content {
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+  .pmm-page.pmm-themed .pmm-inspector-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    border-radius: 17px 17px 0 0;
+  }
+  .pmm-page.pmm-themed .pmm-inspector-tabs > button {
+    flex-direction: row;
+    min-height: 48px;
+    font-size: 14px;
+  }
+  .pmm-page.pmm-themed .pmm-inspector-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    border-radius: 0 0 17px 17px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 16px #0002;
+  }
+  .pmm-page.pmm-themed .pmm-palette {
+    grid-template-columns: repeat(10, minmax(0, 38px));
+  }
+}
+@media (max-width: 600px) {
+  .pmm-page.pmm-themed .pmm-header {
+    padding: 10px 12px;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity {
+    gap: 7px;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity > label {
+    min-width: 0;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity > a {
+    display: none;
+  }
+  .pmm-page.pmm-themed .pmm-editor-identity > label > input {
+    font-size: 16px !important;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions {
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions > button {
+    flex: 0 0 42px;
+    min-width: 42px;
+    padding: 8px;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions > button > span {
+    display: none;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions > .pmm-export-button {
+    flex: 1 1 auto;
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions > .pmm-export-button > span {
+    display: inline;
+    font-size: 14px;
+  }
+  .pmm-page.pmm-themed .pmm-toolbar-divider {
+    display: none;
+  }
+  .pmm-page.pmm-themed .pmm-workspace {
+    margin: 10px;
+    gap: 12px;
+  }
+  .pmm-page.pmm-themed .pmm-viewer-wrap {
+    height: clamp(300px, 44svh, 420px);
+  }
+  .pmm-page.pmm-themed .pmm-preview-toolbar {
+    min-height: 44px;
+    padding: 6px 12px;
+  }
+  .pmm-page.pmm-themed .pmm-camera-controls {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+  }
+  .pmm-page.pmm-themed .pmm-camera-controls button {
+    flex: 1;
+    min-height: 40px;
+    font-size: 12px;
+    padding: 7px 6px;
+  }
+  .pmm-page.pmm-themed .pmm-preview-footer {
+    padding: 12px;
+  }
+  .pmm-page.pmm-themed .pmm-preview-footer > span {
+    flex-basis: 100%;
+  }
+  .pmm-page.pmm-themed .pmm-orbit-hint {
+    font-size: 11px;
+  }
+  .pmm-page.pmm-themed .pmm-panel-content {
+    padding: 8px 16px 18px;
+  }
+  .pmm-page.pmm-themed .pmm-inspector-tabs > button {
+    flex-direction: column;
+    font-size: 12px;
+    gap: 4px;
+    min-height: 58px;
+    padding: 8px 2px;
+    white-space: nowrap;
+  }
+  .pmm-page.pmm-themed .pmm-palette {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    max-width: 390px;
+  }
+  .pmm-page.pmm-themed .pmm-home {
+    padding: 28px 16px;
+  }
+  .pmm-page.pmm-themed .pmm-home h1 {
+    letter-spacing: -1px;
+  }
+  .pmm-page.pmm-themed .pmm-modal {
+    padding: 18px;
+    max-height: 90dvh;
+  }
+  .pmm-page.pmm-themed .pmm-font-choice {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pmm-page.pmm-themed .pmm-reference-settings summary > span {
+    float: none;
+    display: block;
+    margin-top: 4px;
+  }
+}
+@media (max-width: 360px) {
+  .pmm-page.pmm-themed .pmm-editor-actions {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .pmm-page.pmm-themed .pmm-editor-actions > .pmm-export-button {
+    grid-column: 1 / -1;
+  }
+  .pmm-page.pmm-themed .pmm-camera-controls button {
+    white-space: nowrap;
+    font-size: 11px;
+    padding-inline: 3px;
+  }
+}

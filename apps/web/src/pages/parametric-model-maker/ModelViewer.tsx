@@ -40,7 +40,7 @@ export function ModelViewer({
       return;
     }
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setClearColor("#414141");
+    renderer.setClearColor("#000000", 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     root.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
@@ -97,7 +97,10 @@ export function ModelViewer({
         const aspect = root.clientWidth / Math.max(1, root.clientHeight);
         viewHeight =
           Math.max(size.y, size.x / aspect, size.z, 5) *
-          (preset === "source" ? 2 : 1.3);
+          Math.max(
+            preset === "source" ? 1.45 : 1.3,
+            root.clientHeight < 420 ? 1.6 : 1.3,
+          );
         camera.zoom = 1;
         projection();
       }

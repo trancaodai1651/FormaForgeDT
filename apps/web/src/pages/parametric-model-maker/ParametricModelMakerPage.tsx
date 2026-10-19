@@ -70,6 +70,7 @@ import {
 } from "./storage";
 import { createProject, TEMPLATES } from "./templates";
 import "./maker.css";
+import "./workspace-ui.css";
 
 const assetHashes = new WeakMap<Uint8Array, string>();
 function assetHash(bytes: Uint8Array) {
@@ -368,6 +369,7 @@ export function ParametricModelMakerPage() {
       "export" | "libraries" | "fonts" | "about" | null
     >(null),
     [query, setQuery] = useState(""),
+    [parameterQuery, setParameterQuery] = useState(""),
     [category, setCategory] = useState("Tất cả"),
     [sort, setSort] = useState("recent"),
     [savedOnly, setSavedOnly] = useState(false);
@@ -451,6 +453,7 @@ export function ParametricModelMakerPage() {
     snapshots: MakerProject[] = [],
   ) => {
     controller.current?.abort();
+    setParameterQuery("");
     if (next.kind === "wavy")
       next = {
         ...next,
@@ -497,6 +500,18 @@ export function ParametricModelMakerPage() {
     project?.kind === "wavy"
       ? (project.config as unknown as Record<string, ParameterValue>)
       : (project?.values ?? {});
+  const matchingParameters = useMemo(() => {
+    const normalize = (text: string) =>
+      text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[đĐ]/g, "d")
+        .toLowerCase();
+    const term = normalize(parameterQuery.trim());
+    return parameters.filter((p) =>
+      normalize(`${p.group} ${p.label}`).includes(term),
+    );
+  }, [parameters, parameterQuery]);
   const customFonts = files
     .filter((f) => /\.(ttf|otf)$/i.test(f.name))
     .map((f) => ({
@@ -770,7 +785,7 @@ export function ParametricModelMakerPage() {
     </label>
   );
   return (
-    <main className="pmm-page">
+    <main className="pmm-page pmm-themed">
       <header className={`pmm-header${project ? " pmm-editor-header" : ""}`}>
         {project ? (
           <>
@@ -1110,14 +1125,18 @@ export function ParametricModelMakerPage() {
                 onSelect={(role) => {
                   if (project.kind === "wavy" && role !== "model") {
                     setPanel("params");
-                    requestAnimationFrame(() =>
-                      document
-                        .getElementById(`pmm-${role}Color-group`)
-                        ?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "nearest",
-                        }),
-                    );
+                    setParameterQuery("");
+                    requestAnimationFrame(() => {
+                      const field = document.getElementById(
+                        `pmm-${role}Color-group`,
+                      );
+                      const group = field?.closest("details");
+                      if (group) group.open = true;
+                      field?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "nearest",
+                      });
+                    });
                   }
                 }}
               />
@@ -1187,20 +1206,39 @@ export function ParametricModelMakerPage() {
                   </button>
                 ))}
               </div>
+              {panel === "params" && parameters.length > 0 && (
+                <div className="pmm-inspector-search">
+                  <Search size={18} aria-hidden="true" />
+                  <input
+                    type="search"
+                    aria-label="Tìm thông số"
+                    placeholder="Tìm thông số…"
+                    value={parameterQuery}
+                    onChange={(e) => setParameterQuery(e.target.value)}
+                  />
+                  {parameterQuery && (
+                    <button
+                      aria-label="Xóa tìm thông số"
+                      onClick={() => setParameterQuery("")}
+                    >
+                      <X size={17} />
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="pmm-panel-content">
                 {panel === "params" && (
                   <>
                     {project.kind === "wavy" &&
                       referenceDifferences.length > 0 && (
-                        <section
+                        <details
                           className="pmm-reference-settings"
                           aria-label="Thông số tham chiếu"
                         >
-                          <strong>
-                            {referenceDifferences.length
-                              ? `${referenceDifferences.length} thông số khác mẫu tham chiếu`
-                              : "Đang dùng thông số tham chiếu"}
-                          </strong>
+                          <summary>
+                            Thông số tham chiếu{" "}
+                            <span>{referenceDifferences.length} thay đổi</span>
+                          </summary>
                           <p>
                             White / Hot Pink · Balanced · 40 mm · Lilita One
                           </p>
@@ -1223,68 +1261,75 @@ export function ParametricModelMakerPage() {
                               </button>
                             </>
                           )}
-                        </section>
+                        </details>
                       )}
                     {parameters.length ? (
                       <>
-                        {[...new Set(parameters.map((p) => p.group))].map(
-                          (group, index) => (
-                            <details
-                              className="pmm-parameter-group"
-                              open={
-                                project.kind !== "wavy" ||
-                                index < 4 ||
-                                group === "Móc khóa" ||
-                                group === "Làm mượt và bo góc"
-                              }
-                              key={group}
-                            >
-                              <summary>
-                                {group}
-                                <span>
-                                  {
-                                    parameters.filter((p) => p.group === group)
-                                      .length
-                                  }
-                                </span>
-                              </summary>
-                              {parameters
-                                .filter(
-                                  (p) =>
-                                    p.group === group &&
-                                    (project.kind !== "wavy" ||
-                                      p.key !== "cornerRadius" ||
-                                      values.smoothEdges) &&
-                                    (project.kind !== "wavy" ||
-                                      p.key !== "keychainThickness" ||
-                                      !values.keychainMatchBase) &&
-                                    (project.kind !== "wavy" ||
-                                      group !== "Móc khóa" ||
-                                      p.key === "keychainEnabled" ||
-                                      values.keychainEnabled),
-                                )
-                                .map((p) => (
-                                  <div id={`pmm-${p.key}-group`} key={p.key}>
-                                    <Field
-                                      p={p}
-                                      value={values[p.key] ?? p.initial}
-                                      onChange={(v) => updateValue(p, v)}
-                                      files={files}
-                                      fonts={customFonts}
-                                      onFile={() => {
-                                        setUploadTarget(p.key);
-                                        upload.current?.click();
-                                      }}
-                                      onFont={() => {
-                                        setFontTarget(p.key);
-                                        setModal("fonts");
-                                      }}
-                                    />
-                                  </div>
-                                ))}
-                            </details>
-                          ),
+                        {parameterQuery && !matchingParameters.length && (
+                          <p className="pmm-empty" role="status">
+                            Không tìm thấy thông số. Thử “màu”, “móc khóa” hoặc
+                            “kích thước”.
+                          </p>
                         )}
+                        {[
+                          ...new Set(matchingParameters.map((p) => p.group)),
+                        ].map((group, index) => (
+                          <details
+                            className="pmm-parameter-group"
+                            open={
+                              !!parameterQuery ||
+                              project.kind !== "wavy" ||
+                              index < 4 ||
+                              group === "Móc khóa" ||
+                              group === "Làm mượt và bo góc"
+                            }
+                            key={group}
+                          >
+                            <summary>
+                              {group}
+                              <span>
+                                {
+                                  parameters.filter((p) => p.group === group)
+                                    .length
+                                }
+                              </span>
+                            </summary>
+                            {matchingParameters
+                              .filter(
+                                (p) =>
+                                  p.group === group &&
+                                  (project.kind !== "wavy" ||
+                                    p.key !== "cornerRadius" ||
+                                    values.smoothEdges) &&
+                                  (project.kind !== "wavy" ||
+                                    p.key !== "keychainThickness" ||
+                                    !values.keychainMatchBase) &&
+                                  (project.kind !== "wavy" ||
+                                    group !== "Móc khóa" ||
+                                    p.key === "keychainEnabled" ||
+                                    values.keychainEnabled),
+                              )
+                              .map((p) => (
+                                <div id={`pmm-${p.key}-group`} key={p.key}>
+                                  <Field
+                                    p={p}
+                                    value={values[p.key] ?? p.initial}
+                                    onChange={(v) => updateValue(p, v)}
+                                    files={files}
+                                    fonts={customFonts}
+                                    onFile={() => {
+                                      setUploadTarget(p.key);
+                                      upload.current?.click();
+                                    }}
+                                    onFont={() => {
+                                      setFontTarget(p.key);
+                                      setModal("fonts");
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                          </details>
+                        ))}
                       </>
                     ) : (
                       <div className="pmm-empty">
@@ -1323,10 +1368,6 @@ export function ParametricModelMakerPage() {
                       >
                         Tạo dự án SCAD mới
                       </button>
-                      <p className="pmm-note">
-                        Được dựng lại từ các tính năng quan sát công khai. Không
-                        chứa mã SCAD được bảo vệ của MakerWorld.
-                      </p>
                     </div>
                   ) : (
                     <>
