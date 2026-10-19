@@ -165,3 +165,24 @@ Các nhóm được dựng từ khai báo/comment trong SCAD. Ghi chú phát hà
 - `base-blue-text-pink.jpg`: kết quả thử đổi màu nền độc lập.
 - `scad-customizer-controls.jpg`: giao diện khảo sát code mẫu.
 - `generation-server-error.jpg`: preview cũ sau lần dựng Base Only thất bại; toast lỗi đã biến mất khi chụp, nên ảnh này không dùng làm bằng chứng nội dung thông báo lỗi.
+
+
+## Đối chiếu mesh thật — 19/10/2026
+
+Người dùng cung cấp `Chữ tròn lượn sóng (4).3mf` (bản project đã tải trên Pages) và `124 wavy text popsocket.3mf` (MakerWorld). Hai file gốc được giữ nguyên. File project cũ có thẻ đóng `</component>` sai; chỉ sửa trong bộ nhớ khi phân tích. Lỗi exporter này đã được sửa ở commit cục bộ `6209a10`.
+
+| Phép đo | File project được gửi | MakerWorld | Bản sửa cục bộ |
+|---|---:|---:|---:|
+| Kích thước toàn bộ, mm | 40 × 40 × 4.88 | 40 × 40 × 5.005 | 40 × 40 × 5.005 |
+| Thể tích tổng, mm³ | 2560.640 | 3872.254 | khoảng 3876.133 |
+| IoU diện tích mặt cắt chữ so với MakerWorld | 30.73% | 100% | 98.51% |
+| Khoảng cách biên trung bình, mm | 0.682 | — | 0.019 |
+| Phân vị 95% khoảng cách biên, mm | 1.577 | — | 0.056 |
+
+Cách đo: đọc ZIP/XML, áp dụng tọa độ lắp ráp; cắt phần chữ tại vùng thành đứng, chồng XY theo đơn vị mm, không fit/scale ảnh. Raster 0.025 mm/pixel. Khoảng cách biên đo từ bản dựng tới biên tham chiếu; IoU là giao diện tích chia hợp diện tích. **Những tỷ lệ này không phải độ giống toàn bộ 3D hay mọi cấu hình.**
+
+Các chi tiết suy ra trực tiếp từ mesh: ô ký tự, tỷ lệ bề ngang dòng ngoài 0.965, lát dọc 48/cell, phần chồng lát 0.006 mm, nền 120 cạnh và bo trên 5 bậc với phần chồng Z 0.005 mm. Phần chữ nguyên bản là một khối hợp nhất cùng nền, có tô màu mặt; bản sửa giữ hai vùng vật liệu riêng để đổi màu độc lập.
+
+Hệ số trường biến dạng đã được fit theo mặt cắt của cấu hình ba dòng đã gửi. Mẫu vẫn được dựng từ nét font và tham số, không gắn mesh tham chiếu vào ứng dụng. Chưa xác minh chính xác công thức SCAD, bố cục một/hai dòng và các tổ hợp tham số/font khác. Không tuyên bố đã giống 100% hoặc tự động phát hành chỉ vì kiểm tra build thành công.
+
+SHA-256 file MakerWorld: `d2fadf971eec59b78d6c85dacc924651e07e92bf9a0abf50267d13433ff47af6`.

@@ -29,7 +29,11 @@ import {
   unionForStl,
 } from "../../../apps/web/src/pages/parametric-model-maker/export";
 import { createProject } from "../../../apps/web/src/pages/parametric-model-maker/templates";
-import { fitWavyPoint } from "../../../apps/web/src/pages/parametric-model-maker/wavyLayout";
+import reference from "./fixtures/wavy-reference-measurements.json";
+import {
+  fitWavyPoint,
+  wavyRowWidth,
+} from "../../../apps/web/src/pages/parametric-model-maker/wavyLayout";
 import {
   encodeAssets,
   decodeAssets,
@@ -149,25 +153,17 @@ function closed(part: PartMesh) {
   ).toEqual([]);
 }
 describe("reference circular text fitting", () => {
-  it("keeps horizontal glyph stems straight and curves the height of each row", () => {
+  it("uses the measured cell spans rather than fitting the natural width of a word", () => {
+    expect(wavyRowWidth(0, 3, DEFAULT_WAVY)).toBeCloseTo(33.5627, 3);
+    expect(wavyRowWidth(1, 3, DEFAULT_WAVY)).toBeCloseTo(34.78, 4);
+    expect(wavyRowWidth(2, 3, DEFAULT_WAVY)).toBeCloseTo(33.5627, 3);
     const c = { ...DEFAULT_WAVY, wavy: false };
-    const low = fitWavyPoint(-0.8, 0, 0, 3, c),
-      high = fitWavyPoint(-0.8, 1, 0, 3, c);
-    expect(low[0]).toBe(high[0]);
-    expect(high[1]).toBeLessThan(fitWavyPoint(0, 1, 0, 3, c)[1]);
-    expect(fitWavyPoint(0, 1, 0, 3, c)[1]).toBeCloseTo(18.5, 2);
-    expect(fitWavyPoint(0, 0, 2, 3, c)[1]).toBeCloseTo(-18.5, 2);
-    const outerRowCenter = fitWavyPoint(0.9, 0.5, 0, 3, c)[1];
-    const middleRowCenter = fitWavyPoint(0.9, 0.5, 1, 3, c)[1];
-    expect(outerRowCenter - middleRowCenter).toBeGreaterThan(c.lineSpacing);
-    expect(
-      fitWavyPoint(0, 0.5, 0, 3, c)[1] - outerRowCenter,
-    ).toBeGreaterThan(5);
-    const fullHeight =
-      fitWavyPoint(0, 1, 0, 3, c)[1] - fitWavyPoint(0, 0, 0, 3, c)[1];
-    const edgeHeight =
-      fitWavyPoint(0.9, 1, 0, 3, c)[1] - fitWavyPoint(0.9, 0, 0, 3, c)[1];
-    expect(edgeHeight).toBeGreaterThan(fullHeight * 0.49);
+    expect(fitWavyPoint(-0.8, 0, 0, 3, c)[0]).toBe(
+      fitWavyPoint(-0.8, 1, 0, 3, c)[0],
+    );
+    expect(fitWavyPoint(-0.8, 1, 0, 3, c)[1]).toBeLessThan(
+      fitWavyPoint(0, 1, 0, 3, c)[1],
+    );
   });
   it("uses the top/bottom percentage for the wave at the outer edges", () => {
     const flat = fitWavyPoint(0.4, 1, 0, 3, {
@@ -186,7 +182,7 @@ describe("reference circular text fitting", () => {
     expect(wave0).toBeCloseTo(flat, 5);
     expect(wave40 - flat).toBeCloseTo((wave100 - flat) * 0.4, 5);
   });
-  it("opens a new model with the verified reference appearance, not a saved demo palette", () => {
+  it("opens a new model with the observed reference parameters", () => {
     const p = createProject();
     expect(p.config).toMatchObject({
       baseColor: "#FFFFFF",
@@ -219,7 +215,7 @@ describe("wavy preview and export geometry", () => {
           ),
         ),
     );
-    parts = await buildWavy({ ...DEFAULT_WAVY, quality: "Fast" }, api);
+    parts = await buildWavy(DEFAULT_WAVY, api);
   }, 30000);
   afterAll(() => vi.unstubAllGlobals());
   it("creates closed solids with a continuous substrate, no overlapping colors and supported text", async () => {
@@ -286,9 +282,7 @@ describe("wavy preview and export geometry", () => {
           width: 256,
           depth: 256,
         }),
-      )[
-        "3D/3dmodel.model"
-      ],
+      )["3D/3dmodel.model"],
     );
     const transform = textOnly
       .match(/<item[^>]*transform="([^"]+)"/)![1]
@@ -318,7 +312,10 @@ describe("wavy preview and export geometry", () => {
       "Metadata/model_settings.config",
     ])
       expect(
-        () => new SaxesParser({ xmlns: true }).write(strFromU8(files[name])).close(),
+        () =>
+          new SaxesParser({ xmlns: true })
+            .write(strFromU8(files[name]))
+            .close(),
         name,
       ).not.toThrow();
   });
@@ -339,23 +336,82 @@ describe("wavy preview and export geometry", () => {
     expect(selectedParts(parts, "Text Only")[0]).toBe(parts[1]);
     expect(selectedParts(parts, "Base Only")[0]).toBe(parts[0]);
   });
-  it("keeps the circular row bands separated while deforming their full ink height", () => {
-    for (const layout of [1, 2, 3]) {
-      for (let nx = -1; nx <= 1; nx += 0.025) {
-        for (let row = 0; row < layout - 1; row++) {
-          const upperBottom = fitWavyPoint(nx, 0, row, layout, DEFAULT_WAVY)[1];
-          const lowerTop = fitWavyPoint(nx, 1, row + 1, layout, DEFAULT_WAVY)[1];
-          expect(upperBottom - lowerTop).toBeCloseTo(DEFAULT_WAVY.lineSpacing, 5);
+  it("matches measured sections and visible height of the supplied MakerWorld mesh", () => {
+    const solid = new api.Manifold(
+      new api.Mesh({
+        numProp: 3,
+        vertProperties: parts[1].vertices,
+        triVerts: parts[1].indices,
+      }),
+    );
+    const section = solid.slice(2);
+    const polygons = section.toPolygons();
+    for (const probe of reference.slices) {
+      const ys: number[] = [];
+      for (const ring of polygons)
+        for (let i = 0; i < ring.length; i++) {
+          const a = ring[i],
+            b = ring[(i + 1) % ring.length];
+          if (
+            (a[0] <= probe.x && b[0] > probe.x) ||
+            (b[0] <= probe.x && a[0] > probe.x)
+          )
+            ys.push(a[1] + ((probe.x - a[0]) * (b[1] - a[1])) / (b[0] - a[0]));
         }
-      }
+      ys.sort((a, b) => a - b);
+      expect(ys.length, `crossings at X=${probe.x}`).toBe(probe.y.length);
+      ys.forEach((y, i) =>
+        expect(
+          Math.abs(y - probe.y[i]),
+          `X=${probe.x}, boundary ${i}`,
+        ).toBeLessThan(0.25),
+      );
     }
+    expect(meshBounds(parts).size[2]).toBeCloseTo(reference.bounds[2], 4);
+    const base = new api.Manifold(
+      new api.Mesh({
+        numProp: 3,
+        vertProperties: parts[0].vertices,
+        triVerts: parts[0].indices,
+      }),
+    );
+    expect(
+      Math.abs(base.volume() + solid.volume() - reference.volume),
+    ).toBeLessThan(15);
+    section.delete();
+    solid.delete();
+    base.delete();
+  });
+  it("changes letter spacing at cell edges without cutting each letter into disconnected strips", async () => {
+    const spaced = await buildWavy(
+      { ...DEFAULT_WAVY, letterSpacing: 0.5, edgeRound: 0, quality: "Fast" },
+      api,
+    );
+    const solid = new api.Manifold(
+      new api.Mesh({
+        numProp: 3,
+        vertProperties: spaced[1].vertices,
+        triVerts: spaced[1].indices,
+      }),
+    );
+    const components = solid.decompose();
+    expect(components.length).toBeLessThanOrEqual(10);
+    expect(components.length).toBeGreaterThan(2);
+    components.forEach((part) => part.delete());
+    solid.delete();
+    spaced.forEach(closed);
   });
   it("does not fold circular bands at the strongest supported wave settings", () => {
     for (const layout of [1, 2, 3])
       for (const wavePhase of [-180, -90, 0, 90, 180])
         for (let nx = -1; nx <= 1; nx += 0.05)
           for (let row = 0; row < layout; row++) {
-            const config = { ...DEFAULT_WAVY, waveAmount: 6, waveCycles: 2.5, wavePhase };
+            const config = {
+              ...DEFAULT_WAVY,
+              waveAmount: 6,
+              waveCycles: 2.5,
+              wavePhase,
+            };
             const bottom = fitWavyPoint(nx, 0, row, layout, config)[1];
             const top = fitWavyPoint(nx, 1, row, layout, config)[1];
             expect(top).toBeGreaterThan(bottom);

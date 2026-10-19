@@ -12,7 +12,7 @@ import Module, {
 } from "manifold-3d";
 import wasmUrl from "manifold-3d/manifold.wasm?url";
 import type { PartMesh, WavyConfig } from "./model";
-import { fitWavyPoint } from "./wavyLayout";
+import { warpWavyColumn, wavyRowWidth } from "./wavyLayout";
 
 let apiPromise: Promise<ManifoldToplevel> | undefined;
 const fonts = new Map<string, Promise<Font>>();
@@ -78,140 +78,138 @@ export async function buildWavy(
   };
   try {
     const detail = c.quality === "Fine" ? 24 : c.quality === "Fast" ? 6 : 12;
+    const slices = c.quality === "Fine" ? 96 : c.quality === "Fast" ? 24 : 48;
+    const circleSegments =
+      c.quality === "Fine" ? 240 : c.quality === "Fast" ? 64 : 120;
     const lines = [c.line1, c.line2, c.line3].slice(0, c.layout);
     if (!lines.some((t) => t.trim()))
       throw new Error("Nhập ít nhất một dòng chữ.");
-    const rowSections: (CrossSection | undefined)[] = [];
+    const rowSections: CrossSection[] = [];
     for (let row = 0; row < lines.length; row++) {
       const characters = Array.from(lines[row]);
-      const rowGlyphs: CrossSection[] = [];
-      let cursor = 0;
-      const outlines: {
-        shapes: THREE.Shape[];
-        x: number;
-      }[] = [];
-      const bounds = new THREE.Box2();
+      const weight = (ch: string) => (/\s/.test(ch) ? c.wordSpace / 100 : 1);
+      const units = characters.reduce((sum, ch) => sum + weight(ch), 0);
+      if (!units) continue;
+      const width = wavyRowWidth(row, lines.length, c);
+      const cellWidth = width / units;
+      const rowSlices: CrossSection[] = [];
+      let left = -width / 2;
       for (const ch of characters) {
+        const advance = cellWidth * weight(ch);
         if (/\s/.test(ch)) {
-          cursor += (100 * c.wordSpace) / 100;
+          left += advance;
           continue;
         }
-        if (!font.data.glyphs[ch])
+        const glyph = font.data.glyphs[ch];
+        if (!glyph)
           throw new Error(
             `Phông này chưa có ký tự “${ch}”. Hãy chọn phông hỗ trợ ký tự đó trong thư viện.`,
           );
-        const shapes = font.generateShapes(ch, 100);
-        const glyphBounds = new THREE.Box2();
-        for (const shape of shapes)
-          for (const point of shape.getPoints(detail))
-            glyphBounds.expandByPoint(point);
-        const glyphX = cursor - glyphBounds.min.x;
-        outlines.push({
-          shapes,
-          x: glyphX,
-        });
-        for (const s of shapes)
-          for (const p of s.getPoints(detail))
-            bounds.expandByPoint(new THREE.Vector2(glyphX + p.x, p.y));
-        cursor +=
-          glyphBounds.max.x - glyphBounds.min.x + c.letterSpacing;
-      }
-      if (!outlines.length) continue;
-      const total = Math.max(1, bounds.max.x - bounds.min.x);
-      const glyphH = Math.max(1, bounds.max.y - bounds.min.y);
-      for (const { shapes, x } of outlines) {
-        const transformGlyphPoint = (p: THREE.Vector2) => {
-          const nx = ((x + p.x - bounds.min.x) / total) * 2 - 1;
-          const v = (p.y - bounds.min.y) / glyphH;
-          return fitWavyPoint(nx, v, row, lines.length, c);
-        };
-        const glyphPaths = shapes.map((shape) =>
+        const center = left + cellWidth / 2;
+        // Native font advance centers each glyph in its own cell. Wider glyphs
+        // meet the cell wall; fitting the whole word's ink produces a different model.
+        const fontScale = (cellWidth * 0.01368 * c.glyphWidth) / 100;
+        const paths = font.generateShapes(ch, 100).flatMap((shape) =>
           [shape, ...shape.holes].map((path, index) => {
-            // Split straight segments too: circular warping is nonlinear even on a straight glyph edge.
-            const raw = path.getPoints(detail);
-            const dense: THREE.Vector2[] = [];
-            for (let i = 0; i < raw.length - 1; i++) {
-              const count = Math.max(
-                1,
-                Math.ceil(
-                  raw[i].distanceTo(raw[i + 1]) /
-                    (c.quality === "Fine" ? 2 : c.quality === "Fast" ? 8 : 4),
-                ),
+            const points = path
+              .getPoints(detail)
+              .map(
+                (p) =>
+                  [center + (p.x - glyph.ha / 20) * fontScale, p.y] as [
+                    number,
+                    number,
+                  ],
               );
-              for (let j = 0; j < count; j++)
-                dense.push(raw[i].clone().lerp(raw[i + 1], j / count));
-            }
-            dense.push(raw[raw.length - 1]);
-            const pts = dense.map(transformGlyphPoint);
             const area = THREE.ShapeUtils.area(
-              pts.map((p) => new THREE.Vector2(...p)),
+              points.map((p) => new THREE.Vector2(...p)),
             );
             if ((index === 0 && area < 0) || (index > 0 && area > 0))
-              pts.reverse();
-            return pts;
+              points.reverse();
+            return points;
           }),
         );
-        for (const paths of glyphPaths) {
-          rowGlyphs.push(section(new api.CrossSection(paths, "NonZero")));
+        const source = section(new api.CrossSection(paths, "NonZero"));
+        const gap = c.letterSpacing - 0.15;
+        for (let i = 0; i < slices; i++) {
+          const cellLeft = left + gap / 2;
+          const cellRight = left + cellWidth - gap / 2;
+          const x0 =
+            i === 0
+              ? cellLeft
+              : Math.max(left + (i * cellWidth) / slices, cellLeft);
+          const x1 =
+            i === slices - 1
+              ? cellRight
+              : Math.min(left + ((i + 1) * cellWidth) / slices, cellRight);
+          if (x1 <= x0) continue;
+          // Neighbouring strips overlap by 0.006 mm, as measured in the reference.
+          const clip = section(
+            new api.CrossSection([
+              [
+                [x0 - 0.003, -500],
+                [x1 + 0.003, -500],
+                [x1 + 0.003, 500],
+                [x0 - 0.003, 500],
+              ],
+            ]),
+          );
+          const strip = section(source.intersect(clip));
+          if (strip.isEmpty()) continue;
+          const sampleX = (x0 + x1) / 2;
+          rowSlices.push(
+            section(
+              strip.warp((p) => {
+                p[1] = warpWavyColumn(sampleX, p[1], row, lines.length, c)[1];
+              }),
+            ),
+          );
         }
+        left += advance;
       }
-      if (rowGlyphs.length) {
-        const rowSection = section(api.CrossSection.union(rowGlyphs));
-        rowSections[row] = rowSection;
-      }
+      if (rowSlices.length)
+        rowSections.push(section(api.CrossSection.union(rowSlices)));
     }
     const circle = section(
-      api.CrossSection.circle(c.diameter / 2, detail * 12),
+      api.CrossSection.circle(c.diameter / 2, circleSegments),
     );
     const glyphs = rowSections.filter((row): row is CrossSection => !!row);
     if (!glyphs.length) throw new Error("Không có đường nét chữ để dựng.");
-    const textSection = section(
+    const rawTextSection = section(
       section(api.CrossSection.union(glyphs)).intersect(circle),
     );
-    let text = keep(textSection.extrude(c.textHeight));
-    const round = Math.min(c.edgeRound, c.textHeight * 0.45);
-    if (round > 0.001) {
-      const inset = section(textSection.offset(-round, "Round", 2, detail * 4));
-      if (!inset.isEmpty()) {
-        const path = new THREE.ShapePath();
-        for (const ring of inset.toPolygons()) {
-          const points = [...ring].reverse();
-          path.moveTo(...points[0]);
-          for (const p of points.slice(1)) path.lineTo(...p);
-          path.currentPath!.closePath();
-        }
-        const geometry = new THREE.ExtrudeGeometry(path.toShapes(false), {
-          depth: c.textHeight - 2 * round,
-          steps: 1,
-          bevelEnabled: true,
-          bevelSize: round,
-          bevelThickness: round,
-          bevelSegments: detail,
-          curveSegments: detail,
-        });
-        geometry.translate(0, 0, round);
-        const mesh = new api.Mesh({
-          numProp: 3,
-          vertProperties: new Float32Array(
-            geometry.getAttribute("position").array,
-          ),
-          triVerts: Uint32Array.from(
-            { length: geometry.getAttribute("position").count },
-            (_, i) => i,
-          ),
-        });
-        mesh.merge();
-        const rounded = keep(new api.Manifold(mesh));
-        geometry.dispose();
-        text = keep(
-          keep(textSection.extrude(c.textHeight - round)).add(rounded),
-        );
-      }
-    }
-    // Bevel offsets can overshoot the circular outline at sampled corners.
-    text = keep(text.intersect(keep(circle.extrude(c.textHeight))));
+    // Strip intersections can leave numerical specks much smaller than an extrusion line.
+    const islands = rawTextSection.decompose().map(section);
+    const textSection = section(
+      api.CrossSection.union(islands.filter((s) => s.area() > 0.0001)),
+    );
     const embed = Math.min(c.textEmbed, Math.max(0, c.baseDepth - 0.2));
-    text = keep(text.translate([0, 0, c.baseDepth - embed]));
+    const round = Math.min(c.edgeRound, c.textHeight * 0.45);
+    const textBottom = c.baseDepth - embed;
+    let text = keep(textSection.extrude(c.textHeight + embed - round));
+    if (round > 0.001) {
+      // The supplied model uses overlapping offset layers, rather than a smooth
+      // Three.js bevel. Sample the circular round at each layer's midpoint.
+      const levels = c.quality === "Fine" ? 10 : c.quality === "Fast" ? 3 : 5;
+      const step = round / levels;
+      const layers = [text];
+      for (let i = 0; i < levels; i++) {
+        const t = (i + 0.5) / levels;
+        const inset = round * (1 - Math.sqrt(1 - t * t));
+        const contour = section(textSection.offset(-inset, "Miter", 2));
+        if (!contour.isEmpty())
+          layers.push(
+            keep(
+              keep(contour.extrude(step + 0.005)).translate([
+                0,
+                0,
+                c.textHeight + embed - round + i * step,
+              ]),
+            ),
+          );
+      }
+      text = keep(api.Manifold.union(layers));
+    }
+    text = keep(text.translate([0, 0, textBottom]));
     const output: PartMesh[] = [];
     const outputPart = (
       name: string,
