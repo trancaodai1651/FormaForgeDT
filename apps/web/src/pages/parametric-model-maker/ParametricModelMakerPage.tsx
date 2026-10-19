@@ -1256,6 +1256,9 @@ export function ParametricModelMakerPage() {
                                       p.key !== "cornerRadius" ||
                                       values.smoothEdges) &&
                                     (project.kind !== "wavy" ||
+                                      p.key !== "keychainThickness" ||
+                                      !values.keychainMatchBase) &&
+                                    (project.kind !== "wavy" ||
                                       group !== "Móc khóa" ||
                                       p.key === "keychainEnabled" ||
                                       values.keychainEnabled),

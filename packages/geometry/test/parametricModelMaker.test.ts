@@ -479,7 +479,7 @@ describe("wavy preview and export geometry", () => {
     const components = base.decompose();
     expect(components.length).toBe(1);
     expect(meshBounds([hooked[0]]).max[1]).toBeCloseTo(28.8, 3);
-    expect(meshBounds([hooked[0]]).max[2]).toBeCloseTo(2.5, 4);
+    expect(meshBounds([hooked[0]]).max[2]).toBeCloseTo(config.baseDepth, 4);
     const section = api.CrossSection.circle(2.5, 64).translate([0, 24.4]);
     const cutter = section.extrude(7);
     const obstruction = base.intersect(cutter);
@@ -509,7 +509,8 @@ describe("wavy preview and export geometry", () => {
     ).toMatchObject({
       keychainEnabled: true,
       keychainHole: 5.2,
-      keychainThickness: 2.5,
+      keychainThickness: 1,
+      keychainMatchBase: true,
       smoothEdges: true,
     });
     expect(hooked[0].color).toBe(DEFAULT_WAVY.baseColor);
@@ -533,6 +534,22 @@ describe("wavy preview and export geometry", () => {
       components = joined.decompose();
     expect(components.length).toBe(1);
     expect(ring.boundingBox().max[0]).toBeCloseTo(28.8, 3);
+    expect(ring.boundingBox().max[2]).toBeCloseTo(DEFAULT_WAVY.baseDepth, 5);
+    // Older projects used 2.5 mm: automatic thickness must follow even a thin base.
+    const migrated = configFromValues({
+      keychainEnabled: true,
+      keychainThickness: 2.5,
+      baseDepth: 0.6,
+    });
+    const thin = wavyKeyring(api, plate, migrated)!;
+    expect(thin.boundingBox().max[2]).toBeCloseTo(0.6, 5);
+    const manual = wavyKeyring(api, plate, {
+      ...migrated,
+      keychainMatchBase: false,
+    })!;
+    expect(manual.boundingBox().max[2]).toBeCloseTo(2.5, 5);
+    thin.delete();
+    manual.delete();
     expect(() =>
       wavyKeyring(api, plate, {
         ...DEFAULT_WAVY,

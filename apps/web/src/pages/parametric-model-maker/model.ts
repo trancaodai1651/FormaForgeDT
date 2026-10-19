@@ -59,6 +59,7 @@ export type WavyConfig = {
   keychainOffset: number;
   keychainHole: number;
   keychainThickness: number;
+  keychainMatchBase: boolean;
   quality: string;
   showPart: string;
   baseColor: string;
@@ -94,7 +95,8 @@ export const DEFAULT_WAVY: WavyConfig = {
   keychainAngle: 90,
   keychainOffset: 0,
   keychainHole: 5.2,
-  keychainThickness: 2.5,
+  keychainThickness: 1,
+  keychainMatchBase: true,
   quality: "Balanced",
   showPart: "Both",
   baseColor: "#FFFFFF",
@@ -283,7 +285,16 @@ export const WAVY_PARAMETERS: Parameter[] = [
     reference: false,
   },
   {
-    ...numeric("keychainThickness", "Độ dày móc (mm)", "Móc khóa", 1, 6, 0.1),
+    key: "keychainMatchBase",
+    label: "Độ dày móc bằng nền",
+    group: "Móc khóa",
+    type: "boolean",
+    initial: true,
+    reference: false,
+    description: "Tự theo độ dày nền trắng, không nhô cao hơn nền.",
+  },
+  {
+    ...numeric("keychainThickness", "Độ dày móc (mm)", "Móc khóa", 0.1, 6, 0.1),
     reference: false,
   },
   {

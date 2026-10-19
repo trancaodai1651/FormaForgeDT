@@ -31,7 +31,9 @@ export function wavyKeyring(
       throw new Error(
         "Móc đang quá xa nền. Hãy giảm Dịch móc dọc mép để cầu nối bám vào nền.",
       );
-    return ctx.track(tab.subtract(bore)).extrude(c.keychainThickness);
+    return ctx
+      .track(tab.subtract(bore))
+      .extrude(c.keychainMatchBase ? c.baseDepth : c.keychainThickness);
   } finally {
     ctx.cleanup();
   }
