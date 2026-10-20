@@ -75,7 +75,7 @@ jobs:
           test -n "$app"
           binary="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
           lipo -archs "$app/Contents/MacOS/$binary"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/$binary"
+          lipo "$app/Contents/MacOS/$binary" -verify_arch arm64 x86_64
           mkdir -p release-assets
           cp "$artifact" 'release-assets/FormaForgeDT-macOS-universal.dmg'
       - uses: actions/upload-artifact@v4

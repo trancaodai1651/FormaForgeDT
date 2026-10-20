@@ -59,7 +59,9 @@ in-app browser, including a 390 × 844 phone and 1024 × 768 tablet viewport.
 - Release v0.1.16 built both platforms, but its macOS collection step failed
   because Tauri removes the intermediate `.app` after DMG packaging. The release
   workflow now mounts the finished DMG read-only and verifies both arm64 and
-  x86_64 on the packaged executable. The corrected release is v0.1.17.
+  x86_64 on the packaged executable. The v0.1.17 run mounted the DMG and printed
+  `x86_64 arm64`; its final `lipo -verify_arch` call needed the input filename
+  before the variadic architecture list. The corrected release is v0.1.18.
 
 These checks establish working native workflows. They do not establish identical
 provider meshes/artwork, a hardware camera session, physical print fit, or provider
