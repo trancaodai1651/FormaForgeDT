@@ -65,13 +65,18 @@ jobs:
       - name: Collect macOS installer
         if: runner.os == 'macOS'
         run: |
-          app="$(find apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
-          test -n "$app"
-          binary="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/$binary"
-          mkdir -p release-assets
           artifact="$(find apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' -print -quit)"
           test -n "$artifact"
+          verify_mount="$RUNNER_TEMP/formaforge-dmg-verify"
+          mkdir -p "$verify_mount"
+          hdiutil attach "$artifact" -readonly -nobrowse -mountpoint "$verify_mount"
+          trap 'hdiutil detach "$verify_mount"' EXIT
+          app="$(find "$verify_mount" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$app"
+          binary="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          lipo -archs "$app/Contents/MacOS/$binary"
+          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/$binary"
+          mkdir -p release-assets
           cp "$artifact" 'release-assets/FormaForgeDT-macOS-universal.dmg'
       - uses: actions/upload-artifact@v4
         with:

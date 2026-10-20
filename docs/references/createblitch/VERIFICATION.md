@@ -3,8 +3,8 @@
 ## Automated and build checks
 
 - `corepack pnpm typecheck`: passed across types, geometry, web and API.
-- `corepack pnpm test`: 12 files passed, 225 tests passed and one pre-existing skip;
-  the two subsequent circular-QR/magnet dimension regressions also passed.
+- Final GitHub CI `39363545815`: 13 files passed, 230 tests passed and one
+  pre-existing skip; typecheck, web build and API build also passed.
 - Twelve separate MX caps and the three existing clicker defaults passed. Two
   CSP adapter regressions pass, including a real Manifold process started with
   `--disallow-code-generation-from-strings`.
@@ -54,6 +54,12 @@ in-app browser, including a 390 × 844 phone and 1024 × 768 tablet viewport.
   under that CSP, with JavaScript string evaluation still blocked.
 - `corepack pnpm tauri:build --bundles nsis --ci` completed a Windows x64 NSIS
   installer. The final tagged CI rebuild includes the static-binding adapter.
+- Live Pages builds and exports a real 3MF with two meshes, 39,670 triangles,
+  independent blue/white materials and `Metadata/product-studio.json`.
+- Release v0.1.16 built both platforms, but its macOS collection step failed
+  because Tauri removes the intermediate `.app` after DMG packaging. The release
+  workflow now mounts the finished DMG read-only and verifies both arm64 and
+  x86_64 on the packaged executable. The corrected release is v0.1.17.
 
 These checks establish working native workflows. They do not establish identical
 provider meshes/artwork, a hardware camera session, physical print fit, or provider
