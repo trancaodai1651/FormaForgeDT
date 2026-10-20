@@ -44,7 +44,7 @@ export function registerMakerFont(id: string, data: Uint8Array) {
 export function makerFontName(id: string) {
   return fontNames.get(id);
 }
-async function loadFont(id: string, base: string) {
+export async function loadMakerFont(id: string, base: string) {
   if (!fonts.has(id))
     fonts.set(
       id,
@@ -73,7 +73,7 @@ export async function buildWavy(
       m.setup();
       return m;
     })));
-  const font = await loadFont(c.font, base);
+  const font = await loadMakerFont(c.font, base);
   const solids: Manifold[] = [];
   const sections: CrossSection[] = [];
   const keep = (s: Manifold) => {

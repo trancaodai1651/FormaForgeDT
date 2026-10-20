@@ -65,6 +65,10 @@ jobs:
       - name: Collect macOS installer
         if: runner.os == 'macOS'
         run: |
+          app="$(find apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$app"
+          binary="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/$binary"
           mkdir -p release-assets
           artifact="$(find apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' -print -quit)"
           test -n "$artifact"

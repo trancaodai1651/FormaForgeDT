@@ -8,6 +8,7 @@ type ViewerHandle = {
   view: (preset: string) => void;
   floor: (grid: boolean, width: number, depth: number) => void;
   wire: (enabled: boolean) => void;
+  axes: (enabled: boolean) => void;
 };
 export function ModelViewer({
   parts,
@@ -16,6 +17,10 @@ export function ModelViewer({
   wire,
   onSelect,
   orthographic = false,
+  language = "vi",
+  axes = false,
+  responsiveFit = false,
+  onPick,
 }: {
   parts: PartMesh[];
   grid: boolean;
@@ -23,10 +28,16 @@ export function ModelViewer({
   wire: boolean;
   onSelect: (role: string) => void;
   orthographic?: boolean;
+  language?: "vi" | "en";
+  axes?: boolean;
+  responsiveFit?: boolean;
+  onPick?: (point: [number, number, number]) => void;
 }) {
   const host = useRef<HTMLDivElement>(null),
     handle = useRef<ViewerHandle | null>(null),
     select = useRef(onSelect);
+  const pick = useRef(onPick);
+  pick.current = onPick;
   select.current = onSelect;
   useEffect(() => {
     if (!host.current) return;
@@ -74,6 +85,9 @@ export function ModelViewer({
     const meshes = new THREE.Group(),
       plate = new THREE.Group();
     scene.add(meshes, plate);
+    const axisHelper = new THREE.AxesHelper(25);
+    axisHelper.visible = false;
+    scene.add(axisHelper);
     let framed = false;
     let currentBounds = new THREE.Box3(
       new THREE.Vector3(-20, -20, 0),
@@ -92,7 +106,11 @@ export function ModelViewer({
     const frame = (preset: string) => {
       const center = currentBounds.getCenter(new THREE.Vector3());
       const size = currentBounds.getSize(new THREE.Vector3());
-      const distance = Math.max(size.length() * 1.5, 25);
+      const distance =
+        Math.max(size.length() * 1.5, 25) /
+        (responsiveFit
+          ? Math.min(1, root.clientWidth / Math.max(1, root.clientHeight))
+          : 1);
       if (camera instanceof THREE.OrthographicCamera) {
         const aspect = root.clientWidth / Math.max(1, root.clientHeight);
         viewHeight =
@@ -144,6 +162,9 @@ export function ModelViewer({
         }
       },
       view: frame,
+      axes(enabled) {
+        axisHelper.visible = enabled;
+      },
       floor(show, width, depth) {
         dispose(plate);
         if (!show) return;
@@ -161,8 +182,21 @@ export function ModelViewer({
         });
       },
     };
+    let lastAspect = root.clientWidth / Math.max(1, root.clientHeight);
     const resize = new ResizeObserver(() => {
       const { width, height } = root.getBoundingClientRect();
+      if (width < 2 || height < 2) return;
+      const nextAspect = width / height;
+      if (responsiveFit && framed && lastAspect > 0) {
+        const ratio = Math.min(1, lastAspect) / Math.min(1, nextAspect);
+        if (camera instanceof THREE.OrthographicCamera) viewHeight *= ratio;
+        else
+          camera.position
+            .sub(controls.target)
+            .multiplyScalar(ratio)
+            .add(controls.target);
+      }
+      lastAspect = nextAspect;
       renderer.setSize(Math.max(1, width), Math.max(1, height), false);
       projection();
     });
@@ -183,7 +217,10 @@ export function ModelViewer({
         camera,
       );
       const hit = ray.intersectObjects(meshes.children)[0];
-      if (hit) select.current(String(hit.object.userData.role));
+      if (hit) {
+        select.current(String(hit.object.userData.role));
+        pick.current?.([hit.point.x, hit.point.y, hit.point.z]);
+      }
     };
     renderer.domElement.addEventListener("pointerdown", pointerDown);
     renderer.domElement.addEventListener("pointerup", pointerUp);
@@ -197,11 +234,12 @@ export function ModelViewer({
       controls.dispose();
       dispose(meshes);
       dispose(plate);
+      axisHelper.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       handle.current = null;
     };
-  }, [orthographic]);
+  }, [orthographic, responsiveFit]);
   useEffect(() => {
     handle.current?.setParts(parts);
   }, [parts, orthographic]);
@@ -211,18 +249,23 @@ export function ModelViewer({
   useEffect(() => {
     handle.current?.wire(wire);
   }, [wire, parts, orthographic]);
+  useEffect(() => {
+    handle.current?.axes(axes);
+  }, [axes, orthographic]);
   return (
     <div className="pmm-viewer-wrap">
       <div
         ref={host}
         className="pmm-canvas"
-        aria-label="Khung xem mô hình 3D"
+        aria-label={
+          language === "vi" ? "Khung xem mô hình 3D" : "3D model preview"
+        }
       />
       <div className="pmm-camera-controls">
         {[
-          ["iso", "Phối cảnh"],
-          ["top", "Trên"],
-          ["front", "Trước"],
+          ["iso", language === "vi" ? "Phối cảnh" : "Isometric"],
+          ["top", language === "vi" ? "Trên" : "Top"],
+          ["front", language === "vi" ? "Trước" : "Front"],
         ].map(([key, label]) => (
           <button key={key} onClick={() => handle.current?.view(key)}>
             {label}
@@ -230,13 +273,19 @@ export function ModelViewer({
         ))}
         <button
           onClick={() => handle.current?.view("iso")}
-          title="Căn mô hình vào màn hình"
+          title={
+            language === "vi"
+              ? "Căn mô hình vào màn hình"
+              : "Fit model to screen"
+          }
         >
-          Vừa khung
+          {language === "vi" ? "Vừa khung" : "Fit"}
         </button>
       </div>
       <p className="pmm-orbit-hint">
-        Kéo để xoay · chuột phải để di chuyển · cuộn để phóng to
+        {language === "vi"
+          ? "Kéo để xoay · chuột phải để di chuyển · cuộn để phóng to"
+          : "Drag to orbit · right drag to pan · scroll to zoom"}
       </p>
     </div>
   );

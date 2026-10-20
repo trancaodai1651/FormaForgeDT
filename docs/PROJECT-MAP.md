@@ -9,6 +9,7 @@
 | Clicker tools | `/admin/clicker`, `/admin/flex-*` | `apps/web/src/pages/clicker` | Image, blocks, keychain, organizer |
 | Flex Lamp | `/admin/flex-lamp` | `apps/web/src/pages/flex-lamp` | Lamp geometry workspace |
 | Paramacraft | `/paramacraft*`, `/admin/paramacraft` | `apps/web/src/pages/paramacraft` | Parametric editor |
+| Product Studio | `/product-studio`, `/admin/product-studio` | `apps/web/src/pages/product-studio` | Bilingual personalised product generators, image/QR tools, batch plates and printable exports |
 | Parametric Model Maker | `/parametric-model-maker`, `/admin/parametric-model-maker` | `apps/web/src/pages/parametric-model-maker` | Wavy text, OpenSCAD, fonts, libraries and printable exports |
 | Price Reader | `/price-reader` | `apps/web/src/pages/price-reader` | Customer price reader |
 | Hunyuan 3D | `/admin/hunyuan-3d` | `apps/web/src/pages/hunyuan-3d` | Desktop-only generation gate |

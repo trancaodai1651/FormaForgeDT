@@ -7,11 +7,13 @@ type ToolCard = {
   to: string;
   label: string;
   description: string;
+  descriptionVi?: string;
   mark: string;
   icon: typeof Box;
 };
 
 const tools: ToolCard[] = [
+  { to: '/product-studio', label: 'Product Studio', description: 'Design personalised products, QR codes, moulds, trays and boxes in English or Vietnamese.', descriptionVi: 'Thiết kế sản phẩm cá nhân hóa, QR, khuôn, khay và hộp bằng tiếng Việt hoặc tiếng Anh.', mark: 'PS', icon: Shapes },
   { to: '/Clicker-Generator', label: 'Clicker Generator', description: 'Prepare images and create printable clicker models.', mark: 'CG', icon: WandSparkles },
   { to: '/clicker', label: 'Clicker Lab', description: 'Turn images, SVG, icons and text into printable models.', mark: 'C', icon: WandSparkles },
   { to: '/mekey-studio', label: 'MeKey Studio', description: 'Build custom keychain text and export ready geometry.', mark: 'MK', icon: KeyRound },
@@ -40,7 +42,7 @@ export function PublicToolsPage() {
       <div className="public-tools-header-actions"><Link className="public-tools-download-link" to="/downloads"><ArrowRight size={13} /> {isVietnamese ? 'Tải ứng dụng' : 'Download apps'}</Link><span className="public-tools-status"><Sparkles size={13} /> {isVietnamese ? 'Mở cho mọi người' : 'Open to everyone'}</span><div className="public-tools-language"><button className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>EN</button><span>/</span><button className={language === 'vi' ? 'active' : ''} onClick={() => setLanguage('vi')}>VI</button></div></div>
     </header>
     <section className="public-tools-intro"><div><span className="public-tools-eyebrow">{isVietnamese ? 'CÔNG CỤ SÁNG TẠO 3D' : '3D CREATION TOOLS'}</span><h1>{isVietnamese ? <>Tạo tự do.<br /><em>Không cần tài khoản.</em></> : <>Make freely.<br /><em>No account required.</em></>}</h1></div><p>{isVietnamese ? 'Chọn một workspace để bắt đầu thiết kế, xem trước và xuất file trực tiếp trên trình duyệt.' : 'Choose a workspace to design, preview and export directly in your browser.'}</p></section>
-    <section className="public-tools-grid" aria-label={isVietnamese ? 'Danh sách công cụ' : 'Available tools'}>{tools.map(({ to, label, description, mark, icon: Icon }) => <Link className="public-tool-card" to={to} key={to}><span className="public-tool-card-mark"><span>{mark}</span><Icon size={15} /></span><span className="public-tool-card-copy"><strong>{label}</strong><small>{description}</small></span><ArrowRight className="public-tool-card-arrow" size={17} /></Link>)}</section>
+    <section className="public-tools-grid" aria-label={isVietnamese ? 'Danh sách công cụ' : 'Available tools'}>{tools.map(({ to, label, description, descriptionVi, mark, icon: Icon }) => <Link className="public-tool-card" to={to} key={to}><span className="public-tool-card-mark"><span>{mark}</span><Icon size={15} /></span><span className="public-tool-card-copy"><strong>{label}</strong><small>{isVietnamese && descriptionVi ? descriptionVi : description}</small></span><ArrowRight className="public-tool-card-arrow" size={17} /></Link>)}</section>
     <footer className="public-tools-footer"><span>FORMAFORGE / LOCAL-FIRST WORKSPACES</span><span>{tools.length} tools · {isVietnamese ? 'chạy cục bộ trên trình duyệt' : 'runs locally in your browser'}</span></footer>
   </main>;
 }

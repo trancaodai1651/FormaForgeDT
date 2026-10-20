@@ -76,7 +76,7 @@ export function buildClicker(
   const fatImageArea = params.colorBleed > 0.001 ? ctx.grow(imageArea, params.colorBleed) : imageArea;
 
   const { applied, pinched } = isFlatKeychain ? { applied: [], pinched: false }
-    : resolveSwitches((params.switches?.length ? params.switches : [{ x: 0, y: 0, rotation: 0 }]).slice(0, 3), plate.bounds(), switchClear, socketDim);
+    : resolveSwitches((params.switches?.length ? params.switches : [{ x: 0, y: 0, rotation: 0 }]).slice(0, Math.max(1, Math.min(12, params.maxSwitches ?? 3))), plate.bounds(), switchClear, socketDim);
 
   let stemSized = stem;
   if (!isFlatKeychain && Math.abs(params.stemTolerance ?? 0) > 0.001) {

@@ -23,6 +23,11 @@ import { ReferenceClickerPage } from './pages/clicker/ReferenceClickerPage';
 import { BlockCarsPage } from './pages/block-cars';
 
 const LazyModelMaker = lazy(() => import('./pages/parametric-model-maker').then(module => ({ default: module.ParametricModelMakerPage })));
+const LazyProductStudio = lazy(() => import('./pages/product-studio').then(module => ({ default: module.ProductStudioPage })));
+function ProductStudioRoute() {
+  const { language } = useI18n();
+  return <Suspense fallback={<p role="status" style={{ padding: 32 }}>{language === 'vi' ? 'Đang tải Product Studio…' : 'Loading Product Studio…'}</p>}><LazyProductStudio /></Suspense>;
+}
 function ModelMakerRoute() {
   return <Suspense fallback={<p role="status" style={{ padding: 32 }}>Đang tải Model Maker…</p>}><LazyModelMaker /></Suspense>;
 }
@@ -79,6 +84,8 @@ function AppFrame() {
       <Route path="/paramacraft/viewer/:presetId" element={<ParamacraftPage />} />
       <Route path="/paramacraft" element={<ParamacraftPage />} />
       <Route path="/parametric-model-maker" element={<ModelMakerRoute />} />
+      <Route path="/product-studio" element={<ProductStudioRoute />} />
+      <Route path="/admin/product-studio" element={<ProductStudioRoute />} />
       <Route path="/admin/parametric-model-maker" element={<ModelMakerRoute />} />
       <Route path="/admin/paramacraft" element={<ParamacraftPage />} />
       <Route path="/module-studio" element={<ModuleLampStudioPage />} />

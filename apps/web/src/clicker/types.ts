@@ -219,6 +219,8 @@ export interface BuildParams {
   travel: number;
   floorThickness: number;
   switches: SwitchPlacement[];
+  /** Opt-in larger switch arrays for Product Studio. Existing Clicker tools retain the 3-switch default. */
+  maxSwitches?: number;
   keychain: KeychainParams;
   baseFilamentRgb: RGB;
   /** Stable dominant image filament, independent of per-component recolors. */
